@@ -1,9 +1,9 @@
-name: PostgreSQL service example
+name: CI
 on: push
 
 jobs:
   # Label of the container job
-  build:
+  test:
     # Containers must run in Linux based operating systems
     runs-on: ubuntu-latest
     # Docker Hub image that `container-job` executes in
@@ -54,14 +54,16 @@ jobs:
         uses: olafurpg/setup-scala@v10
         with:
           java-version: adopt@1.11
-      - name: Install apt deps
-        run: | 
-          curl -fsSL https://get.docker.com -o get-docker.sh
-          sh get-docker.sh
-          docker login -p "${{ secrets.DOCKER_LOGIN_PASSWORD }}" -u rohansircar
-      - name: Migrate
-        run: csbt flyway/flywayMigrate
+#       - name: Install docker
+#         run: | 
+#           curl -fsSL https://get.docker.com -o get-docker.sh
+#           sh get-docker.sh
+#          docker login -p "${{ secrets.DOCKER_LOGIN_PASSWORD }}" -u rohansircar
+#       - name: Migrate
+#         run: csbt flyway/flywayMigrate
       - name: Run Tests
-        run: csbt test
-      - name: Package
-        run: csbt docker:publish
+        run: |
+          csbt flyway/flywayMigrate
+          csbt test
+#       - name: Package
+#         run: csbt docker:publish
