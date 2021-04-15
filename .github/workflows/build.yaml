@@ -22,7 +22,7 @@ jobs:
       # Label used to access the service container
       postgres:
         # Docker Hub image
-        image: postgres
+        image: postgres:12
         # Provide the password for postgres
         env:
           POSTGRES_PASSWORD: postgres
@@ -49,7 +49,7 @@ jobs:
           java-version: adopt@1.11
       - name: Install apt deps
         run: | 
-          apt-get install -y docker*
+          apt-get install -y docker.io
       - name: Migrate
         run: csbt flyway/flywayMigrate
       - name: Run Tests
