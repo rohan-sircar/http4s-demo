@@ -47,9 +47,10 @@ jobs:
         uses: actions/cache@v2
         id: cache-sbt-dependencies
         with:
-          path: | 
+          path: |
+            ~/.cache
             ~/.m2
-            ~/.ivy2/cache
+            ~/.ivy2
             ~/.sbt
           key: ${{ runner.os }}-sbt2-${{ hashFiles('**/build.sbt') }}
           restore-keys: |
@@ -67,6 +68,11 @@ jobs:
 #         run: csbt flyway/flywayMigrate
       - name: Run Tests
         run: |
+          rm -rf "$HOME/.ivy2/local" || true
+          find $HOME/Library/Caches/Coursier/v1        -name "ivydata-*.properties" -delete || true
+          find $HOME/.ivy2/cache                       -name "ivydata-*.properties" -delete || true
+          find $HOME/.cache/coursier/v1                -name "ivydata-*.properties" -delete || true
+          find $HOME/.sbt                              -name "*.lock"               -delete || true
           csbt flyway/flywayMigrate
           csbt test
 #       - name: Package
