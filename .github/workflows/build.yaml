@@ -58,7 +58,7 @@ jobs:
         run: | 
           curl -fsSL https://get.docker.com -o get-docker.sh
           sh get-docker.sh
-          docker login -p ${{ secrets.DOCKER_LOGIN_PASSWORD }} -u rohansircar
+          docker login -p "${{ secrets.DOCKER_LOGIN_PASSWORD }}" -u rohansircar
       - name: Migrate
         run: csbt flyway/flywayMigrate
       - name: Run Tests
