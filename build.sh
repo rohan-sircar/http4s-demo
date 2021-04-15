@@ -16,7 +16,8 @@ echo "Container id is $cid"
 sleep 5s
 # ./wait-for-it.sh localhost:5434 -s -t 300 -- echo "db started"
 sbtn flyway/flywayMigrate
-sbtn docker:publishLocal
+# needs docker login
+sbtn docker:publish
 sbtn shutdown
 
 docker stop $cid

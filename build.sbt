@@ -45,11 +45,8 @@ lazy val root = (project in file("."))
     name := "http4s-demo",
     version := "0.0.1-SNAPSHOT",
     version in Docker := "0.0.1",
-    dockerExposedPorts ++= Seq(9000, 9001),
     dockerBaseImage := "openjdk:11-slim",
     dockerUsername := Some("rohansircar"),
-    // dockerVe
-    // dockerRepository := ""
     scalacOptions ++= Seq(
       "-encoding",
       "UTF-8",
