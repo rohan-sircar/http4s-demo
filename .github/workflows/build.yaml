@@ -47,6 +47,9 @@ jobs:
         uses: olafurpg/setup-scala@v10
         with:
           java-version: adopt@1.11
+      - name: Install apt deps
+        run: | 
+          apt-get install -y docker*
       - name: Migrate
         run: csbt flyway/flywayMigrate
       - name: Run Tests
