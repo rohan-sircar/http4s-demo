@@ -6,6 +6,8 @@ val MunitCatsEffectVersion = "0.13.0"
 val FlywayVersion = "7.5.3"
 scalaVersion in ThisBuild := "2.13.4"
 
+resolvers += "jitpack" at "https://jitpack.io"
+
 import com.github.tototoshi.sbt.slick.CodegenPlugin.autoImport.{
   slickCodegenDatabasePassword,
   slickCodegenDatabaseUrl,
@@ -15,12 +17,15 @@ import com.github.tototoshi.sbt.slick.CodegenPlugin.autoImport.{
 import _root_.slick.codegen.SourceCodeGenerator
 import _root_.slick.{model => m}
 
-lazy val databaseUrl = sys.env.getOrElse(
-  "DB_DEFAULT_URL",
-  "jdbc:postgresql://localhost:5432/test_db"
-)
-lazy val databaseUser = sys.env.getOrElse("DB_DEFAULT_USER", "test_user")
-lazy val databasePassword = sys.env.getOrElse("DB_DEFAULT_PASSWORD", "password")
+lazy val codegenDbHost = sys.env.getOrElse("CODEGEN_DB_HOST", "localhost")
+lazy val codegenDbPort = sys.env.getOrElse("CODEGEN_DB_PORT", "5432")
+lazy val codegenDbName = sys.env.getOrElse("CODEGEN_DB_NAME", "test_db")
+
+lazy val databaseUrl =
+  s"jdbc:postgresql://$codegenDbHost:$codegenDbPort/$codegenDbName"
+
+lazy val databaseUser = sys.env.getOrElse("CODEGEN_DB_USER", "test_user")
+lazy val databasePassword = sys.env.getOrElse("CODEGEN_DB_PASSWORD", "password")
 
 lazy val flyway = (project in file("modules/flyway"))
   .enablePlugins(FlywayPlugin)
@@ -34,11 +39,17 @@ lazy val flyway = (project in file("modules/flyway"))
   )
 
 lazy val root = (project in file("."))
-  .enablePlugins(CodegenPlugin)
+  .enablePlugins(CodegenPlugin, DockerPlugin, JavaAppPackaging)
   .settings(
     organization := "wow.doge",
     name := "http4s-demo",
     version := "0.0.1-SNAPSHOT",
+    version in Docker := "0.0.1",
+    dockerExposedPorts ++= Seq(9000, 9001),
+    dockerBaseImage := "openjdk:11-slim",
+    dockerUsername := Some("rohansircar"),
+    // dockerVe
+    // dockerRepository := ""
     scalacOptions ++= Seq(
       "-encoding",
       "UTF-8",
@@ -70,12 +81,13 @@ lazy val root = (project in file("."))
       "org.typelevel"   %% "munit-cats-effect-2" % MunitCatsEffectVersion % Test,
       "ch.qos.logback"  %  "logback-classic"     % LogbackVersion,
       "org.scalameta"   %% "svm-subs"            % "20.2.0",
-      "co.fs2" %% "fs2-reactive-streams" % "2.5.0"
+      "co.fs2" %% "fs2-reactive-streams" % "2.5.0",
     ),
     //format: on
     libraryDependencies ++= Seq(
       "io.monix" %% "monix" % "3.3.0",
-      "io.monix" %% "monix-bio" % "1.1.0",
+      // "io.monix" %% "monix-bio" % "1.1.0",
+      "com.github.monix" % "monix-bio" % "0a2ad29275",
       "io.circe" %% "circe-core" % "0.13.0",
       "io.circe" %% "circe-generic" % "0.13.0",
       "com.softwaremill.sttp.client" %% "core" % "2.2.9",
@@ -103,7 +115,14 @@ lazy val root = (project in file("."))
       "com.github.pureconfig" %% "pureconfig" % "0.14.0",
       "io.scalaland" %% "chimney" % "0.6.0",
       "com.rms.miu" %% "slick-cats" % "0.10.4",
-      "com.kubukoz" %% "slick-effect" % "0.3.0"
+      "com.kubukoz" %% "slick-effect" % "0.3.0",
+      "io.circe" %% "circe-fs2" % "0.13.0",
+      // "org.scalameta" %% "munit" % "0.7.23" % Test,
+      "de.lolhens" %% "munit-tagless-final" % "0.0.1" % Test,
+      "org.scalameta" %% "munit-scalacheck" % "0.7.23" % Test,
+      "org.scalacheck" %% "scalacheck" % "1.15.3" % Test,
+      "com.dimafeng" %% "testcontainers-scala-munit" % "0.39.3" % Test,
+      "com.dimafeng" %% "testcontainers-scala-postgresql" % "0.39.3" % Test
     ),
     addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"),
     addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
@@ -162,7 +181,7 @@ lazy val root = (project in file("."))
           override def Column = new Column(_) {
             override def rawType = model.tpe match {
               case "java.sql.Timestamp" =>
-                "java.time.Instant" // kill j.s.Timestamp
+                "java.time.LocalDateTime" // kill j.s.Timestamp
               case _ =>
                 super.rawType
             }

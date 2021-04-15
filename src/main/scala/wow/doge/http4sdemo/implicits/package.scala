@@ -1,5 +1,7 @@
 package wow.doge.http4sdemo
 
+import scala.util.Try
+
 import monix.bio.IO
 import monix.bio.Task
 import monix.reactive.Observable
@@ -12,6 +14,11 @@ package object implicits {
   implicit class DatabaseDefExt(private val db: DatabaseDef) extends AnyVal {
     def runL[R](a: DBIOAction[R, NoStream, Nothing]) =
       Task.deferFuture(db.run(a))
+
+    def runTryL[R, A](a: DBIOAction[R, NoStream, Nothing])(implicit
+        ev: R <:< Try[A]
+    ) =
+      Task.deferFuture(db.run(a)).flatMap(r => IO.fromTry(ev(r)))
 
     def streamO[T](a: DBIOAction[_, Streaming[T], Nothing]) =
       Observable.fromReactivePublisher(db.stream(a))

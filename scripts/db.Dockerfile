@@ -1,0 +1,4 @@
+FROM postgres:12
+ENV POSTGRES_USER test_user
+ENV POSTGRES_PASSWORD password
+ENV POSTGRES_DB test_db

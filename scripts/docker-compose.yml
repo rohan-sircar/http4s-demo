@@ -1,0 +1,41 @@
+version: "3.3"
+services:
+    
+             
+    db:
+      container_name: project_db
+      image: postgres:12
+    #   build:
+    #     context: ./Docker
+    #     dockerfile: db.Dockerfile
+      environment: 
+        POSTGRES_DB: 'codegen_db'
+        POSTGRES_USER: 'codegen_user'
+        POSTGRES_PASSWORD: 'password'
+    #   volumes:
+    #     - ./var/pgdata:/var/lib/postgresql/data
+      ports:
+        - "5432:5433"
+    #   network_mode: host
+    backend:
+        container_name: project_backend
+        build: 
+          context: .
+          dockerfile: app.Dockerfile
+        # ports:
+        #   - "9000:9001"
+        environment: 
+          POSTGRES_DB: 'codegen_db'
+          CODEGEN_DB_HOST: 'project_db'
+          CODEGEN_DB_NAME: 'codegen_db'
+          CODEGEN_DB_USER: 'codegen_user'
+          CODEGEN_DB_PASSWORD: 'password'
+        volumes:
+          - ./app:/usr/src/app/bin
+        # links:
+        #   - db
+        # # command: ["./wait-for-it.sh", "project_db:5432", "--strict" , "--timeout=30000" , "--" , "echo 'db has started'"]
+        # depends_on:
+        #   - db
+        #         # condition: service_healthy
+    

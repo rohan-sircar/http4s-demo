@@ -1,45 +1,53 @@
 package wow.doge.http4sdemo.dto
 
-import java.time.Instant
+import java.time.LocalDateTime
 
+import cats.syntax.either._
+import enumeratum.EnumEntry
+import enumeratum._
 import io.circe.Printer
 import io.circe.generic.semiauto._
 import io.scalaland.chimney.dsl._
 import org.http4s.EntityEncoder
+import org.http4s.ParseFailure
+import org.http4s.QueryParamDecoder
 import org.http4s.circe.streamJsonArrayEncoderWithPrinterOf
+import org.http4s.dsl.impl.QueryParamDecoderMatcher
 import slick.jdbc.JdbcProfile
 import wow.doge.http4sdemo.slickcodegen.Tables
 
 final case class Book(
-    id: Int,
-    title: String,
+    bookId: Int,
+    bookTitle: String,
+    isbn: String,
     authorId: Int,
-    createdAt: Instant
+    createdAt: LocalDateTime
 )
 object Book {
-  def tupled = (Book.apply _).tupled
-  implicit val ec = deriveCodec[Book]
+  def tupled = (apply _).tupled
+  implicit val codec = deriveCodec[Book]
   // implicit def streamEntityEncoder[F[_]]
   //     : EntityEncoder[F, fs2.Stream[F, Book]] =
   //   streamJsonArrayEncoderWithPrinterOf(Printer.noSpaces)
   def fromBooksRow(row: Tables.BooksRow) = row.transformInto[Book]
   def fromBooksTableFn(implicit profile: JdbcProfile) = {
     import profile.api._
-    (b: Tables.Books) => (b.id, b.title, b.authorId, b.createdAt).mapTo[Book]
+    (b: Tables.Books) =>
+      (b.bookId, b.bookTitle, b.isbn, b.authorId, b.createdAt).mapTo[Book]
   }
   def fromBooksTable(implicit profile: JdbcProfile) =
     Tables.Books.map(fromBooksTableFn)
 
 }
 
-final case class NewBook(title: String, authorId: Int)
+final case class NewBook(bookTitle: String, isbn: String, authorId: Int)
 object NewBook {
-  def tupled = (NewBook.apply _).tupled
+  def tupled = (apply _).tupled
   implicit val decoder = deriveDecoder[NewBook]
   def fromBooksTable(implicit profile: JdbcProfile) = {
     import profile.api._
 
-    Tables.Books.map(b => (b.title, b.authorId).mapTo[NewBook])
+    Tables.Books.map(b => (b.bookTitle, b.isbn, b.authorId).mapTo[NewBook])
   }
 }
 
@@ -47,36 +55,62 @@ final case class BookUpdate(title: Option[String], authorId: Option[Int]) {
   import com.softwaremill.quicklens._
   def update(row: Tables.BooksRow): Tables.BooksRow =
     row
-      .modify(_.title)
+      .modify(_.bookTitle)
       .setToIfDefined(title)
       .modify(_.authorId)
       .setToIfDefined(authorId)
 }
 object BookUpdate {
-  implicit val decoder = deriveDecoder[BookUpdate]
+  implicit val codec = deriveCodec[BookUpdate]
 }
 
-final case class Author(id: Int, name: String)
+final case class Author(authorId: Int, authorName: String)
 object Author {
-  def tupled = (Author.apply _).tupled
+  def tupled = (apply _).tupled
   implicit val codec = deriveCodec[Author]
   implicit def streamEntityEncoder[F[_]]
       : EntityEncoder[F, fs2.Stream[F, Author]] =
     streamJsonArrayEncoderWithPrinterOf(Printer.noSpaces)
+  def fromAuthorsRow(row: Tables.AuthorsRow) = row.transformInto[Author]
+  def fromAuthorsTableFn(implicit profile: JdbcProfile) = {
+    import profile.api._
+    (a: Tables.Authors) => (a.authorId, a.authorName).mapTo[Author]
+  }
 }
 
 final case class NewAuthor(name: String)
+object NewAuthor {
+  // def fromAuthorsTable(implicit profile: JdbcProfile) = {
+  //   import profile.api._
+
+  //   Tables.Authors.map(a => (a.authorName).mapTo[NewAuthor])
+  // }
+}
 
 final case class BookWithAuthor(
     id: Int,
     title: String,
+    isbn: String,
     author: Author,
-    createdAt: Instant
+    createdAt: LocalDateTime
 )
 object BookWithAuthor {
-  def tupled = (BookWithAuthor.apply _).tupled
+  def tupled = (apply _).tupled
   implicit val codec = deriveCodec[BookWithAuthor]
   implicit def streamEntityEncoder[F[_]]
       : EntityEncoder[F, fs2.Stream[F, BookWithAuthor]] =
     streamJsonArrayEncoderWithPrinterOf(Printer.noSpaces)
+}
+
+sealed trait BookSearchMode extends EnumEntry
+object BookSearchMode extends Enum[BookSearchMode] {
+  val values = findValues
+  case object BookTitle extends BookSearchMode
+  case object AuthorName extends BookSearchMode
+
+  implicit val yearQueryParamDecoder: QueryParamDecoder[BookSearchMode] =
+    QueryParamDecoder[String].emap(s =>
+      withNameEither(s).leftMap(e => ParseFailure(e.getMessage, e.getMessage))
+    )
+  object Matcher extends QueryParamDecoderMatcher[BookSearchMode]("mode")
 }

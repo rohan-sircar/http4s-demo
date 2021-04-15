@@ -5,17 +5,17 @@ import cats.implicits._
 import fs2.interop.reactivestreams._
 import io.circe.Codec
 import io.circe.generic.semiauto._
+import monix.bio.IO
 import monix.bio.Task
-import monix.reactive.Observable
+import monix.bio.UIO
 import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
-import slick.jdbc.JdbcBackend.DatabaseDef
-import slick.jdbc.JdbcProfile
 import wow.doge.http4sdemo.dto.Book
+import wow.doge.http4sdemo.dto.BookSearchMode
 import wow.doge.http4sdemo.dto.BookUpdate
 import wow.doge.http4sdemo.dto.NewBook
 import wow.doge.http4sdemo.services.LibraryService
-import wow.doge.http4sdemo.slickcodegen.Tables._
+
 object Http4sdemoRoutes {
 
   def jokeRoutes[F[_]: Sync](J: Jokes[F]): HttpRoutes[F] = {
@@ -41,44 +41,50 @@ object Http4sdemoRoutes {
     }
   }
 
-  def userRoutes(userService: UserService): HttpRoutes[Task] = {
-    val dsl = Http4sDsl[Task]
-    import dsl._
-    import org.http4s.circe.CirceEntityCodec._
-    HttpRoutes.of[Task] { case GET -> Root / "users" =>
-      Task.deferAction(implicit s =>
-        for {
-          _ <- Task.unit
-          users = userService.users.toReactivePublisher.toStream[Task]
-          res <- Ok(users)
-        } yield res
-      )
-    }
-  }
-
   def libraryRoutes(libraryService: LibraryService): HttpRoutes[Task] = {
     val dsl = Http4sDsl[Task]
     import dsl._
+    object Value extends QueryParamDecoderMatcher[String]("value")
     HttpRoutes.of[Task] {
-      case GET -> Root / "api" / "get" / "books" =>
+
+      case GET -> Root / "api" / "get" / "book" :?
+          BookSearchMode.Matcher(mode) +& Value(value) =>
         import org.http4s.circe.streamJsonArrayEncoder
         import io.circe.syntax._
-        Task.deferAction(implicit s =>
+        IO.deferAction(implicit s =>
           for {
-            books <- Task.pure(
-              libraryService.getBooks.toReactivePublisher
+            books <- IO.pure(
+              libraryService
+                .searchBook(mode, value)
+                .toReactivePublisher
                 .toStream[Task]
             )
             res <- Ok(books.map(_.asJson))
           } yield res
         )
 
-      case GET -> Root / "api" / "get" / "book" / IntVar(id) =>
-        // import org.http4s.circe.CirceEntityCodec._
-        import org.http4s.circe.jsonEncoder
+      case GET -> Root / "api" / "get" / "books" =>
+        import org.http4s.circe.streamJsonArrayEncoder
         import io.circe.syntax._
+        Task.deferAction(implicit s =>
+          for {
+            books <- IO.pure(
+              libraryService.getBooks.toReactivePublisher
+                .toStream[Task]
+            )
+            res <- Ok(books.map(_.asJson))
+            // res <- Ok(streamJsonArrayEncoderOf[Task, Book].(books))
+          } yield res
+        )
+
+      case GET -> Root / "blah" => Ok().hideErrors
+
+      case GET -> Root / "api" / "get" / "book" / IntVar(id) =>
+        import org.http4s.circe.CirceEntityCodec._
+        // import org.http4s.circe.jsonEncoder
+        // import io.circe.syntax._
         for {
-          bookJson <- libraryService.getBookById(id).map(_.asJson)
+          bookJson <- libraryService.getBookById(id)
           res <- Ok(bookJson)
         } yield res
 
@@ -86,22 +92,36 @@ object Http4sdemoRoutes {
         import org.http4s.circe.CirceEntityCodec._
         for {
           newBook <- req.as[NewBook]
-          book <- libraryService.insertBook(newBook)
-          res <- Created(book)
+          // .onErrorHandleWith {
+          //   case ParseF
+          // }
+          res <- libraryService
+            .insertBook(newBook)
+            .flatMap(book => Created(book).hideErrors)
+            .mapErrorPartialWith {
+              case LibraryService.EntityDoesNotExist(message) =>
+                BadRequest(message).hideErrors
+              case LibraryService.EntityAlreadyExists(message) =>
+                BadRequest(message).hideErrors
+              // case LibraryService.MyError2(_) => Ok().hideErrors
+              // case C3                         => Ok().hideErrors
+            }
         } yield res
 
       case req @ PATCH -> Root / "api" / "update" / "book" / IntVar(id) =>
         import org.http4s.circe.CirceEntityCodec._
         for {
           updateData <- req.as[BookUpdate]
-          _ <- libraryService
+          res <- libraryService
             .updateBook(id, updateData)
-            .void
-            .onErrorHandleWith(ex =>
-              Task(println(s"Handled -> ${ex.getMessage}"))
-            )
-          // .mapError(e => new Exception(e))
-          res <- Ok()
+            .flatMap(_ => Ok().hideErrors)
+            .tapError(err => UIO(println(s"Handled -> ${err.toString}")))
+            .mapErrorPartialWith {
+              case e @ LibraryService.EntityDoesNotExist(message) =>
+                BadRequest(e: LibraryService.Error).hideErrors
+              // case LibraryService.MyError2(_) => Ok().hideErrors
+              // case C3                         => Ok().hideErrors
+            }
         } yield res
 
       case req @ DELETE -> Root / "api" / "delete" / "book" / IntVar(id) =>
@@ -122,7 +142,7 @@ object Http4sdemoRoutes {
 
 }
 
-case class User(id: String, email: String)
+final case class User(id: String, email: String)
 object User {
   val tupled = (this.apply _).tupled
   // implicit val decoder: Decoder[User] = deriveDecoder
@@ -132,13 +152,4 @@ object User {
   // implicit def entityEncoder[F[_]: Applicative]: EntityEncoder[F, User] =
   //   jsonEncoderOf
   implicit val codec: Codec[User] = deriveCodec
-}
-
-class UserService(profile: JdbcProfile, db: DatabaseDef) {
-  import profile.api._
-  def users: Observable[User] =
-    Observable.fromReactivePublisher(
-      db.stream(Users.map(u => (u.id, u.email).mapTo[User]).result)
-    )
-
 }

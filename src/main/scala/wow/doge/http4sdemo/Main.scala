@@ -6,10 +6,9 @@ import monix.bio.BIOApp
 import monix.bio.Task
 import monix.bio.UIO
 import slick.jdbc.JdbcProfile
-import wow.doge.http4sdemo.SlickResource
 
 object Main extends BIOApp {
-  val profile: JdbcProfile = _root_.slick.jdbc.H2Profile
+  val profile: JdbcProfile = slick.jdbc.PostgresProfile
   def app = for {
     db <- SlickResource("myapp.database")
     _ <- Resource.liftF(for {

@@ -1,0 +1,19 @@
+{
+  "resources":{
+  "includes":[
+    {"pattern":"\\QMETA-INF/services/java.sql.Driver\\E"}, 
+    {"pattern":"\\Qapplication.conf\\E"}, 
+    {"pattern":"\\Qdb/migration/default/V1__create_users_table.sql\\E"}, 
+    {"pattern":"\\Qdb/migration/default/V2__add_user.sql\\E"}, 
+    {"pattern":"\\Qdb/migration/default/V3__create_cars_table.sql\\E"}, 
+    {"pattern":"\\Qdb/migration/default/V4__add_car.sql\\E"}, 
+    {"pattern":"\\Qdb/migration/default/V5__authors_books_table.sql\\E"}, 
+    {"pattern":"\\Qdb/migration/default/V6__insert_books_and_authors.sql\\E"}, 
+    {"pattern":"\\Qdb/migration/default\\E"}, 
+    {"pattern":"\\Qlogback.xml\\E"}, 
+    {"pattern":"\\Qorg/flywaydb/core/internal/version.txt\\E"}, 
+    {"pattern":"\\Qorg/slf4j/impl/StaticLoggerBinder.class\\E"}, 
+    {"pattern":"\\Qreference.conf\\E"}
+  ]},
+  "bundles":[]
+}
