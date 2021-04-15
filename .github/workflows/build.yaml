@@ -51,7 +51,6 @@ jobs:
         run: | 
           curl -fsSL https://get.docker.com -o get-docker.sh
           sh get-docker.sh
-          usermod -aG docker $USER
       - name: Migrate
         run: csbt flyway/flywayMigrate
       - name: Run Tests
