@@ -45,11 +45,15 @@ jobs:
 #         uses: coursier/cache-action@v6
       - name: Cache SBT
         uses: actions/cache@v2
+        id: cache-sbt-dependencies
         with:
           path: | 
+            ~/.m2
             ~/.ivy2/cache
             ~/.sbt
           key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+          restore-keys: |
+            ${{ runner.os }}-sbt-
       - name: Setup
         uses: olafurpg/setup-scala@v10
         with:
