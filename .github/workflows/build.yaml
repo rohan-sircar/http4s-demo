@@ -14,7 +14,7 @@ jobs:
       # The default PostgreSQL port
       CODEGEN_DB_PORT: 5432
       CODEGEN_DB_USER: codegenuser
-      CODEGEN_DB_PASSWOD: postgres
+      CODEGEN_DB_PASSWORD: postgres
       CODEGEN_DB_NAME: codegendb
 
     # Service containers to run with `container-job`
