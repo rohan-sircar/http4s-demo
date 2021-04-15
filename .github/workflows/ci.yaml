@@ -48,13 +48,13 @@ jobs:
         id: cache-sbt-dependencies
         with:
           path: |
-            ~/.cache
-            ~/.m2
-            ~/.ivy2
             ~/.sbt
-          key: ${{ runner.os }}-sbt2-${{ hashFiles('**/build.sbt') }}
+            ~/.ivy2/cache
+            ~/.coursier/cache/v1
+            ~/.cache/coursier/v1
+          key: ${{ runner.os }}-sbtv2-${{ hashFiles('**/build.sbt') }}
           restore-keys: |
-            ${{ runner.os }}-sbt2-
+            ${{ runner.os }}-sbtv2-
       - name: Setup
         uses: olafurpg/setup-scala@v10
         with:
