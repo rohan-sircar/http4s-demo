@@ -77,7 +77,7 @@ jobs:
           echo "$HOME/.sbt" >> $GITHUB_PATH
           echo "$HOME/.cache/coursier" >> $GITHUB_PATH
           echo "$HOME/.coursier" >> $GITHUB_PATH
-          echo "$HOME/.iv2/cache" >> $GITHUB_PATH
+          echo "$HOME/.ivy2/cache" >> $GITHUB_PATH
           csbt flyway/flywayMigrate
           csbt compile
           csbt test:compile
@@ -108,7 +108,7 @@ jobs:
             
           fi
 
-          DIR="$HOME/.iv2/cache"
+          DIR="$HOME/.ivy2/cache"
           if [ -d "$DIR" ]; then
             echo "Showing ${DIR}..."
             ls -lh "$DIR"
