@@ -54,10 +54,10 @@ jobs:
         id: cache-sbt-dependencies
         with:
           path: |
-            ~/.sbt
-            ~/.ivy2/cache
-            ~/.coursier/cache/v1
-            ~/.cache/coursier/v1
+            $HOME/.sbt
+            $HOME/.ivy2/cache
+            $HOME/.coursier/cache/v1
+            $HOME/.cache/coursier/v1
           key: ${{ runner.os }}-sbtv2-${{ hashFiles('**/build.sbt') }}
           restore-keys: |
             ${{ runner.os }}-sbtv2-
@@ -74,10 +74,14 @@ jobs:
 #         run: csbt flyway/flywayMigrate
       - name: Compile
         run: |
+          echo "$HOME/.sbt" >> $GITHUB_PATH
+          echo "$HOME/.cache/coursier" >> $GITHUB_PATH
+          echo "$HOME/.coursier" >> $GITHUB_PATH
+          echo "$HOME/.iv2/cache" >> $GITHUB_PATH
           csbt flyway/flywayMigrate
           csbt compile
           csbt test:compile
-          DIR="~/.sbt"
+          DIR="$HOME/.sbt"
           if [ -d "$DIR" ]; then
             echo "Showing ${DIR}..."
             ls -lh "$DIR"
@@ -86,7 +90,7 @@ jobs:
           
           fi
 
-          DIR="~/.ivy2/cache"
+          DIR="$HOME/.cache/coursier"
           if [ -d "$DIR" ]; then
             echo "Showing ${DIR}..."
             ls -lh "$DIR"
@@ -95,7 +99,7 @@ jobs:
             
           fi
 
-          DIR="~/.coursier/cache/v1"
+          DIR="$HOME/.coursier"
           if [ -d "$DIR" ]; then
             echo "Showing ${DIR}..."
             ls -lh "$DIR"
@@ -104,7 +108,7 @@ jobs:
             
           fi
 
-          DIR=" ~/.cache/coursier/v1"
+          DIR="$HOME/.iv2/cache"
           if [ -d "$DIR" ]; then
             echo "Showing ${DIR}..."
             ls -lh "$DIR"
