@@ -58,9 +58,9 @@ jobs:
             $HOME/.ivy2/cache
             $HOME/.coursier/cache/v1
             $HOME/.cache/coursier/v1
-          key: ${{ runner.os }}-sbtv2-${{ hashFiles('**/build.sbt') }}
+          key: ${{ runner.os }}-sbtv3-${{ hashFiles('**/build.sbt') }}
           restore-keys: |
-            ${{ runner.os }}-sbtv2-
+            ${{ runner.os }}-sbtv3-
       - name: Setup
         uses: olafurpg/setup-scala@v10
         with:
@@ -75,8 +75,8 @@ jobs:
       - name: Compile
         run: |
           echo "$HOME/.sbt" >> $GITHUB_PATH
-          echo "$HOME/.cache/coursier" >> $GITHUB_PATH
-          echo "$HOME/.coursier" >> $GITHUB_PATH
+          echo "$HOME/.cache/coursier/v1" >> $GITHUB_PATH
+          echo "$HOME/.coursier/cache/v1" >> $GITHUB_PATH
           echo "$HOME/.ivy2/cache" >> $GITHUB_PATH
           csbt flyway/flywayMigrate
           csbt compile
