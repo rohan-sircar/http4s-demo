@@ -116,6 +116,7 @@ jobs:
             echo "Error: ${DIR} not found. "
            
           fi
+          ls -l
       - name: Run Tests
         run: |
           csbt test
