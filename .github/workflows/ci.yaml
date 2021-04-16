@@ -77,10 +77,41 @@ jobs:
           csbt flyway/flywayMigrate
           csbt compile
           csbt test:compile
-          ls -l ~/.sbt
-          ls -l ~/.ivy2/cache
-          ls -l ~/.coursier/cache/v1
-          ls -l ~/.cache/coursier/v1
+          DIR="~/.sbt"
+          if [ -d "$DIR" ]; then
+            echo "Showing ${DIR}..."
+            ls -lh "$DIR"
+          else
+            echo "Error: ${DIR} not found."
+          
+          fi
+
+          DIR="~/.ivy2/cache"
+          if [ -d "$DIR" ]; then
+            echo "Showing ${DIR}..."
+            ls -lh "$DIR"
+          else
+            echo "Error: ${DIR} not found. "
+            
+          fi
+
+          DIR="~/.coursier/cache/v1"
+          if [ -d "$DIR" ]; then
+            echo "Showing ${DIR}..."
+            ls -lh "$DIR"
+          else
+            echo "Error: ${DIR} not found."
+            
+          fi
+
+          DIR=" ~/.cache/coursier/v1"
+          if [ -d "$DIR" ]; then
+            echo "Showing ${DIR}..."
+            ls -lh "$DIR"
+          else
+            echo "Error: ${DIR} not found. "
+           
+          fi
       - name: Run Tests
         run: |
           csbt test
