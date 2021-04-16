@@ -72,9 +72,17 @@ jobs:
 #          docker login -p "${{ secrets.DOCKER_LOGIN_PASSWORD }}" -u rohansircar
 #       - name: Migrate
 #         run: csbt flyway/flywayMigrate
+      - name: Compile
+        run: |
+          csbt compile
+          csbt test:compile
+          ls -l ~/.sbt
+          ls -l ~/.ivy2/cache
+          ls -l ~/.coursier/cache/v1
+          ls -l ~/.cache/coursier/v1
       - name: Run Tests
         run: |
-          sbt flyway/flywayMigrate
-          sbt test
+          csbt flyway/flywayMigrate
+          csbt test
 #       - name: Package
 #         run: csbt docker:publish
