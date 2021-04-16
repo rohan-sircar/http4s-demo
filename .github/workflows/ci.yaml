@@ -118,7 +118,7 @@ jobs:
           fi
       - name: Run Tests
         run: |
-          ls -al
+          ls -al ~/
 #         csbt test
 #       - name: Package
 #         run: csbt docker:publish
