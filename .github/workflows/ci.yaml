@@ -116,9 +116,9 @@ jobs:
             echo "Error: ${DIR} not found. "
            
           fi
-          ls -l
       - name: Run Tests
         run: |
-          csbt test
+          ls -l
+#         csbt test
 #       - name: Package
 #         run: csbt docker:publish
