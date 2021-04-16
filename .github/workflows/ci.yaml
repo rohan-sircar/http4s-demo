@@ -58,9 +58,9 @@ jobs:
             $HOME/.ivy2/cache
             $HOME/.coursier/cache/v1
             $HOME/.cache/coursier/v1
-          key: ${{ runner.os }}-sbtv3-${{ hashFiles('**/build.sbt') }}
+          key: ${{ runner.os }}-sbtnew-${{ hashFiles('**/build.sbt') }}
           restore-keys: |
-            ${{ runner.os }}-sbtv3-
+            ${{ runner.os }}-sbtnew-
       - name: Setup
         uses: olafurpg/setup-scala@v10
         with:
