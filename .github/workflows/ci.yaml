@@ -74,6 +74,7 @@ jobs:
 #         run: csbt flyway/flywayMigrate
       - name: Compile
         run: |
+          csbt flyway/flywayMigrate
           csbt compile
           csbt test:compile
           ls -l ~/.sbt
@@ -82,7 +83,6 @@ jobs:
           ls -l ~/.cache/coursier/v1
       - name: Run Tests
         run: |
-          csbt flyway/flywayMigrate
           csbt test
 #       - name: Package
 #         run: csbt docker:publish
