@@ -78,9 +78,9 @@ jobs:
           echo "$HOME/.cache/coursier/v1" >> $GITHUB_PATH
           echo "$HOME/.coursier/cache/v1" >> $GITHUB_PATH
           echo "$HOME/.ivy2/cache" >> $GITHUB_PATH
-          csbt flyway/flywayMigrate
-          csbt compile
-          csbt test:compile
+          sbt flyway/flywayMigrate
+          sbt compile
+          sbt test:compile
           DIR="$HOME/.sbt"
           if [ -d "$DIR" ]; then
             echo "Showing ${DIR}..."
@@ -90,7 +90,7 @@ jobs:
           
           fi
 
-          DIR="$HOME/.cache/coursier"
+          DIR="$HOME/.cache/coursier/v1"
           if [ -d "$DIR" ]; then
             echo "Showing ${DIR}..."
             ls -lh "$DIR"
@@ -118,7 +118,7 @@ jobs:
           fi
       - name: Run Tests
         run: |
-          ls -al ~/
+          ls -alh ~/
 #         csbt test
 #       - name: Package
 #         run: csbt docker:publish
