@@ -58,7 +58,7 @@ jobs:
             $HOME/.ivy2/cache
             $HOME/.coursier/cache/v1
             $HOME/.cache/coursier/v1
-          key: ${{ runner.os }}-sbtnew-${{ hashFiles('**/build.sbt') }}
+          key: ${{ runner.os }}-sbtnew-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
           restore-keys: |
             ${{ runner.os }}-sbtnew-
       - name: Setup
