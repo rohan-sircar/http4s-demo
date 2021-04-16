@@ -8,6 +8,11 @@ jobs:
     runs-on: ubuntu-latest
     # Docker Hub image that `container-job` executes in
     container: node:12-buster
+#       volumes:
+#           - ~/.sbt:~/.sbt
+#           - ~/.ivy2/cache:~/.ivy2/cache
+#           - ~/.coursier/cache/v1:~/.coursier/cache/v1
+#           - ~/.cache/coursier/v1:~/.cache/coursier/v1
     env:
       # The hostname used to communicate with the PostgreSQL service container
       CODEGEN_DB_HOST: postgres
@@ -29,6 +34,7 @@ jobs:
           POSTGRES_USER: codegenuser
           POSTGRES_DB: codegendb
         # Set health checks to wait until postgres has started
+        
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -52,9 +58,9 @@ jobs:
             ~/.ivy2/cache
             ~/.coursier/cache/v1
             ~/.cache/coursier/v1
-          key: ${{ runner.os }}-sbtv2-${{ hashFiles('**/build.sbt') }}
+          key: ${{ runner.os }}-sbtv3-${{ hashFiles('**/build.sbt') }}
           restore-keys: |
-            ${{ runner.os }}-sbtv2-
+            ${{ runner.os }}-sbtv3-
       - name: Setup
         uses: olafurpg/setup-scala@v10
         with:
@@ -68,12 +74,7 @@ jobs:
 #         run: csbt flyway/flywayMigrate
       - name: Run Tests
         run: |
-          rm -rf "$HOME/.ivy2/local" || true
-          find $HOME/Library/Caches/Coursier/v1        -name "ivydata-*.properties" -delete || true
-          find $HOME/.ivy2/cache                       -name "ivydata-*.properties" -delete || true
-          find $HOME/.cache/coursier/v1                -name "ivydata-*.properties" -delete || true
-          find $HOME/.sbt                              -name "*.lock"               -delete || true
-          csbt flyway/flywayMigrate
-          csbt test
+          sbt flyway/flywayMigrate
+          sbt test
 #       - name: Package
 #         run: csbt docker:publish
