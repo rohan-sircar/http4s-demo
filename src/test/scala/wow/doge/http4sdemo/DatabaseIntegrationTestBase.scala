@@ -20,7 +20,7 @@ trait DatabaseIntegrationTestBase
   def password = "scala"
 
   override val containerDef: ContainerDef = PostgreSQLContainer.Def(
-    dockerImageName = DockerImageName.parse("postgres:13.2"),
+    dockerImageName = DockerImageName.parse("postgres:12-alpine"),
     databaseName = databaseName,
     username = username,
     password = password
