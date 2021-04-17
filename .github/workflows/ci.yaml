@@ -78,9 +78,9 @@ jobs:
           echo "$HOME/.cache/coursier/v1" >> $GITHUB_PATH
           echo "$HOME/.coursier/cache/v1" >> $GITHUB_PATH
           echo "$HOME/.ivy2/cache" >> $GITHUB_PATH
-          sbt flyway/flywayMigrate
-          sbt compile
-          sbt test:compile
+          csbt flyway/flywayMigrate
+          csbt compile
+          csbt test:compile
           DIR="$HOME/.sbt"
           if [ -d "$DIR" ]; then
             echo "Showing ${DIR}..."
