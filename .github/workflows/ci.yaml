@@ -153,7 +153,7 @@ jobs:
   publish-devel:
     name: Publish Devel Docker Image
     needs: [build]
-    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/devel'))
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/devel'
     # Containers must run in Linux based operating systems
     runs-on: ubuntu-latest
     # Docker Hub image that `container-job` executes in
