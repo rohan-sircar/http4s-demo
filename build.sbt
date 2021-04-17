@@ -27,6 +27,14 @@ lazy val databaseUrl =
 lazy val databaseUser = sys.env.getOrElse("CODEGEN_DB_USER", "test_user")
 lazy val databasePassword = sys.env.getOrElse("CODEGEN_DB_PASSWORD", "password")
 
+lazy val dockerJavaImage =
+  sys.env.getOrElse("DOCKER_JAVA_IMAGE", "openjdk:11-jre-slim-buster")
+lazy val releaseVersion = sys.env.getOrElse("RELEASE_VERSION", "0.0.1-SNAPSHOT")
+lazy val dockerPublishTag = sys.env
+  .get("DOCKER_PUBLISH_TAG")
+  .orElse(sys.env.get("RELEASE_VERSION"))
+  .getOrElse("latest")
+
 lazy val flyway = (project in file("modules/flyway"))
   .enablePlugins(FlywayPlugin)
   .settings(
@@ -39,13 +47,15 @@ lazy val flyway = (project in file("modules/flyway"))
   )
 
 lazy val root = (project in file("."))
-  .enablePlugins(CodegenPlugin, DockerPlugin, JavaAppPackaging)
+  .enablePlugins(CodegenPlugin, DockerPlugin, JavaAppPackaging, AshScriptPlugin)
   .settings(
     organization := "wow.doge",
     name := "http4s-demo",
-    version := "0.0.1-SNAPSHOT",
-    version in Docker := "0.0.1",
-    dockerBaseImage := "openjdk:11-slim",
+    version := releaseVersion,
+    version in Docker := dockerPublishTag,
+    // alpine java docker image for smaller size - "azul/zulu-openjdk-alpine:11-jre-headless"
+    dockerBaseImage := dockerJavaImage,
+    dockerExposedPorts := Seq(8081),
     dockerUsername := Some("rohansircar"),
     scalacOptions ++= Seq(
       "-encoding",

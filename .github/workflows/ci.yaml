@@ -1,35 +1,26 @@
 name: Continuous Integration
-on:  
+on:
   pull_request:
-    branches: ['*', series/*]
+    branches: ["*", series/*]
   push:
-    branches: ['*', series/*]
+    branches: ["*", series/*]
     tags: [v*]
 
 jobs:
   # Label of the container job
   build:
     name: Build and Test
-    # Containers must run in Linux based operating systems
     runs-on: ubuntu-latest
-    # Docker Hub image that `container-job` executes in
-#    container: node:12-buster
+    #    container: node:12-buster
     env:
-      # The hostname used to communicate with the PostgreSQL service container
       CODEGEN_DB_HOST: localhost
-      # The default PostgreSQL port
       CODEGEN_DB_PORT: 5432
       CODEGEN_DB_USER: codegenuser
       CODEGEN_DB_PASSWORD: postgres
       CODEGEN_DB_NAME: codegendb
-
-    # Service containers to run with `container-job`
     services:
-      # Label used to access the service container
       postgres:
-        # Docker Hub image
         image: postgres:12-alpine
-        # Provide the password for postgres
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: codegenuser
@@ -44,78 +35,40 @@ jobs:
           - 5432:5432
 
     steps:
-      # Downloads a copy of the code in your repository before running CI tests
       - name: Check out repository code
         uses: actions/checkout@v2
       - name: Coursier cache
         uses: coursier/cache-action@v6
-    #    with:
-      #    path: |
-      #      ~/.cache/blah
-#       - name: Cache SBT
-#         uses: actions/cache@v2
-#         id: cache-sbt-dependencies
-#         with:
-#           path: |
-#             $HOME/.sbt
-#             $HOME/.ivy2/cache
-#             $HOME/.coursier/cache/v1
-#             $HOME/.cache/coursier/v1
-#           key: ${{ runner.os }}-sbtnew-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
-#           restore-keys: |
-#             ${{ runner.os }}-sbtnew-
       - name: Setup
         uses: olafurpg/setup-scala@v10
         with:
           java-version: adopt@1.11
-#       - name: Install docker
-#         run: | 
-#           curl -fsSL https://get.docker.com -o get-docker.sh
-#           sh get-docker.sh
-#          docker login -p "${{ secrets.DOCKER_LOGIN_PASSWORD }}" -u rohansircar
-#       - name: Migrate
-#         run: csbt flyway/flywayMigrate
+      - name: Migrate
+        run: csbt flyway/flywayMigrate
       - name: Compile
         run: |
-          csbt flyway/flywayMigrate
-          csbt compile
-          csbt test:compile
+          csbt "compile; test:compile"
       - name: Run Tests
         run: |
           echo $GITHUB_REF
           echo ${GITHUB_REF#refs/*/}
-#          echo ${github.event_name}
-#          csbt test
-#         ls -alh ~/
-#       - name: Package
-#         run: csbt docker:publish
-
-
-  # Label of the container job
-
+  #          csbt test
   publish:
     name: Publish Release Docker Image
     needs: [build]
-    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
-    # Containers must run in Linux based operating systems
+    if: github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    # Docker Hub image that `container-job` executes in
-#    container: node:12-buster
+    #    container: node:12-buster
     env:
-      # The hostname used to communicate with the PostgreSQL service container
       CODEGEN_DB_HOST: localhost
-      # The default PostgreSQL port
       CODEGEN_DB_PORT: 5432
       CODEGEN_DB_USER: codegenuser
       CODEGEN_DB_PASSWORD: postgres
       CODEGEN_DB_NAME: codegendb
-    # Service containers to run with `container-job`
+      DOCKER_JAVA_IMAGE: azul/zulu-openjdk-alpine:11-jre-headless
     services:
-      # Label used to access the service container
       postgres:
-        # Docker Hub image
         image: postgres:12-alpine
-        # Provide the password for postgres
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: codegenuser
@@ -129,7 +82,6 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      # Downloads a copy of the code in your repository before running CI tests
       - name: Check out repository code
         uses: actions/checkout@v2
       - name: Coursier cache
@@ -138,39 +90,35 @@ jobs:
         uses: olafurpg/setup-scala@v10
         with:
           java-version: adopt@1.11
-      - name: Docker login
-        run: | 
-          docker login -p "${{ secrets.DOCKER_LOGIN_PASSWORD }}" -u rohansircar
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: rohansircar
+          password: ${{ secrets.DOCKER_LOGIN_PASSWORD }}
+      - name: Migrate
+        run: csbt flyway/flywayMigrate
       - name: Publish
         run: |
-          csbt flyway/flywayMigrate
-          csbt compile
           echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-          csbt docker:stage      
+          csbt docker:stage
 
   publish-devel:
     name: Publish Devel Docker Image
     needs: [build]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/devel'
-    # Containers must run in Linux based operating systems
     runs-on: ubuntu-latest
-    # Docker Hub image that `container-job` executes in
-#    container: node:12-buster
+    #    container: node:12-buster
     env:
-      # The hostname used to communicate with the PostgreSQL service container
       CODEGEN_DB_HOST: localhost
-      # The default PostgreSQL port
       CODEGEN_DB_PORT: 5432
       CODEGEN_DB_USER: codegenuser
       CODEGEN_DB_PASSWORD: postgres
       CODEGEN_DB_NAME: codegendb
-    # Service containers to run with `container-job`
+      DOCKER_JAVA_IMAGE: azul/zulu-openjdk-alpine:11-jre-headless
+      DOCKER_PUBLISH_TAG: latest
     services:
-      # Label used to access the service container
       postgres:
-        # Docker Hub image
         image: postgres:12-alpine
-        # Provide the password for postgres
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: codegenuser
@@ -184,7 +132,6 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      # Downloads a copy of the code in your repository before running CI tests
       - name: Check out repository code
         uses: actions/checkout@v2
       - name: Coursier cache
@@ -193,11 +140,13 @@ jobs:
         uses: olafurpg/setup-scala@v10
         with:
           java-version: adopt@1.11
-      - name: Docker login
-        run: | 
-          docker login -p "${{ secrets.DOCKER_LOGIN_PASSWORD }}" -u rohansircar
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: rohansircar
+          password: ${{ secrets.DOCKER_LOGIN_PASSWORD }}
+      - name: Migrate
+        run: csbt flyway/flywayMigrate
       - name: Publish
         run: |
-          csbt flyway/flywayMigrate
-          csbt compile
           csbt docker:stage
