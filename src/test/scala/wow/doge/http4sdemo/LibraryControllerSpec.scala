@@ -28,12 +28,11 @@ class LibraryControllerSpec extends MonixBioSuite {
 
   val date = LocalDateTime.now()
 
-
   // val logger = consoleLogger[Task]()
 
   val Root = Uri(path = "")
 
-  test("get books success") { 
+  test("get books success") {
     import org.http4s.circe.CirceEntityCodec._
     val book = Book(1, "book1", "adsgq342dsdc", 1, date)
     val service = new NoopLibraryService {

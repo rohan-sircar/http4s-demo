@@ -44,6 +44,7 @@ lazy val flyway = (project in file("modules/flyway"))
 
 lazy val root = (project in file("."))
   .enablePlugins(CodegenPlugin, DockerPlugin, JavaAppPackaging, AshScriptPlugin)
+  .configs(IntegrationTest)
   .settings(
     organization := "wow.doge",
     name := "http4s-demo",
@@ -58,6 +59,7 @@ lazy val root = (project in file("."))
     dockerBaseImage := dockerJavaImage,
     dockerExposedPorts := Seq(8081),
     dockerUsername := Some("rohansircar"),
+    Defaults.itSettings,
     scalacOptions ++= Seq(
       "-encoding",
       "UTF-8",
@@ -85,8 +87,8 @@ lazy val root = (project in file("."))
       "org.http4s"      %% "http4s-circe"        % Http4sVersion,
       "org.http4s"      %% "http4s-dsl"          % Http4sVersion,
       "io.circe"        %% "circe-generic"       % CirceVersion,
-      "org.scalameta"   %% "munit"               % MunitVersion           % Test,
-      "org.typelevel"   %% "munit-cats-effect-2" % MunitCatsEffectVersion % Test,
+      "org.scalameta"   %% "munit"               % MunitVersion           % "it,test",
+      "org.typelevel"   %% "munit-cats-effect-2" % MunitCatsEffectVersion % "it,test",
       "ch.qos.logback"  %  "logback-classic"     % LogbackVersion,
       "org.scalameta"   %% "svm-subs"            % "20.2.0",
       "co.fs2" %% "fs2-reactive-streams" % "2.5.0",
@@ -125,57 +127,18 @@ lazy val root = (project in file("."))
       "com.rms.miu" %% "slick-cats" % "0.10.4",
       "com.kubukoz" %% "slick-effect" % "0.3.0",
       "io.circe" %% "circe-fs2" % "0.13.0",
-      // "org.scalameta" %% "munit" % "0.7.23" % Test,
-      "de.lolhens" %% "munit-tagless-final" % "0.0.1" % Test,
-      "org.scalameta" %% "munit-scalacheck" % "0.7.23" % Test,
-      "org.scalacheck" %% "scalacheck" % "1.15.3" % Test,
-      "com.dimafeng" %% "testcontainers-scala-munit" % "0.39.3" % Test,
-      "com.dimafeng" %% "testcontainers-scala-postgresql" % "0.39.3" % Test
+      // "org.scalameta" %% "munit" % "0.7.23" % "it,test",
+      "de.lolhens" %% "munit-tagless-final" % "0.0.1" % "it,test",
+      "org.scalameta" %% "munit-scalacheck" % "0.7.23" % "it,test",
+      "org.scalacheck" %% "scalacheck" % "1.15.3" % "it,test",
+      "com.dimafeng" %% "testcontainers-scala-munit" % "0.39.3" % IntegrationTest,
+      "com.dimafeng" %% "testcontainers-scala-postgresql" % "0.39.3" % IntegrationTest
     ),
     addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"),
     addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
-    ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.4.3",
-    inThisBuild(
-      List(
-        scalaVersion := scalaVersion.value, // 2.11.12, or 2.13.3
-        semanticdbEnabled := true, // enable SemanticDB
-        semanticdbVersion := "4.4.2" // use Scalafix compatible version
-      )
-    ),
-    testFrameworks += new TestFramework("munit.Framework"),
-    assemblyMergeStrategy in assembly := {
-      case PathList("javax", "servlet", xs @ _*)         => MergeStrategy.first
-      case PathList(ps @ _*) if ps.last endsWith ".html" => MergeStrategy.first
-      case "application.conf"                            => MergeStrategy.concat
-      case "unwanted.txt"                                => MergeStrategy.discard
-      case x if Assembly.isConfigFile(x) =>
-        MergeStrategy.concat
-      case PathList("META-INF", xs @ _*) =>
-        (xs map { _.toLowerCase }) match {
-          case ("manifest.mf" :: Nil) | ("index.list" :: Nil) |
-              ("dependencies" :: Nil) =>
-            MergeStrategy.discard
-          case ps @ (x :: xs)
-              if ps.last.endsWith(".sf") || ps.last.endsWith(".dsa") =>
-            MergeStrategy.discard
-          case "plexus" :: xs =>
-            MergeStrategy.discard
-          case "services" :: xs =>
-            MergeStrategy.filterDistinctLines
-          case ("spring.schemas" :: Nil) | ("spring.handlers" :: Nil) =>
-            MergeStrategy.filterDistinctLines
-          case _ => MergeStrategy.first // Changed deduplicate to first
-        }
-      case PathList(_*) => MergeStrategy.first
-    }
+    testFrameworks += new TestFramework("munit.Framework")
   )
   .settings(
-    // libraryDependencies ++= Seq(
-    //   "com.zaxxer" % "HikariCP" % "3.4.2",
-    //   "com.typesafe.slick" %% "slick" % "3.3.2",
-    //   "com.typesafe.slick" %% "slick-hikaricp" % "3.3.2",
-    //   "com.h2database" % "h2" % "1.4.199"
-    // ),
     slickCodegenDatabaseUrl := databaseUrl,
     slickCodegenDatabaseUser := databaseUser,
     slickCodegenDatabasePassword := databasePassword,
@@ -200,3 +163,12 @@ lazy val root = (project in file("."))
     sourceGenerators in Compile += slickCodegen.taskValue
   )
   .dependsOn(flyway)
+
+ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.4.3"
+inThisBuild(
+  List(
+    scalaVersion := scalaVersion.value, // 2.11.12, or 2.13.3
+    semanticdbEnabled := true, // enable SemanticDB
+    semanticdbVersion := "4.4.2" // use Scalafix compatible version
+  )
+)

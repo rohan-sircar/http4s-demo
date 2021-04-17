@@ -11,6 +11,7 @@ import monix.execution.Scheduler
 import org.testcontainers.utility.DockerImageName
 import slick.jdbc.JdbcBackend
 import slick.jdbc.PostgresProfile
+import wow.doge.http4sdemo.MonixBioSuite
 
 trait DatabaseIntegrationTestBase
     extends MonixBioSuite
