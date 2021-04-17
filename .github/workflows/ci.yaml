@@ -47,8 +47,8 @@ jobs:
       # Downloads a copy of the code in your repository before running CI tests
       - name: Check out repository code
         uses: actions/checkout@v2
-      #- name: Coursier cache
-      #  uses: coursier/cache-action@v6
+      - name: Coursier cache
+        uses: coursier/cache-action@v6
 #       - name: Cache SBT
 #         uses: actions/cache@v2
 #         id: cache-sbt-dependencies
