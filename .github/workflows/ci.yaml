@@ -138,10 +138,8 @@ jobs:
         uses: olafurpg/setup-scala@v10
         with:
           java-version: adopt@1.11
-      - name: Install docker
+      - name: Docker login
         run: | 
-          curl -fsSL https://get.docker.com -o get-docker.sh
-          sh get-docker.sh
           docker login -p "${{ secrets.DOCKER_LOGIN_PASSWORD }}" -u rohansircar
       - name: Publish
         run: |
@@ -195,10 +193,8 @@ jobs:
         uses: olafurpg/setup-scala@v10
         with:
           java-version: adopt@1.11
-      - name: Install docker
+      - name: Docker login
         run: | 
-          curl -fsSL https://get.docker.com -o get-docker.sh
-          sh get-docker.sh
           docker login -p "${{ secrets.DOCKER_LOGIN_PASSWORD }}" -u rohansircar
       - name: Publish
         run: |
