@@ -3,16 +3,12 @@ on: push
 
 jobs:
   # Label of the container job
-  test:
+  build:
+    name: Build and test
     # Containers must run in Linux based operating systems
     runs-on: ubuntu-latest
     # Docker Hub image that `container-job` executes in
 #    container: node:12-buster
-#       volumes:
-#           - ~/.sbt:~/.sbt
-#           - ~/.ivy2/cache:~/.ivy2/cache
-#           - ~/.coursier/cache/v1:~/.coursier/cache/v1
-#           - ~/.cache/coursier/v1:~/.cache/coursier/v1
     env:
       # The hostname used to communicate with the PostgreSQL service container
       CODEGEN_DB_HOST: localhost
@@ -27,14 +23,13 @@ jobs:
       # Label used to access the service container
       postgres:
         # Docker Hub image
-        image: postgres:12
+        image: postgres:12-alpine
         # Provide the password for postgres
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: codegenuser
           POSTGRES_DB: codegendb
         # Set health checks to wait until postgres has started
-        
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -77,51 +72,15 @@ jobs:
 #         run: csbt flyway/flywayMigrate
       - name: Compile
         run: |
-          echo "$HOME/.sbt" >> $GITHUB_PATH
-          echo "$HOME/.cache/coursier/v1" >> $GITHUB_PATH
-          echo "$HOME/.coursier/cache/v1" >> $GITHUB_PATH
-          echo "$HOME/.ivy2/cache" >> $GITHUB_PATH
           csbt flyway/flywayMigrate
           csbt compile
           csbt test:compile
-          DIR="$HOME/.sbt"
-          if [ -d "$DIR" ]; then
-            echo "Showing ${DIR}..."
-            ls -lh "$DIR"
-          else
-            echo "Error: ${DIR} not found."
-          
-          fi
-
-          DIR="$HOME/.cache/coursier/v1/https/repo1.maven.org/maven2/"
-          if [ -d "$DIR" ]; then
-            echo "Showing ${DIR}..."
-            ls -lh "$DIR"
-          else
-            echo "Error: ${DIR} not found. "
-            
-          fi
-
-          DIR="$HOME/.coursier"
-          if [ -d "$DIR" ]; then
-            echo "Showing ${DIR}..."
-            ls -lh "$DIR"
-          else
-            echo "Error: ${DIR} not found."
-            
-          fi
-
-          DIR="$HOME/.ivy2/cache"
-          if [ -d "$DIR" ]; then
-            echo "Showing ${DIR}..."
-            ls -lh "$DIR"
-          else
-            echo "Error: ${DIR} not found. "
-           
-          fi
       - name: Run Tests
         run: |
-          ls -alh ~/
-#         csbt test
+          echo $GITHUB_REF
+          echo ${GITHUB_REF#refs/*/}
+          echo ${github.event_name}
+#          csbt test
+#         ls -alh ~/
 #       - name: Package
 #         run: csbt docker:publish
