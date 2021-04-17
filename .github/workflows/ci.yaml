@@ -7,7 +7,7 @@ jobs:
     # Containers must run in Linux based operating systems
     runs-on: ubuntu-latest
     # Docker Hub image that `container-job` executes in
-    container: node:12-buster
+#    container: node:12-buster
 #       volumes:
 #           - ~/.sbt:~/.sbt
 #           - ~/.ivy2/cache:~/.ivy2/cache
@@ -15,7 +15,7 @@ jobs:
 #           - ~/.cache/coursier/v1:~/.cache/coursier/v1
     env:
       # The hostname used to communicate with the PostgreSQL service container
-      CODEGEN_DB_HOST: postgres
+      CODEGEN_DB_HOST: localhost
       # The default PostgreSQL port
       CODEGEN_DB_PORT: 5432
       CODEGEN_DB_USER: codegenuser
