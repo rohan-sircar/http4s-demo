@@ -1,10 +1,15 @@
-name: CI
-on: push
+name: Continuous Integration
+on:  
+  pull_request:
+    branches: ['*', series/*]
+  push:
+    branches: ['*', series/*]
+    tags: [v*]
 
 jobs:
   # Label of the container job
   build:
-    name: Build and test
+    name: Build and Test
     # Containers must run in Linux based operating systems
     runs-on: ubuntu-latest
     # Docker Hub image that `container-job` executes in
@@ -79,8 +84,70 @@ jobs:
         run: |
           echo $GITHUB_REF
           echo ${GITHUB_REF#refs/*/}
-          echo ${github.event_name}
+#          echo ${github.event_name}
 #          csbt test
 #         ls -alh ~/
 #       - name: Package
 #         run: csbt docker:publish
+
+
+  # Label of the container job
+
+  publish:
+    name: Publish Release Docker Image
+    needs: [build]
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    # Containers must run in Linux based operating systems
+    runs-on: ubuntu-latest
+    # Docker Hub image that `container-job` executes in
+#    container: node:12-buster
+    env:
+      # The hostname used to communicate with the PostgreSQL service container
+      CODEGEN_DB_HOST: localhost
+      # The default PostgreSQL port
+      CODEGEN_DB_PORT: 5432
+      CODEGEN_DB_USER: codegenuser
+      CODEGEN_DB_PASSWORD: postgres
+      CODEGEN_DB_NAME: codegendb
+    # Service containers to run with `container-job`
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres:12-alpine
+        # Provide the password for postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: codegenuser
+          POSTGRES_DB: codegendb
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      # Downloads a copy of the code in your repository before running CI tests
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - name: Coursier cache
+        uses: coursier/cache-action@v6
+      - name: Setup
+        uses: olafurpg/setup-scala@v10
+        with:
+          java-version: adopt@1.11
+      - name: Install docker
+        run: | 
+          curl -fsSL https://get.docker.com -o get-docker.sh
+          sh get-docker.sh
+          docker login -p "${{ secrets.DOCKER_LOGIN_PASSWORD }}" -u rohansircar
+      - name: Publish
+        run: |
+          csbt flyway/flywayMigrate
+          csbt compile
+          echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+          csbt docker:stage
+
+
