@@ -95,11 +95,12 @@ jobs:
         with:
           username: rohansircar
           password: ${{ secrets.DOCKER_LOGIN_PASSWORD }}
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - name: Migrate
         run: csbt flyway/flywayMigrate
       - name: Publish
         run: |
-          echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
           csbt docker:publish
 
   publish-devel:
