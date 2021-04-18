@@ -12,3 +12,5 @@ addSbtPlugin("com.github.tototoshi" % "sbt-slick-codegen" % "1.4.0")
 addSbtPlugin("io.github.davidmweber" % "flyway-sbt" % "7.4.0")
 addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.9.23")
 addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.8.0")
+
+addSbtPlugin("com.dwijnand" % "sbt-dynver" % "4.1.1")

@@ -27,13 +27,22 @@ lazy val databaseUrl =
 lazy val databaseUser = sys.env.getOrElse("CODEGEN_DB_USER", "test_user")
 lazy val databasePassword = sys.env.getOrElse("CODEGEN_DB_PASSWORD", "password")
 
+// alpine java docker image for smaller size - "azul/zulu-openjdk-alpine:11-jre-headless"
 lazy val dockerJavaImage =
   sys.env.getOrElse("DOCKER_JAVA_IMAGE", "openjdk:11-jre-slim-buster")
-lazy val releaseVersion = sys.env.getOrElse("RELEASE_VERSION", "0.0.1-SNAPSHOT")
-lazy val dockerPublishTag = sys.env
-  .get("DOCKER_PUBLISH_TAG")
-  .orElse(sys.env.get("RELEASE_VERSION"))
-  .getOrElse("latest")
+
+// lazy val releaseVersion = {
+//   val str = sys.env.get("RELEASE_VERSION")
+//   str.map(s => if (s.startsWith("v")) s.tail else s)
+// }
+
+// lazy val dockerPublishTag = {
+//   val s = sys.env
+//     .get("DOCKER_PUBLISH_TAG")
+//     .orElse(sys.env.get("RELEASE_VERSION"))
+//     .getOrElse("latest")
+//   if (s.startsWith("v")) s.tail else s
+// }
 
 lazy val flyway = (project in file("modules/flyway"))
   .enablePlugins(FlywayPlugin)
@@ -51,9 +60,14 @@ lazy val root = (project in file("."))
   .settings(
     organization := "wow.doge",
     name := "http4s-demo",
-    version := releaseVersion,
-    version in Docker := dockerPublishTag,
-    // alpine java docker image for smaller size - "azul/zulu-openjdk-alpine:11-jre-headless"
+    // version := releaseVersion.getOrElse(dynver.value),
+    version in Docker := sys.env
+      .getOrElse(
+        "DOCKER_PUBLISH_TAG", {
+          val s = version.value
+          if (s.startsWith("v")) s.tail else s
+        }
+      ),
     dockerBaseImage := dockerJavaImage,
     dockerExposedPorts := Seq(8081),
     dockerUsername := Some("rohansircar"),
