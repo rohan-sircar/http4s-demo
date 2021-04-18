@@ -31,19 +31,6 @@ lazy val databasePassword = sys.env.getOrElse("CODEGEN_DB_PASSWORD", "password")
 lazy val dockerJavaImage =
   sys.env.getOrElse("DOCKER_JAVA_IMAGE", "openjdk:11-jre-slim-buster")
 
-// lazy val releaseVersion = {
-//   val str = sys.env.get("RELEASE_VERSION")
-//   str.map(s => if (s.startsWith("v")) s.tail else s)
-// }
-
-// lazy val dockerPublishTag = {
-//   val s = sys.env
-//     .get("DOCKER_PUBLISH_TAG")
-//     .orElse(sys.env.get("RELEASE_VERSION"))
-//     .getOrElse("latest")
-//   if (s.startsWith("v")) s.tail else s
-// }
-
 lazy val flyway = (project in file("modules/flyway"))
   .enablePlugins(FlywayPlugin)
   .settings(
