@@ -45,13 +45,13 @@ jobs:
           java-version: adopt@1.11
       - name: Migrate
         run: csbt flyway/flywayMigrate
+      - name: Lint
+        run: csbt scalafmtCheckAll
       - name: Compile
         run: |
           csbt "compile; test:compile"
       - name: Run Tests
         run: |
-          echo $GITHUB_REF
-          echo ${GITHUB_REF#refs/*/}
           csbt test
   publish:
     name: Publish Release Docker Image
