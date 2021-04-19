@@ -55,6 +55,7 @@ object DBMigrations extends LazyLogging {
       count
     }
 
+  @SuppressWarnings(Array("org.wartremover.warts.Null"))
   private def unsafeMigrate(config: JdbcDatabaseConfig): Int = {
     val m: FluentConfiguration = Flyway.configure
       .dataSource(

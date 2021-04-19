@@ -2,16 +2,34 @@ name: Continuous Integration
 on:
   pull_request:
     branches: ["*", series/*]
+    paths-ignore:
+      - ".dockerignore"
+      - ".github/workflow/ci.yml"
+      - "Changelog.md"
+      - "Dockerfile"
+      - "doc/**"
+      - "docker/**"
+      - "LICENSE"
+      - "README.md"
+      # - "tests/e2e/**"
   push:
     branches: ["*", series/*]
     tags: [v*]
+    paths-ignore:
+      - ".dockerignore"
+      - ".github/workflow/ci.yml"
+      - "Changelog.md"
+      - "Dockerfile"
+      - "doc/**"
+      - "docker/**"
+      - "LICENSE"
+      - "README.md"
+      # - "tests/e2e/**"
 
 jobs:
-  # Label of the container job
   build:
     name: Build and Test
     runs-on: ubuntu-latest
-    #    container: node:12-buster
     env:
       CODEGEN_DB_HOST: localhost
       CODEGEN_DB_PORT: 5432
@@ -46,19 +64,21 @@ jobs:
       - name: Migrate
         run: csbt flyway/flywayMigrate
       - name: Lint
-        run: csbt scalafmtCheckAll
+        run: csbt "scalafmtCheckAll;scalafixAll --check"
       - name: Compile
         run: |
           csbt "compile; test:compile"
-      - name: Run Tests
+      - name: Run Unit Tests
         run: |
           csbt test
+      - name: Run Integration Tests
+        run: |
+          csbt it:test
   publish:
     name: Publish Release Docker Image
     needs: [build]
     if: github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    #    container: node:12-buster
     env:
       CODEGEN_DB_HOST: localhost
       CODEGEN_DB_PORT: 5432
@@ -106,7 +126,6 @@ jobs:
     needs: [build]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/devel'
     runs-on: ubuntu-latest
-    #    container: node:12-buster
     env:
       CODEGEN_DB_HOST: localhost
       CODEGEN_DB_PORT: 5432

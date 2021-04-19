@@ -27,7 +27,7 @@ trait MonixBioSuite extends munit.TaglessFinalSuite[Task] {
       (
           options: TestOptions,
           value: Logger[Task]
-      ) => Task(options.name),
+      ) => Task.unit,
       (_: Logger[Task]) => Task.unit
     )
 

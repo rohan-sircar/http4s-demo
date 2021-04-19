@@ -11,6 +11,7 @@ import org.http4s.Method
 import org.http4s.Request
 import org.http4s.Uri
 import org.http4s.implicits._
+import wow.doge.http4sdemo.MonixBioSuite
 import wow.doge.http4sdemo.dto.Book
 import wow.doge.http4sdemo.dto.BookSearchMode
 import wow.doge.http4sdemo.dto.BookUpdate

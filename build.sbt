@@ -6,7 +6,7 @@ val MunitCatsEffectVersion = "0.13.0"
 val FlywayVersion = "7.5.3"
 scalaVersion in ThisBuild := "2.13.4"
 
-resolvers += "jitpack" at "https://jitpack.io"
+resolvers in ThisBuild += "jitpack" at "https://jitpack.io"
 
 import com.github.tototoshi.sbt.slick.CodegenPlugin.autoImport.{
   slickCodegenDatabasePassword,
@@ -14,8 +14,8 @@ import com.github.tototoshi.sbt.slick.CodegenPlugin.autoImport.{
   slickCodegenJdbcDriver
 }
 
-import _root_.slick.codegen.SourceCodeGenerator
-import _root_.slick.{model => m}
+import slick.codegen.SourceCodeGenerator
+import slick.{model => m}
 
 lazy val codegenDbHost = sys.env.getOrElse("CODEGEN_DB_HOST", "localhost")
 lazy val codegenDbPort = sys.env.getOrElse("CODEGEN_DB_PORT", "5432")
@@ -42,24 +42,39 @@ lazy val flyway = (project in file("modules/flyway"))
     flywayBaselineOnMigrate := true
   )
 
+lazy val testCommon = (project in file("modules/test-common"))
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.github.monix" % "monix-bio" % "0a2ad29275",
+      "com.github.valskalla" %% "odin-monix" % "0.9.1",
+      "de.lolhens" %% "munit-tagless-final" % "0.0.1"
+    )
+  )
+
 lazy val root = (project in file("."))
-  .enablePlugins(CodegenPlugin, DockerPlugin, JavaAppPackaging, AshScriptPlugin)
+  .enablePlugins(
+    CodegenPlugin,
+    DockerPlugin,
+    JavaAppPackaging,
+    AshScriptPlugin,
+    BuildInfoPlugin,
+    GitBranchPrompt
+  )
   .configs(IntegrationTest)
   .settings(
     organization := "wow.doge",
     name := "http4s-demo",
-    // version := releaseVersion.getOrElse(dynver.value),
     version in Docker := sys.env
-      .getOrElse(
-        "DOCKER_PUBLISH_TAG", {
-          val s = version.value
-          if (s.startsWith("v")) s.tail else s
-        }
-      ),
+      .get("DOCKER_PUBLISH_TAG")
+      .map(s => if (s.startsWith("v")) s.tail else s)
+      .getOrElse(version.value),
     dockerBaseImage := dockerJavaImage,
     dockerExposedPorts := Seq(8081),
     dockerUsername := Some("rohansircar"),
     Defaults.itSettings,
+    inConfig(IntegrationTest)(scalafixConfigSettings(IntegrationTest)),
+    buildInfoOptions ++= Seq(BuildInfoOption.ToJson, BuildInfoOption.BuildTime),
+    buildInfoPackage := "wow.doge.http4sdemo",
     scalacOptions ++= Seq(
       "-encoding",
       "UTF-8",
@@ -77,8 +92,16 @@ lazy val root = (project in file("."))
       "-Wconf:cat=lint-byname-implicit:s",
       //give errors on non exhaustive matches
       "-Wconf:msg=match may not be exhaustive:e",
+      // """-Wconf:site=wow\.doge\.http4sdemo\.slickcodegen\Tables\$:i""",
+      "-Wconf:msg=early initializers are deprecated:i",
+      """-Wconf:site=wow\.doge\.http4sdemo\.slickcodegen\..*:i""",
+      // """-Wconf:src=target/src_managed/Tables.scala:s""",
       "-explaintypes" // Explain type errors in more detail.
     ),
+    scalacOptions ++= {
+      if (insideCI.value) Seq("-Xfatal-warnings")
+      else Seq.empty
+    },
     javacOptions ++= Seq("-source", "11", "-target", "11"),
     //format: off
     libraryDependencies ++= Seq(
@@ -134,9 +157,14 @@ lazy val root = (project in file("."))
       "com.dimafeng" %% "testcontainers-scala-munit" % "0.39.3" % IntegrationTest,
       "com.dimafeng" %% "testcontainers-scala-postgresql" % "0.39.3" % IntegrationTest
     ),
-    addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"),
-    addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
-    testFrameworks += new TestFramework("munit.Framework")
+    testFrameworks += new TestFramework("munit.Framework"),
+    buildInfoKeys := Seq[BuildInfoKey](
+      name,
+      version,
+      scalaVersion,
+      sbtVersion,
+      libraryDependencies
+    )
   )
   .settings(
     slickCodegenDatabaseUrl := databaseUrl,
@@ -149,6 +177,9 @@ lazy val root = (project in file("."))
     slickCodegenCodeGenerator := { (model: m.Model) =>
       new SourceCodeGenerator(model) {
         override def Table = new Table(_) {
+          // override def EntityType = new EntityType {
+          //   override def caseClassFinal = true
+          // }
           override def Column = new Column(_) {
             override def rawType = model.tpe match {
               case "java.sql.Timestamp" =>
@@ -162,13 +193,37 @@ lazy val root = (project in file("."))
     },
     sourceGenerators in Compile += slickCodegen.taskValue
   )
-  .dependsOn(flyway)
+  .dependsOn(flyway, testCommon)
 
 ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.4.3"
 inThisBuild(
   List(
     scalaVersion := scalaVersion.value, // 2.11.12, or 2.13.3
     semanticdbEnabled := true, // enable SemanticDB
-    semanticdbVersion := "4.4.2" // use Scalafix compatible version
+    semanticdbVersion := "4.4.2", // use Scalafix compatible version
+    addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"),
+    addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
   )
 )
+
+wartremoverErrors in (Compile, compile) ++=
+  Warts.allBut(
+    Wart.Any,
+    Wart.NonUnitStatements,
+    Wart.StringPlusAny,
+    Wart.Overloading,
+    Wart.PublicInference,
+    Wart.Nothing,
+    Wart.Var,
+    Wart.DefaultArguments,
+    Wart.OptionPartial,
+    // Wart.MutableDataStructures,
+    Wart.ImplicitConversion,
+    Wart.ImplicitParameter,
+    Wart.ToString,
+    Wart.Recursion,
+    Wart.While,
+    Wart.ExplicitImplicitTypes,
+    Wart.ListUnapply
+  )
+wartremoverExcluded += (sourceManaged in Compile).value
