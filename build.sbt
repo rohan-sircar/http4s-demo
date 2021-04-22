@@ -163,7 +163,9 @@ lazy val root = (project in file("."))
       version,
       scalaVersion,
       sbtVersion,
-      libraryDependencies
+      libraryDependencies,
+      javacOptions,
+      dockerBaseImage
     )
   )
   .settings(
@@ -202,7 +204,8 @@ inThisBuild(
     semanticdbEnabled := true, // enable SemanticDB
     semanticdbVersion := "4.4.2", // use Scalafix compatible version
     addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"),
-    addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
+    addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
+    dynverSeparator := "-"
   )
 )
 
