@@ -1,3 +1,4 @@
+---
 name: Continuous Integration
 on:
   pull_request:
@@ -77,7 +78,9 @@ jobs:
   publish:
     name: Publish Release Docker Image
     needs: [build]
-    if: github.event_name != 'pull_request' && startsWith(github.ref, 'refs/tags/v')
+    if: |
+      github.event_name != 'pull_request' && \
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-latest
     env:
       CODEGEN_DB_HOST: localhost
@@ -117,7 +120,14 @@ jobs:
           password: ${{ secrets.DOCKER_LOGIN_PASSWORD }}
       - name: Migrate
         run: csbt flyway/flywayMigrate
-      - name: Publish
+      - name: Publish Tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          csbt docker:publish
+      - name: Publish Latest
+        if: github.ref == 'refs/heads/main'
+        env:
+          DOCKER_PUBLISH_TAG: latest
         run: |
           csbt docker:publish
 
@@ -133,7 +143,7 @@ jobs:
       CODEGEN_DB_PASSWORD: postgres
       CODEGEN_DB_NAME: codegendb
       DOCKER_JAVA_IMAGE: azul/zulu-openjdk-alpine:11-jre-headless
-      DOCKER_PUBLISH_TAG: latest
+      DOCKER_PUBLISH_TAG: devel
     services:
       postgres:
         image: postgres:12-alpine
