@@ -17,19 +17,27 @@ import com.github.tototoshi.sbt.slick.CodegenPlugin.autoImport.{
 import slick.codegen.SourceCodeGenerator
 import slick.{model => m}
 
-lazy val codegenDbHost = sys.env.getOrElse("CODEGEN_DB_HOST", "localhost")
-lazy val codegenDbPort = sys.env.getOrElse("CODEGEN_DB_PORT", "5432")
-lazy val codegenDbName = sys.env.getOrElse("CODEGEN_DB_NAME", "test_db")
+lazy val codegenDbHost =
+  sys.env.getOrElse("HTTP4S_DEMO_CODEGEN_DB_HOST", "localhost")
+lazy val codegenDbPort =
+  sys.env.getOrElse("HTTP4S_DEMO_CODEGEN_DB_PORT", "5432")
+lazy val codegenDbName =
+  sys.env.getOrElse("HTTP4S_DEMO_CODEGEN_DB_NAME", "test_db")
 
 lazy val databaseUrl =
   s"jdbc:postgresql://$codegenDbHost:$codegenDbPort/$codegenDbName"
 
-lazy val databaseUser = sys.env.getOrElse("CODEGEN_DB_USER", "test_user")
-lazy val databasePassword = sys.env.getOrElse("CODEGEN_DB_PASSWORD", "password")
+lazy val databaseUser =
+  sys.env.getOrElse("HTTP4S_DEMO_CODEGEN_DB_USER", "test_user")
+lazy val databasePassword =
+  sys.env.getOrElse("HTTP4S_DEMO_CODEGEN_DB_PASSWORD", "password")
 
 // alpine java docker image for smaller size - "azul/zulu-openjdk-alpine:11-jre-headless"
 lazy val dockerJavaImage =
-  sys.env.getOrElse("DOCKER_JAVA_IMAGE", "openjdk:11-jre-slim-buster")
+  sys.env.getOrElse(
+    "HTTP4S_DEMO_DOCKER_JAVA_IMAGE",
+    "openjdk:11-jre-slim-buster"
+  )
 
 lazy val flyway = (project in file("modules/flyway"))
   .enablePlugins(FlywayPlugin)
@@ -65,7 +73,7 @@ lazy val root = (project in file("."))
     organization := "wow.doge",
     name := "http4s-demo",
     version in Docker := sys.env
-      .get("DOCKER_PUBLISH_TAG")
+      .get("HTTP4S_DEMO_DOCKER_PUBLISH_TAG")
       .map(s => if (s.startsWith("v")) s.tail else s)
       .getOrElse(version.value),
     dockerBaseImage := dockerJavaImage,

@@ -32,11 +32,11 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
     env:
-      CODEGEN_DB_HOST: localhost
-      CODEGEN_DB_PORT: 5432
-      CODEGEN_DB_USER: codegenuser
-      CODEGEN_DB_PASSWORD: postgres
-      CODEGEN_DB_NAME: codegendb
+      HTTP4S_DEMO_CODEGEN_DB_HOST: localhost
+      HTTP4S_DEMO_CODEGEN_DB_PORT: 5432
+      HTTP4S_DEMO_CODEGEN_DB_USER: codegenuser
+      HTTP4S_DEMO_CODEGEN_DB_PASSWORD: postgres
+      HTTP4S_DEMO_CODEGEN_DB_NAME: codegendb
     services:
       postgres:
         image: postgres:12-alpine
@@ -81,12 +81,12 @@ jobs:
     if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-latest
     env:
-      CODEGEN_DB_HOST: localhost
-      CODEGEN_DB_PORT: 5432
-      CODEGEN_DB_USER: codegenuser
-      CODEGEN_DB_PASSWORD: postgres
-      CODEGEN_DB_NAME: codegendb
-      DOCKER_JAVA_IMAGE: azul/zulu-openjdk-alpine:11-jre-headless
+      HTTP4S_DEMO_CODEGEN_DB_HOST: localhost
+      HTTP4S_DEMO_CODEGEN_DB_PORT: 5432
+      HTTP4S_DEMO_CODEGEN_DB_USER: codegenuser
+      HTTP4S_DEMO_CODEGEN_DB_PASSWORD: postgres
+      HTTP4S_DEMO_CODEGEN_DB_NAME: codegendb
+      HTTP4S_DEMO_DOCKER_JAVA_IMAGE: azul/zulu-openjdk-alpine:11-jre-headless
     services:
       postgres:
         image: postgres:12-alpine
@@ -135,13 +135,13 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/devel'
     runs-on: ubuntu-latest
     env:
-      CODEGEN_DB_HOST: localhost
-      CODEGEN_DB_PORT: 5432
-      CODEGEN_DB_USER: codegenuser
-      CODEGEN_DB_PASSWORD: postgres
-      CODEGEN_DB_NAME: codegendb
-      DOCKER_JAVA_IMAGE: azul/zulu-openjdk-alpine:11-jre-headless
-      DOCKER_PUBLISH_TAG: devel
+      HTTP4S_DEMO_CODEGEN_DB_HOST: localhost
+      HTTP4S_DEMO_CODEGEN_DB_PORT: 5432
+      HTTP4S_DEMO_CODEGEN_DB_USER: codegenuser
+      HTTP4S_DEMO_CODEGEN_DB_PASSWORD: postgres
+      HTTP4S_DEMO_CODEGEN_DB_NAME: codegendb
+      HTTP4S_DEMO_DOCKER_JAVA_IMAGE: azul/zulu-openjdk-alpine:11-jre-headless
+      HTTP4S_DEMO_DOCKER_PUBLISH_TAG: devel
     services:
       postgres:
         image: postgres:12-alpine
