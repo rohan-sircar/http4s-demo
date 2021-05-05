@@ -1,6 +1,5 @@
 package wow.doge.http4sdemo
 
-import cats.syntax.all._
 import com.dimafeng.testcontainers.PostgreSQLContainer
 import monix.bio.UIO
 import wow.doge.http4sdemo.dto.BookSearchMode
@@ -33,7 +32,6 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
             book <- service.insertBook(NewBook("blah", "Segehwe", id))
             _ <- service
               .getBookById(book.bookId)
-              .flatTap(r => UIO(println(r)))
               .assertEquals(Some(book))
           } yield ()
         )
@@ -109,7 +107,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
             book1 <- service.insertBook(NewBook("blah3", "aeaega", id))
             book2 <- service.insertBook(NewBook("blah4", "afgegg", id))
             _ <- service
-              .searchBook(BookSearchMode.AuthorName, id.toString)
+              .searchBook(BookSearchMode.AuthorName, "bar")
               .toListL
               .toIO
               .attempt

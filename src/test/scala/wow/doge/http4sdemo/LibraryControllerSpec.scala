@@ -1,7 +1,5 @@
 package wow.doge.http4sdemo
 
-import java.time.LocalDateTime
-
 import cats.syntax.all._
 import monix.bio.IO
 import monix.bio.Task
@@ -19,17 +17,6 @@ import wow.doge.http4sdemo.services.LibraryService
 import wow.doge.http4sdemo.services.NoopLibraryService
 
 class LibraryControllerSpec extends MonixBioSuite {
-
-  // "libraryControllerSpec"
-  // val fixture = loggerFixture()
-  // ResourceFixture
-
-  // override def munitFixtures = List(myFixture)
-  // override def munitFixtures: Seq[Fixture[_]] = ???
-
-  val date = LocalDateTime.now()
-
-  // val logger = consoleLogger[Task]()
 
   val Root = Uri(path = "")
 

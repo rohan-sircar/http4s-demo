@@ -5,13 +5,10 @@ import java.time.LocalDateTime
 import cats.syntax.either._
 import enumeratum.EnumEntry
 import enumeratum._
-import io.circe.Printer
 import io.circe.generic.semiauto._
 import io.scalaland.chimney.dsl._
-import org.http4s.EntityEncoder
 import org.http4s.ParseFailure
 import org.http4s.QueryParamDecoder
-import org.http4s.circe.streamJsonArrayEncoderWithPrinterOf
 import org.http4s.dsl.impl.QueryParamDecoderMatcher
 import slick.jdbc.JdbcProfile
 import wow.doge.http4sdemo.slickcodegen.Tables
@@ -26,9 +23,6 @@ final case class Book(
 object Book {
   def tupled = (apply _).tupled
   implicit val codec = deriveCodec[Book]
-  // implicit def streamEntityEncoder[F[_]]
-  //     : EntityEncoder[F, fs2.Stream[F, Book]] =
-  //   streamJsonArrayEncoderWithPrinterOf(Printer.noSpaces)
   def fromBooksRow(row: Tables.BooksRow) = row.transformInto[Book]
   def fromBooksTableFn(implicit profile: JdbcProfile) = {
     import profile.api._
@@ -68,9 +62,6 @@ final case class Author(authorId: Int, authorName: String)
 object Author {
   def tupled = (apply _).tupled
   implicit val codec = deriveCodec[Author]
-  implicit def streamEntityEncoder[F[_]]
-      : EntityEncoder[F, fs2.Stream[F, Author]] =
-    streamJsonArrayEncoderWithPrinterOf(Printer.noSpaces)
   def fromAuthorsRow(row: Tables.AuthorsRow) = row.transformInto[Author]
   def fromAuthorsTableFn(implicit profile: JdbcProfile) = {
     import profile.api._
@@ -97,9 +88,6 @@ final case class BookWithAuthor(
 object BookWithAuthor {
   def tupled = (apply _).tupled
   implicit val codec = deriveCodec[BookWithAuthor]
-  implicit def streamEntityEncoder[F[_]]
-      : EntityEncoder[F, fs2.Stream[F, BookWithAuthor]] =
-    streamJsonArrayEncoderWithPrinterOf(Printer.noSpaces)
 }
 
 sealed trait BookSearchMode extends EnumEntry

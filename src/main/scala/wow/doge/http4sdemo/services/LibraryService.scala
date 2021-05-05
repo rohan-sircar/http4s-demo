@@ -66,7 +66,7 @@ class LibraryServiceImpl(
 
   def getBooks = db.streamO(dbio.getBooks.transactionally)
 
-  def getBookById(id: Int) = db.runL(dbio.getBook(id))
+  def getBookById(id: Int) = db.runL(dbio.getBookById(id))
 
   def searchBook(mode: BookSearchMode, value: String): Observable[Book] =
     mode match {
@@ -76,21 +76,20 @@ class LibraryServiceImpl(
       case AuthorName =>
         Observable
           .fromTask((for {
-            _ <- IO.unit
-            id <- IO(value.toInt)
-            author <- db.runL(dbio.getAuthor(id)).flatMap {
+            author <- db.runL(dbio.getAuthorByName(value)).flatMap {
               case None =>
                 IO.raiseError(
-                  new EntityDoesNotExist(s"Author with id=$id does not exist")
+                  new EntityDoesNotExist(
+                    s"Author with name=$value does not exist"
+                  )
                 )
               case Some(value) => IO.pure(value)
             }
             books = db
-              .streamO(dbio.getBooksForAuthor(id))
+              .streamO(dbio.getBooksForAuthor(author.authorId))
               .map(Book.fromBooksRow)
           } yield books).toTask)
           .flatten
-
     }
 
   def insertAuthor(a: NewAuthor): Task[Int] = db.runL(dbio.insertAuthor(a))
@@ -99,7 +98,7 @@ class LibraryServiceImpl(
     for {
       action <- UIO.deferAction(implicit s =>
         UIO(for {
-          mbRow <- dbio.selectBook(id).result.headOption
+          mbRow <- Tables.Books.filter(_.bookId === id).result.headOption
           updatedRow <- mbRow match {
             case Some(value) =>
               println(s"Original value -> $value")
@@ -110,7 +109,7 @@ class LibraryServiceImpl(
                 EntityDoesNotExist(s"Book with id=$id does not exist")
               )
           }
-          updateAction = dbio.selectBook(id).update(updatedRow)
+          updateAction = Tables.Books.filter(_.bookId === id).update(updatedRow)
           _ = println(s"SQL = ${updateAction.statements}")
           _ <- updateAction
         } yield ())
@@ -128,8 +127,8 @@ class LibraryServiceImpl(
     IO.deferAction { implicit s =>
       for {
         action <- UIO(for {
-          _ <- dbio
-            .selectBookByIsbn(newBook.isbn)
+          _ <- Tables.Books
+            .filter(_.isbn === newBook.isbn)
             .map(Book.fromBooksTableFn)
             .result
             .headOption
@@ -183,24 +182,30 @@ class LibraryDbio(val profile: JdbcProfile) {
   def insertAuthor(newAuthor: NewAuthor): DBIO[Int] =
     Query.insertAuthorGetId += newAuthor
 
-  def selectBook(id: Int) = Tables.Books.filter(_.bookId === id)
-
-  def getAuthor(id: Int) =
+  def getAuthor(id: Int): DBIO[Option[Author]] =
     Query.selectAuthor(id).map(Author.fromAuthorsTableFn).result.headOption
 
-  def deleteBook(id: Int) = selectBook(id).delete
+  def getAuthorByName(name: String): DBIO[Option[Author]] =
+    Tables.Authors
+      .filter(_.authorName === name)
+      .map(Author.fromAuthorsTableFn)
+      .result
+      .headOption
 
-  def getBook(id: Int) = selectBook(id)
+  def deleteBook(id: Int): DBIO[Int] = Query.selectBookById(id).delete
+
+  def getBookById(id: Int): DBIO[Option[Book]] = Query
+    .selectBookById(id)
     .map(Book.fromBooksTableFn)
     .result
     .headOption
 
-  def selectBookByIsbn(isbn: String) = Tables.Books.filter(_.isbn === isbn)
-
-  def getBooksByTitle(title: String) =
+  def getBooksByTitle(title: String): StreamingDBIO[Seq[Book], Book] =
     Tables.Books.filter(_.bookTitle === title).map(Book.fromBooksTableFn).result
 
-  def getBooksForAuthor(authorId: Int) =
+  def getBooksForAuthor(
+      authorId: Int
+  ): StreamingDBIO[Seq[Tables.BooksRow], Tables.BooksRow] =
     Query.booksForAuthorInner(authorId).result
 
   private object Query {
@@ -227,6 +232,10 @@ class LibraryDbio(val profile: JdbcProfile) {
 
     def selectAuthor(authorId: Int) =
       Tables.Authors.filter(_.authorId === authorId)
+
+    def selectBookById(id: Int) = Tables.Books.filter(_.bookId === id)
+
+    def selectBookByIsbn(isbn: String) = Tables.Books.filter(_.isbn === isbn)
   }
 }
 
