@@ -2,6 +2,8 @@ package wow.doge.http4sdemo
 
 import scala.util.Try
 
+import io.odin.meta.Position
+import io.odin.meta.Render
 import monix.bio.IO
 import monix.bio.Task
 import monix.reactive.Observable
@@ -33,6 +35,20 @@ package object implicits {
       extends AnyVal {
     def toTask =
       monix.eval.Task.deferAction(implicit s => monix.eval.Task.from(task))
+  }
+
+  implicit final class OdinLoggerExt(private val logger: io.odin.Logger[Task])
+      extends AnyVal {
+    def debugU[M](msg: => M)(implicit render: Render[M], position: Position) =
+      logger.debug(msg).hideErrors
+    def infoU[M](msg: => M)(implicit render: Render[M], position: Position) =
+      logger.info(msg).hideErrors
+    def traceU[M](msg: => M)(implicit render: Render[M], position: Position) =
+      logger.trace(msg).hideErrors
+    def warnU[M](msg: => M)(implicit render: Render[M], position: Position) =
+      logger.warn(msg).hideErrors
+    def errorU[M](msg: => M)(implicit render: Render[M], position: Position) =
+      logger.error(msg).hideErrors
   }
 
 }

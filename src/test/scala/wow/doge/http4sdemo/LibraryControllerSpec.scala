@@ -7,12 +7,14 @@ import monix.bio.UIO
 import monix.reactive.Observable
 import org.http4s.Method
 import org.http4s.Request
+import org.http4s.Status
 import org.http4s.Uri
 import org.http4s.implicits._
 import wow.doge.http4sdemo.MonixBioSuite
 import wow.doge.http4sdemo.dto.Book
 import wow.doge.http4sdemo.dto.BookSearchMode
 import wow.doge.http4sdemo.dto.BookUpdate
+import wow.doge.http4sdemo.routes.LibraryRoutes
 import wow.doge.http4sdemo.services.LibraryService
 import wow.doge.http4sdemo.services.NoopLibraryService
 
@@ -34,12 +36,12 @@ class LibraryControllerSpec extends MonixBioSuite {
     }
     for {
       _ <- UIO.unit
-      routes = Http4sdemoRoutes.libraryRoutes(service)
+      routes = new LibraryRoutes(service, noopLogger).routes
       res <- routes
-        .run(Request[Task](Method.GET, uri"/api/get/books"))
+        .run(Request[Task](Method.GET, uri"/api/books"))
         .value
         .hideErrors
-      body <- res.map(_.as[List[Book]]).sequence
+      body <- res.traverse(_.as[List[Book]])
       _ <- UIO(assertEquals(body, Some(List(book))))
       // _ <- logger2.debug(body.toString).hideErrors
     } yield ()
@@ -57,15 +59,16 @@ class LibraryControllerSpec extends MonixBioSuite {
     for {
       _ <- UIO.unit
       reqBody = BookUpdate(Some("blah"), None)
-      routes = Http4sdemoRoutes.libraryRoutes(service)
+      routes = new LibraryRoutes(service, noopLogger).routes
       res <- routes
         .run(
-          Request[Task](Method.PATCH, Root / "api" / "update" / "book" / "1")
+          Request[Task](Method.PATCH, Root / "api" / "books" / "1")
             .withEntity(reqBody)
         )
         .value
         .hideErrors
-      body <- res.map(_.as[LibraryService.Error]).sequence
+      _ <- UIO(assertEquals(res.map(_.status), Some(Status.NotFound)))
+      body <- res.traverse(_.as[LibraryService.Error])
       _ <- UIO(
         assertEquals(
           body,
@@ -98,10 +101,10 @@ class LibraryControllerSpec extends MonixBioSuite {
       // logger2 = logger.withConstContext(
       //   Map("Test" -> "get books by author name")
       // )
-      routes = Http4sdemoRoutes.libraryRoutes(service)
+      routes = new LibraryRoutes(service, noopLogger).routes
       request = Request[Task](
         Method.GET,
-        Root / "api" / "get" / "book"
+        Root / "api" / "books"
           withQueryParams Map(
             "mode" -> BookSearchMode.AuthorName.entryName,
             "value" -> "blah"
@@ -109,7 +112,7 @@ class LibraryControllerSpec extends MonixBioSuite {
       )
       // _ <- logger2.info(s"Request -> $request")
       res <- routes.run(request).value.hideErrors
-      body <- res.map(_.as[List[Book]]).sequence
+      body <- res.traverse(_.as[List[Book]])
       _ <- UIO.pure(body).assertEquals(Some(books))
       // _ <- logger2.debug(s"Response body -> $body").hideErrors
     } yield ()
@@ -134,10 +137,10 @@ class LibraryControllerSpec extends MonixBioSuite {
       // logger2 = logger.withConstContext(
       //   Map("Test" -> "get books by book title")
       // )
-      routes = Http4sdemoRoutes.libraryRoutes(service)
+      routes = new LibraryRoutes(service, noopLogger).routes
       request = Request[Task](
         Method.GET,
-        Root / "api" / "get" / "book"
+        Root / "api" / "books"
           withQueryParams Map(
             "mode" -> BookSearchMode.BookTitle.entryName,
             "value" -> "blah"
@@ -145,7 +148,7 @@ class LibraryControllerSpec extends MonixBioSuite {
       )
       // _ <- logger2.info(s"Request -> $request")
       res <- routes.run(request).value.hideErrors
-      body <- res.map(_.as[List[Book]]).sequence
+      body <- res.traverse(_.as[List[Book]])
       _ <- UIO.pure(body).assertEquals(Some(books))
       // _ <- logger2.debug(s"Response body -> $body").hideErrors
     } yield ()

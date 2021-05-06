@@ -217,6 +217,9 @@ inThisBuild(
   )
 )
 
+addCommandAlias("lint-check", "scalafmtCheckAll; scalafixAll --check")
+addCommandAlias("lint-run", "scalafmtAll; scalafixAll")
+
 wartremoverErrors in (Compile, compile) ++=
   Warts.allBut(
     Wart.Any,

@@ -1,53 +1,29 @@
-package wow.doge.http4sdemo
+package wow.doge.http4sdemo.routes
 
-import cats.effect.Sync
-import cats.implicits._
 import fs2.interop.reactivestreams._
 import io.circe.Codec
 import io.circe.generic.semiauto._
+import io.odin.Logger
 import monix.bio.IO
 import monix.bio.Task
-import monix.bio.UIO
 import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
 import wow.doge.http4sdemo.dto.Book
 import wow.doge.http4sdemo.dto.BookSearchMode
 import wow.doge.http4sdemo.dto.BookUpdate
 import wow.doge.http4sdemo.dto.NewBook
+import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.services.LibraryService
 
-object Http4sdemoRoutes {
+class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
 
-  def jokeRoutes[F[_]: Sync](J: Jokes[F]): HttpRoutes[F] = {
-    val dsl = Http4sDsl[F]
-    import dsl._
-    HttpRoutes.of[F] { case GET -> Root / "joke" =>
-      for {
-        joke <- J.get
-        resp <- Ok(joke)
-      } yield resp
-    }
-  }
-
-  def helloWorldRoutes[F[_]: Sync](H: HelloWorld[F]): HttpRoutes[F] = {
-    val dsl = new Http4sDsl[F] {}
-    import dsl._
-    HttpRoutes.of[F] { case GET -> Root / "hello" / name =>
-      for {
-        greeting <- H.hello(HelloWorld.Name(name))
-        resp <- Ok(greeting)
-        r2 <- BadRequest("Bad request")
-      } yield r2
-    }
-  }
-
-  def libraryRoutes(libraryService: LibraryService): HttpRoutes[Task] = {
+  val routes: HttpRoutes[Task] = {
     val dsl = Http4sDsl[Task]
     import dsl._
     object Value extends QueryParamDecoderMatcher[String]("value")
     HttpRoutes.of[Task] {
 
-      case GET -> Root / "api" / "get" / "book" :?
+      case GET -> Root / "api" / "books" :?
           BookSearchMode.Matcher(mode) +& Value(value) =>
         import org.http4s.circe.streamJsonArrayEncoder
         import io.circe.syntax._
@@ -63,7 +39,7 @@ object Http4sdemoRoutes {
           } yield res
         )
 
-      case GET -> Root / "api" / "get" / "books" =>
+      case GET -> Root / "api" / "books" =>
         import org.http4s.circe.streamJsonArrayEncoder
         import io.circe.syntax._
         Task.deferAction(implicit s =>
@@ -73,67 +49,50 @@ object Http4sdemoRoutes {
                 .toStream[Task]
             )
             res <- Ok(books.map(_.asJson))
-            // res <- Ok(streamJsonArrayEncoderOf[Task, Book].(books))
           } yield res
         )
 
-      case GET -> Root / "blah" => Ok().hideErrors
-
-      case GET -> Root / "api" / "get" / "book" / IntVar(id) =>
+      case GET -> Root / "api" / "books" / IntVar(id) =>
         import org.http4s.circe.CirceEntityCodec._
-        // import org.http4s.circe.jsonEncoder
-        // import io.circe.syntax._
         for {
           bookJson <- libraryService.getBookById(id)
           res <- Ok(bookJson)
         } yield res
 
-      case req @ POST -> Root / "api" / "post" / "book" =>
+      case req @ PUT -> Root / "api" / "books" =>
         import org.http4s.circe.CirceEntityCodec._
         for {
           newBook <- req.as[NewBook]
-          // .onErrorHandleWith {
-          //   case ParseF
-          // }
           res <- libraryService
             .insertBook(newBook)
+            .tapError(err => logger.errorU(err.toString))
             .flatMap(book => Created(book).hideErrors)
-            .mapErrorPartialWith {
-              case LibraryService.EntityDoesNotExist(message) =>
-                BadRequest(message).hideErrors
-              case LibraryService.EntityAlreadyExists(message) =>
-                BadRequest(message).hideErrors
-              // case LibraryService.MyError2(_) => Ok().hideErrors
-              // case C3                         => Ok().hideErrors
-            }
+            .onErrorHandleWith(_.toResponse)
         } yield res
 
-      case req @ PATCH -> Root / "api" / "update" / "book" / IntVar(id) =>
+      case req @ PATCH -> Root / "api" / "books" / IntVar(id) =>
         import org.http4s.circe.CirceEntityCodec._
         for {
           updateData <- req.as[BookUpdate]
           res <- libraryService
             .updateBook(id, updateData)
-            .flatMap(_ => Ok().hideErrors)
-            .tapError(err => UIO(println(s"Handled -> ${err.toString}")))
-            .mapErrorPartialWith {
-              case e @ LibraryService.EntityDoesNotExist(message) =>
-                BadRequest(e: LibraryService.Error).hideErrors
-              // case LibraryService.MyError2(_) => Ok().hideErrors
-              // case C3                         => Ok().hideErrors
-            }
+            .flatMap(_ => NoContent().hideErrors)
+            .tapError(err => logger.errorU(err.toString))
+            .onErrorHandleWith(_.toResponse)
         } yield res
 
-      case req @ DELETE -> Root / "api" / "delete" / "book" / IntVar(id) =>
+      case req @ DELETE -> Root / "api" / "books" / IntVar(id) =>
         for {
           _ <- libraryService.deleteBook(id)
           res <- Ok()
         } yield res
 
-      case req @ POST -> Root / "api" / "post" / "books" / "read" =>
+      //TODO: use convenience method for decoding json stream
+      case req @ POST -> Root / "api" / "books" =>
         import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
         for {
-          newBook <- req.as[List[Book]]
+          newBooks <- req.as[List[Book]]
+          // obs = Observable.fromIterable(newBooks)
           // book <- libraryService.insertBook(newBook)
           res <- Ok("blah")
         } yield res

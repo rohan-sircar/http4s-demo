@@ -101,4 +101,5 @@ object BookSearchMode extends Enum[BookSearchMode] {
       withNameEither(s).leftMap(e => ParseFailure(e.getMessage, e.getMessage))
     )
   object Matcher extends QueryParamDecoderMatcher[BookSearchMode]("mode")
+
 }

@@ -5,6 +5,7 @@ import monix.bio.IO
 import monix.bio.Task
 import monix.bio.UIO
 import monix.reactive.Observable
+import org.http4s.dsl.Http4sDsl
 import slick.jdbc.JdbcBackend
 import slick.jdbc.JdbcProfile
 import wow.doge.http4sdemo.dto.Author
@@ -22,14 +23,31 @@ object LibraryService {
   sealed trait Error extends Exception {
     def message: String
     override def getMessage(): String = message
+    def toResponse = {
+      val dsl = Http4sDsl[Task]
+      import org.http4s.circe.CirceEntityCodec._
+      import dsl._
+      implicit val codec = Error.codec
+      this match {
+        case e @ LibraryService.EntityDoesNotExist(message) =>
+          NotFound(e: LibraryService.Error).hideErrors
+        case e @ LibraryService.EntityAlreadyExists(message) =>
+          BadRequest(e: LibraryService.Error).hideErrors
+      }
+    }
   }
   final case class EntityDoesNotExist(message: String) extends Error
   final case class EntityAlreadyExists(message: String) extends Error
+  // final case class MessageBodyError(cause: MessageBodyFailure) extends Error
   // final case class MyError2(message: String) extends Error
   // case object C3 extends Error { val message: String = "C3" }
 
   object Error {
     implicit val codec = deriveCodec[Error]
+    // def convert(e: MessageBodyFailure) =  e match {
+    //   case InvalidMessageBodyFailure(details, cause) => ()
+    //   case MalformedMessageBodyFailure(details, cause) => ()
+    // }
   }
 }
 

@@ -65,7 +65,7 @@ jobs:
       - name: Migrate
         run: csbt flyway/flywayMigrate
       - name: Lint
-        run: csbt "scalafmtCheckAll;scalafixAll --check"
+        run: csbt lint-check
       - name: Compile
         run: |
           csbt "compile; test:compile"
