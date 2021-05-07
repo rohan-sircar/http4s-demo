@@ -22,7 +22,7 @@ class LibraryControllerSpec extends MonixBioSuite {
 
   val Root = Uri(path = "")
 
-  test("get books success") {
+  test("get books api should succeed") {
     import org.http4s.circe.CirceEntityCodec._
     val book = Book(1, "book1", "adsgq342dsdc", 1, date)
     val service = new NoopLibraryService {
@@ -47,7 +47,7 @@ class LibraryControllerSpec extends MonixBioSuite {
     } yield ()
   }
 
-  test("update book error") {
+  test("update book api should fail gracefully when book id does not exist") {
     import org.http4s.circe.CirceEntityCodec._
     val service = new NoopLibraryService {
       override def updateBook(id: Int, updateData: BookUpdate) =
@@ -82,7 +82,7 @@ class LibraryControllerSpec extends MonixBioSuite {
     } yield ()
   }
 
-  test("get books by author name") {
+  test("search books by author name api should succeed") {
     import org.http4s.circe.CirceEntityCodec._
     val value = "blah"
     val books =
@@ -118,7 +118,7 @@ class LibraryControllerSpec extends MonixBioSuite {
     } yield ()
   }
 
-  test("get books by book title") {
+  test("search books by book title api should succeed") {
     import org.http4s.circe.CirceEntityCodec._
     val value = "blah"
     val books =
@@ -153,4 +153,5 @@ class LibraryControllerSpec extends MonixBioSuite {
       // _ <- logger2.debug(s"Response body -> $body").hideErrors
     } yield ()
   }
+
 }
