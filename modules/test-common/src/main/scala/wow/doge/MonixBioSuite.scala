@@ -29,7 +29,9 @@ trait MonixBioSuite extends munit.TaglessFinalSuite[Task] {
     stack <- Ref[Task].of(List.empty[String])
     testLogger = new TracingStubLogger(stack)
     _ <- f(testLogger).tapError(err =>
-      stack.get.flatMap(lst => Task(lst.foreach(println)))
+      Task(println("Replaying intercepted logs: ")) >> stack.get.flatMap(lst =>
+        Task(lst.foreach(println))
+      )
     )
   } yield ()
 

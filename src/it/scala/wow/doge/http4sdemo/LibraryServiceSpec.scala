@@ -221,7 +221,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 .assertEquals(
                   Left(
                     LibraryService
-                      .EntityDoesNotExist("Book with id=1241 does not exist")
+                      .EntityDoesNotExist("Book with id=12414 does not exist")
                   )
                 )
             } yield ()
