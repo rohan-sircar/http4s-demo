@@ -18,6 +18,7 @@ import wow.doge.http4sdemo.dto.NewAuthor
 import wow.doge.http4sdemo.dto.NewBook
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.slickcodegen.Tables
+import wow.doge.http4sdemo.utils.Logger
 
 object LibraryService {
   sealed trait Error extends Exception {
@@ -57,11 +58,11 @@ trait LibraryService {
 
   def getBooks: Observable[Book]
 
-  def getBookById(id: Int): Task[Option[Book]]
+  def getBookById(id: Int): UIO[Option[Book]]
 
   def searchBook(mode: BookSearchMode, value: String): Observable[Book]
 
-  def updateBook(id: Int, updateData: BookUpdate): IO[Error, Unit]
+  def updateBook(id: Int, updateData: BookUpdate): IO[Error, Int]
 
   def deleteBook(id: Int): Task[Int]
 
@@ -73,10 +74,11 @@ trait LibraryService {
 
 }
 
-class LibraryServiceImpl(
+final class LibraryServiceImpl(
     profile: JdbcProfile,
     dbio: LibraryDbio,
-    db: JdbcBackend.DatabaseDef
+    db: JdbcBackend.DatabaseDef,
+    logger: Logger
 ) extends LibraryService {
   import profile.api._
 
@@ -84,60 +86,51 @@ class LibraryServiceImpl(
 
   def getBooks = db.streamO(dbio.getBooks.transactionally)
 
-  def getBookById(id: Int) = db.runL(dbio.getBookById(id))
+  def getBookById(id: Int) = db.runL(dbio.getBook(id)).hideErrors
 
   def searchBook(mode: BookSearchMode, value: String): Observable[Book] =
     mode match {
       case BookTitle =>
-        db.streamO(dbio.getBooksByTitle(value))
+        db.streamO(dbio.getBooksByTitle(value).transactionally)
 
       case AuthorName =>
-        Observable
-          .fromTask((for {
-            author <- db.runL(dbio.getAuthorByName(value)).flatMap {
-              case None =>
-                IO.raiseError(
-                  new EntityDoesNotExist(
-                    s"Author with name=$value does not exist"
-                  )
-                )
-              case Some(value) => IO.pure(value)
-            }
-            books = db
-              .streamO(dbio.getBooksForAuthor(author.authorId))
-              .map(Book.fromBooksRow)
-          } yield books).toTask)
-          .flatten
+        for {
+          author <- db.streamO(dbio.getAuthorsByName(value).transactionally)
+          books <- db
+            .streamO(dbio.getBooksForAuthor(author.authorId).transactionally)
+            .map(Book.fromBooksRow)
+        } yield books
     }
 
   def insertAuthor(a: NewAuthor): Task[Int] = db.runL(dbio.insertAuthor(a))
 
-  def updateBook(id: Int, updateData: BookUpdate): IO[Error, Unit] =
+  def updateBook(id: Int, updateData: BookUpdate): IO[Error, Int] =
     for {
+      _ <- logger.debugU(s"Request for updating book $id")
+      _ <- logger.debugU(s"Value to be updated with -> $updateData")
       action <- UIO.deferAction(implicit s =>
         UIO(for {
-          mbRow <- Tables.Books.filter(_.bookId === id).result.headOption
+          mbRow <- dbio.selectBook(id).result.headOption
           updatedRow <- mbRow match {
             case Some(value) =>
-              println(s"Original value -> $value")
-              println(s"Value to be updated with -> $updateData")
-              DBIO.successful(updateData.update(value))
+              DBIO.fromIO(logger.debug(s"Original value -> $value")) >>
+                DBIO.successful(updateData.update(value))
             case None =>
               DBIO.failed(
                 EntityDoesNotExist(s"Book with id=$id does not exist")
               )
           }
-          updateAction = Tables.Books.filter(_.bookId === id).update(updatedRow)
-          _ = println(s"SQL = ${updateAction.statements}")
-          _ <- updateAction
-        } yield ())
+          updateAction = dbio.selectBook(id).update(updatedRow)
+          _ <- DBIO.fromIO(logger.debug(s"SQL = ${updateAction.statements}"))
+          res <- updateAction
+        } yield res)
       )
-      _ <- db
+      rows <- db
         .runTryL(action.transactionally.asTry)
         .mapErrorPartial { case e: Error =>
           e
         }
-    } yield ()
+    } yield rows
 
   def deleteBook(id: Int) = db.runL(dbio.deleteBook(id))
 
@@ -145,13 +138,13 @@ class LibraryServiceImpl(
     IO.deferAction { implicit s =>
       for {
         action <- UIO(for {
-          _ <- Tables.Books
-            .filter(_.isbn === newBook.isbn)
+          _ <- dbio
+            .selectBookByIsbn(newBook.isbn)
             .map(Book.fromBooksTableFn)
             .result
             .headOption
             .flatMap {
-              case None => DBIO.successful(())
+              case None => DBIO.unit
               case Some(_) =>
                 DBIO.failed(
                   EntityAlreadyExists(
@@ -166,7 +159,7 @@ class LibraryServiceImpl(
                   s"Author with id=${newBook.authorId} does not exist"
                 )
               )
-            case Some(_) => DBIO.successful(())
+            case Some(_) => DBIO.unit
           }
           book <- dbio.insertBookAndGetBook(newBook)
         } yield book)
@@ -200,30 +193,30 @@ class LibraryDbio(val profile: JdbcProfile) {
   def insertAuthor(newAuthor: NewAuthor): DBIO[Int] =
     Query.insertAuthorGetId += newAuthor
 
-  def getAuthor(id: Int): DBIO[Option[Author]] =
+  def selectBook(id: Int) = Tables.Books.filter(_.bookId === id)
+
+  def getAuthor(id: Int) =
     Query.selectAuthor(id).map(Author.fromAuthorsTableFn).result.headOption
 
-  def getAuthorByName(name: String): DBIO[Option[Author]] =
+  def getAuthorsByName(name: String) =
     Tables.Authors
       .filter(_.authorName === name)
       .map(Author.fromAuthorsTableFn)
       .result
-      .headOption
 
-  def deleteBook(id: Int): DBIO[Int] = Query.selectBookById(id).delete
+  def deleteBook(id: Int) = selectBook(id).delete
 
-  def getBookById(id: Int): DBIO[Option[Book]] = Query
-    .selectBookById(id)
+  def getBook(id: Int) = selectBook(id)
     .map(Book.fromBooksTableFn)
     .result
     .headOption
 
-  def getBooksByTitle(title: String): StreamingDBIO[Seq[Book], Book] =
+  def selectBookByIsbn(isbn: String) = Tables.Books.filter(_.isbn === isbn)
+
+  def getBooksByTitle(title: String) =
     Tables.Books.filter(_.bookTitle === title).map(Book.fromBooksTableFn).result
 
-  def getBooksForAuthor(
-      authorId: Int
-  ): StreamingDBIO[Seq[Tables.BooksRow], Tables.BooksRow] =
+  def getBooksForAuthor(authorId: Int) =
     Query.booksForAuthorInner(authorId).result
 
   private object Query {
@@ -250,10 +243,6 @@ class LibraryDbio(val profile: JdbcProfile) {
 
     def selectAuthor(authorId: Int) =
       Tables.Authors.filter(_.authorId === authorId)
-
-    def selectBookById(id: Int) = Tables.Books.filter(_.bookId === id)
-
-    def selectBookByIsbn(isbn: String) = Tables.Books.filter(_.isbn === isbn)
   }
 }
 
@@ -261,7 +250,7 @@ trait NoopLibraryService extends LibraryService {
   def getBooks: Observable[Book] =
     Observable.raiseError(new NotImplementedError)
 
-  def getBookById(id: Int): Task[Option[Book]] =
+  def getBookById(id: Int): UIO[Option[Book]] =
     IO.terminate(new NotImplementedError)
 
   def searchBook(
@@ -272,7 +261,7 @@ trait NoopLibraryService extends LibraryService {
   def updateBook(
       id: Int,
       updateData: BookUpdate
-  ): IO[LibraryService.Error, Unit] = IO.terminate(new NotImplementedError)
+  ): IO[LibraryService.Error, Int] = IO.terminate(new NotImplementedError)
 
   def deleteBook(id: Int): Task[Int] = IO.terminate(new NotImplementedError)
 

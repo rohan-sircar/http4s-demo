@@ -7,6 +7,7 @@ import io.odin.meta.Render
 import monix.bio.IO
 import monix.bio.Task
 import monix.reactive.Observable
+import slick.dbio.DBIO
 import slick.dbio.DBIOAction
 import slick.dbio.NoStream
 import slick.dbio.Streaming
@@ -49,6 +50,12 @@ package object implicits {
       logger.warn(msg).hideErrors
     def errorU[M](msg: => M)(implicit render: Render[M], position: Position) =
       logger.error(msg).hideErrors
+  }
+
+  implicit final class DBIOExt(private val D: DBIO.type) extends AnyVal {
+    def unit = D.successful(())
+    def fromIO[T](io: IO[Throwable, T])(implicit s: monix.execution.Scheduler) =
+      D.from(io.runToFuture)
   }
 
 }

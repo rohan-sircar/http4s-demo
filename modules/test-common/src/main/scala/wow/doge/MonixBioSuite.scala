@@ -10,6 +10,8 @@ import monix.bio.Task
 import monix.execution.Scheduler
 import munit.TestOptions
 import java.time.LocalDateTime
+import cats.effect.concurrent.Ref
+import wow.doge.http4sdemo.utils.TracingStubLogger
 
 trait MonixBioSuite extends munit.TaglessFinalSuite[Task] {
   override protected def toFuture[A](f: Task[A]): Future[A] = {
@@ -19,8 +21,16 @@ trait MonixBioSuite extends munit.TaglessFinalSuite[Task] {
 
   val date = LocalDateTime.now()
 
-  val noopLogger = Logger.noop[Task]
-
-  val consoleLogger = io.odin.consoleLogger[Task]()
+  /** Injects a logger that records all log statements but
+    * doesn't print by itself. Log statements are only printed
+    * if the test fails
+    */
+  def loggerInterceptor(f: utils.Logger => Task[Unit]) = for {
+    stack <- Ref[Task].of(List.empty[String])
+    testLogger = new TracingStubLogger(stack)
+    _ <- f(testLogger).tapError(err =>
+      stack.get.flatMap(lst => Task(lst.foreach(println)))
+    )
+  } yield ()
 
 }

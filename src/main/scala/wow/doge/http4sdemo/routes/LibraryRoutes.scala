@@ -3,7 +3,6 @@ package wow.doge.http4sdemo.routes
 import fs2.interop.reactivestreams._
 import io.circe.Codec
 import io.circe.generic.semiauto._
-import io.odin.Logger
 import monix.bio.IO
 import monix.bio.Task
 import org.http4s.HttpRoutes
@@ -12,10 +11,10 @@ import wow.doge.http4sdemo.dto.Book
 import wow.doge.http4sdemo.dto.BookSearchMode
 import wow.doge.http4sdemo.dto.BookUpdate
 import wow.doge.http4sdemo.dto.NewBook
-import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.services.LibraryService
+import wow.doge.http4sdemo.utils.Logger
 
-class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
+class LibraryRoutes(libraryService: LibraryService, logger: Logger) {
 
   val routes: HttpRoutes[Task] = {
     val dsl = Http4sDsl[Task]
@@ -44,6 +43,7 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
         import io.circe.syntax._
         Task.deferAction(implicit s =>
           for {
+            _ <- logger.infoU("Got request for books")
             books <- IO.pure(
               libraryService.getBooks.toReactivePublisher
                 .toStream[Task]
@@ -56,7 +56,11 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
         import org.http4s.circe.CirceEntityCodec._
         for {
           bookJson <- libraryService.getBookById(id)
-          res <- Ok(bookJson)
+          res <- bookJson.fold(
+            LibraryService
+              .EntityDoesNotExist(s"Book with id $id does not exist")
+              .toResponse
+          )(b => Ok(b).hideErrors)
         } yield res
 
       case req @ PUT -> Root / "api" / "books" =>
@@ -73,6 +77,7 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
       case req @ PATCH -> Root / "api" / "books" / IntVar(id) =>
         import org.http4s.circe.CirceEntityCodec._
         for {
+          _ <- logger.infoU("wooterino")
           updateData <- req.as[BookUpdate]
           res <- libraryService
             .updateBook(id, updateData)
