@@ -13,9 +13,12 @@ import slick.jdbc.JdbcProfile
 import wow.doge.http4sdemo.routes.LibraryRoutes
 import wow.doge.http4sdemo.services.LibraryDbio
 import wow.doge.http4sdemo.services.LibraryServiceImpl
-import wow.doge.http4sdemo.utils.Logger
 
-final class Server(db: DatabaseDef, p: JdbcProfile, logger: Logger) {
+final class Server(
+    db: DatabaseDef,
+    p: JdbcProfile,
+    logger: io.odin.Logger[Task]
+) {
 
   def stream(implicit s: Scheduler): Stream[Task, Nothing] = {
     val log: String => Task[Unit] = str => logger.debug(str)

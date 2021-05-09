@@ -1,7 +1,6 @@
 package wow.doge.http4sdemo
 
 import com.dimafeng.testcontainers.PostgreSQLContainer
-import monix.bio.IO
 import monix.bio.UIO
 import wow.doge.http4sdemo.dto.BookSearchMode
 import wow.doge.http4sdemo.dto.BookUpdate
@@ -213,11 +212,9 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
               )
               id <- service.insertAuthor(NewAuthor("bar4"))
               book1 <- service.insertBook(NewBook("blah7", "aegqweg", id))
-              res <- service
+              _ <- service
                 .updateBook(12414, BookUpdate(Some("bar7"), None))
                 .attempt
-              _ <- IO
-                .pure(res)
                 .assertEquals(
                   Left(
                     LibraryService

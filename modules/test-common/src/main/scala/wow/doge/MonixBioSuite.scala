@@ -11,6 +11,11 @@ import monix.execution.Scheduler
 import munit.TestOptions
 import java.time.LocalDateTime
 import cats.effect.concurrent.Ref
+import io.odin.formatter.Formatter
+import io.odin.Level
+import monix.reactive.Observable
+import monix.{eval => me}
+import cats.data.Chain
 import wow.doge.http4sdemo.utils.TracingStubLogger
 
 trait MonixBioSuite extends munit.TaglessFinalSuite[Task] {
@@ -25,12 +30,12 @@ trait MonixBioSuite extends munit.TaglessFinalSuite[Task] {
     * doesn't print by itself. Log statements are only printed
     * if the test fails
     */
-  def loggerInterceptor(f: utils.Logger => Task[Unit]) = for {
-    stack <- Ref[Task].of(List.empty[String])
-    testLogger = new TracingStubLogger(stack)
+  def loggerInterceptor(f: Logger[Task] => Task[Unit]) = for {
+    chain <- Ref[Task].of(Chain.empty[String])
+    testLogger = new TracingStubLogger(chain, Formatter.colorful, Level.Debug)
     _ <- f(testLogger).tapError(err =>
-      Task(println("Replaying intercepted logs: ")) >> stack.get.flatMap(lst =>
-        Task(lst.foreach(println))
+      Task(println("Replaying intercepted logs: ")) >> chain.get.flatMap(c =>
+        Task(c.iterator.foreach(println))
       )
     )
   } yield ()

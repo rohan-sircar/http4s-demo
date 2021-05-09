@@ -13,7 +13,6 @@ import monix.bio.IO
 import monix.bio.Task
 import monix.bio.UIO
 import slick.jdbc.JdbcProfile
-import wow.doge.http4sdemo.utils.OdinLogger
 
 object Main extends BIOApp {
   val profile: JdbcProfile = slick.jdbc.PostgresProfile
@@ -30,7 +29,7 @@ object Main extends BIOApp {
     logger <- consoleLogger[Task](
       formatter = Formatter.colorful,
       minLevel = Level.Debug
-    ).withAsync().evalMap(l => UIO.pure(new OdinLogger(l)))
+    ).withAsync()
     _ <- Resource.liftF(
       logger.info(s"Starting ${BuildInfo.name}-${BuildInfo.version}")
     )

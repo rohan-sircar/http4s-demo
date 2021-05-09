@@ -1,6 +1,7 @@
 package wow.doge.http4sdemo.services
 
 import io.circe.generic.semiauto._
+import io.odin.Logger
 import monix.bio.IO
 import monix.bio.Task
 import monix.bio.UIO
@@ -18,7 +19,6 @@ import wow.doge.http4sdemo.dto.NewAuthor
 import wow.doge.http4sdemo.dto.NewBook
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.slickcodegen.Tables
-import wow.doge.http4sdemo.utils.Logger
 
 object LibraryService {
   sealed trait Error extends Exception {
@@ -78,7 +78,7 @@ final class LibraryServiceImpl(
     profile: JdbcProfile,
     dbio: LibraryDbio,
     db: JdbcBackend.DatabaseDef,
-    logger: Logger
+    logger: Logger[Task]
 ) extends LibraryService {
   import profile.api._
 

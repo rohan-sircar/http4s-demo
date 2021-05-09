@@ -3,6 +3,7 @@ package wow.doge.http4sdemo.routes
 import fs2.interop.reactivestreams._
 import io.circe.Codec
 import io.circe.generic.semiauto._
+import io.odin.Logger
 import monix.bio.IO
 import monix.bio.Task
 import org.http4s.HttpRoutes
@@ -11,10 +12,10 @@ import wow.doge.http4sdemo.dto.Book
 import wow.doge.http4sdemo.dto.BookSearchMode
 import wow.doge.http4sdemo.dto.BookUpdate
 import wow.doge.http4sdemo.dto.NewBook
+import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.services.LibraryService
-import wow.doge.http4sdemo.utils.Logger
 
-class LibraryRoutes(libraryService: LibraryService, logger: Logger) {
+class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
 
   val routes: HttpRoutes[Task] = {
     val dsl = Http4sDsl[Task]

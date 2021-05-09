@@ -38,7 +38,7 @@ class BooksRoutesSpec extends UnitTestBase {
         res <- routes.run(request).value
         body <- res.traverse(_.as[List[Book]])
         _ <- logger.debug(s"Request: $request, Response: $res, Body: $body")
-        _ <- IO(res.map(_.status)).assertEquals(Some(Status.Ok))
+        _ <- IO(res.map(_.status)).assertEquals(Some(Status.NotFound))
         _ <- IO(assertEquals(body, Some(List(book))))
       } yield ()
     }
