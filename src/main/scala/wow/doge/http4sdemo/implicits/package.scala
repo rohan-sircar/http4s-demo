@@ -2,8 +2,13 @@ package wow.doge.http4sdemo
 
 import scala.util.Try
 
+import cats.data.ValidatedNec
+import cats.syntax.either._
+import eu.timepit.refined.api._
 import io.odin.meta.Position
 import io.odin.meta.Render
+import io.scalaland.chimney.Transformer
+import io.scalaland.chimney.TransformerF
 import monix.bio.IO
 import monix.bio.Task
 import monix.reactive.Observable
@@ -57,5 +62,29 @@ package object implicits {
     def fromIO[T](io: IO[Throwable, T])(implicit s: monix.execution.Scheduler) =
       D.from(io.runToFuture)
   }
+
+  type RefinementValidation[+A] = ValidatedNec[String, A]
+
+  implicit final def vnecRefinedTransformerFrom[T, P, F[_, _]](implicit
+      validate: Validate[T, P],
+      refType: RefType[F]
+  ): TransformerF[ValidatedNec[String, +*], T, F[T, P]] = (src: T) =>
+    refType.refine(src).toValidatedNec
+
+  implicit final def eitherRefinedTransformerFrom[T, P, F[_, _]](implicit
+      validate: Validate[T, P],
+      refType: RefType[F]
+  ): TransformerF[Either[String, +*], T, F[T, P]] = (src: T) =>
+    refType.refine(src)
+
+  implicit final def optionRefinedTransformerFrom[T, P, F[_, _]](implicit
+      validate: Validate[T, P],
+      refType: RefType[F]
+  ): TransformerF[Option, T, F[T, P]] = (src: T) => refType.refine(src).toOption
+
+  implicit final def refinedTransformerTo[P, T, F[_, _]](implicit
+      refType: RefType[F]
+  ): Transformer[F[P, T], P] =
+    src => refType.unwrap(src)
 
 }
