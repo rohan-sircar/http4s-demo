@@ -1,7 +1,7 @@
-curl -X POST -H "content-type: application/json" http://localhost:8081/api/post/book --data '{"aege":"aaegqE"}'
-curl http://localhost:8081/api/get/books
-curl http://localhost:8081/api/get/book/1
-curl -X POST -H "content-type: application/json" http://localhost:8081/api/post/book --data '{"title":"aaegqE", "authorId": 1}'
-curl -X PATCH -H "content-type: application/json" http://localhost:8081/api/update/book/2 --data '{"title":"abwbewe"}'
+curl -X POST -H "content-type: application/json" http://localhost:8081/api/books --data '{"aege":"aaegqE"}'
+curl http://localhost:8081/api/books
+curl http://localhost:8081/api/books/1
+curl -X POST -H "content-type: application/json" http://localhost:8081/api/books --data '{"title":"aaegqE", "authorId": 1}'
+curl -X PATCH -H "content-type: application/json" http://localhost:8081/api/books/2 --data '{"title":"abwbewe"}'
 
 

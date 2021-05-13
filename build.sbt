@@ -4,6 +4,13 @@ val MunitVersion = "0.7.20"
 val LogbackVersion = "1.2.3"
 val MunitCatsEffectVersion = "0.13.0"
 val FlywayVersion = "7.5.3"
+val MonixVerison = "3.3.0"
+// val MonixBioVersion = "1.1.0"
+val MonixBioVersion = "0a2ad29275"
+val SttpVersion = "2.2.9"
+val OdinVersion = "0.11.0"
+val TestContainersVersion = "0.39.3"
+val PureconfigVersion = "0.14.0"
 scalaVersion in ThisBuild := "2.13.4"
 
 resolvers in ThisBuild += "jitpack" at "https://jitpack.io"
@@ -54,7 +61,7 @@ lazy val testCommon = (project in file("modules/test-common"))
   .settings(
     libraryDependencies ++= Seq(
       "com.github.monix" % "monix-bio" % "0a2ad29275",
-      "com.github.valskalla" %% "odin-monix" % "0.9.1",
+      "com.github.valskalla" %% "odin-monix" % OdinVersion,
       "de.lolhens" %% "munit-tagless-final" % "0.0.1"
     )
   )
@@ -113,35 +120,34 @@ lazy val root = (project in file("."))
     javacOptions ++= Seq("-source", "11", "-target", "11"),
     //format: off
     libraryDependencies ++= Seq(
-      "org.http4s"      %% "http4s-blaze-server" % Http4sVersion,
-      "org.http4s"      %% "http4s-blaze-client" % Http4sVersion,
-      "org.http4s"      %% "http4s-circe"        % Http4sVersion,
-      "org.http4s"      %% "http4s-dsl"          % Http4sVersion,
-      "io.circe"        %% "circe-generic"       % CirceVersion,
-      "org.scalameta"   %% "munit"               % MunitVersion           % "it,test",
-      "org.typelevel"   %% "munit-cats-effect-2" % MunitCatsEffectVersion % "it,test",
-      "ch.qos.logback"  %  "logback-classic"     % LogbackVersion,
-      "org.scalameta"   %% "svm-subs"            % "20.2.0",
-      "co.fs2" %% "fs2-reactive-streams" % "2.5.0",
+      // "org.http4s"      %% "http4s-blaze-server"  % Http4sVersion,
+      "org.http4s"      %% "http4s-ember-server"  % Http4sVersion,
+      // "org.http4s"      %% "http4s-blaze-clien t" % Http4sVersion,
+      "org.http4s"      %% "http4s-circe"         % Http4sVersion,
+      "org.http4s"      %% "http4s-dsl"           % Http4sVersion,
+      "io.circe"        %% "circe-generic"        % CirceVersion,
+      "org.scalameta"   %% "munit"                % MunitVersion           % "it,test",
+      "org.typelevel"   %% "munit-cats-effect-2"  % MunitCatsEffectVersion % "it,test",
+      "ch.qos.logback"  %  "logback-classic"      % LogbackVersion,
+      "org.scalameta"   %% "svm-subs"             % "20.2.0",
+      "co.fs2"          %% "fs2-reactive-streams" % "2.5.0",
     ),
     //format: on
     libraryDependencies ++= Seq(
-      "io.monix" %% "monix" % "3.3.0",
+      "io.monix" %% "monix" % MonixVerison,
       // "io.monix" %% "monix-bio" % "1.1.0",
-      "com.github.monix" % "monix-bio" % "0a2ad29275",
-      "io.circe" %% "circe-core" % "0.13.0",
-      "io.circe" %% "circe-generic" % "0.13.0",
-      "com.softwaremill.sttp.client" %% "core" % "2.2.9",
-      "com.softwaremill.sttp.client" %% "monix" % "2.2.9",
-      "com.softwaremill.sttp.client" %% "circe" % "2.2.9",
-      "com.softwaremill.sttp.client" %% "httpclient-backend-monix" % "2.2.9",
+      "com.github.monix" % "monix-bio" % MonixBioVersion,
+      "com.softwaremill.sttp.client" %% "core" % SttpVersion,
+      "com.softwaremill.sttp.client" %% "monix" % SttpVersion,
+      "com.softwaremill.sttp.client" %% "circe" % SttpVersion,
+      "com.softwaremill.sttp.client" %% "httpclient-backend-monix" % SttpVersion,
       "com.softwaremill.quicklens" %% "quicklens" % "1.6.1",
       "com.softwaremill.common" %% "tagging" % "2.2.1",
       "com.softwaremill.macwire" %% "macros" % "2.3.6" % "provided",
-      "com.github.valskalla" %% "odin-monix" % "0.9.1",
-      "com.github.valskalla" %% "odin-slf4j" % "0.9.1",
-      "com.github.valskalla" %% "odin-json" % "0.9.1",
-      "com.github.valskalla" %% "odin-extras" % "0.9.1",
+      "com.github.valskalla" %% "odin-monix" % OdinVersion,
+      "com.github.valskalla" %% "odin-slf4j" % OdinVersion,
+      "com.github.valskalla" %% "odin-json" % OdinVersion,
+      "com.github.valskalla" %% "odin-extras" % OdinVersion,
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
       "com.lihaoyi" %% "os-lib" % "0.7.1",
       "com.beachape" %% "enumeratum" % "1.6.1",
@@ -149,21 +155,26 @@ lazy val root = (project in file("."))
       "com.lihaoyi" %% "sourcecode" % "0.2.1",
       "eu.timepit" %% "refined" % "0.9.19",
       "com.zaxxer" % "HikariCP" % "3.4.2",
-      "com.typesafe.slick" %% "slick" % "3.3.2",
-      "com.typesafe.slick" %% "slick-hikaricp" % "3.3.2",
+      "com.typesafe.slick" %% "slick" % "3.3.3",
+      "com.typesafe.slick" %% "slick-hikaricp" % "3.3.3",
       "com.h2database" % "h2" % "1.4.199",
       "org.postgresql" % "postgresql" % "42.2.18",
-      "com.github.pureconfig" %% "pureconfig" % "0.14.0",
-      "io.scalaland" %% "chimney" % "0.6.0",
+      "com.github.pureconfig" %% "pureconfig" % PureconfigVersion,
+      "com.github.pureconfig" %% "pureconfig-enumeratum" % PureconfigVersion,
+      "com.github.pureconfig" %% "pureconfig-cats-effect" % PureconfigVersion,
+      "io.scalaland" %% "chimney" % "0.6.1",
+      "io.scalaland" %% "chimney-cats" % "0.6.1",
       "com.rms.miu" %% "slick-cats" % "0.10.4",
       "com.kubukoz" %% "slick-effect" % "0.3.0",
-      "io.circe" %% "circe-fs2" % "0.13.0",
+      "io.circe" %% "circe-fs2" % CirceVersion,
+      "io.circe" %% "circe-refined" % CirceVersion,
+      "io.estatico" %% "newtype" % "0.4.4",
       // "org.scalameta" %% "munit" % "0.7.23" % "it,test",
       "de.lolhens" %% "munit-tagless-final" % "0.0.1" % "it,test",
       "org.scalameta" %% "munit-scalacheck" % "0.7.23" % "it,test",
       "org.scalacheck" %% "scalacheck" % "1.15.3" % "it,test",
-      "com.dimafeng" %% "testcontainers-scala-munit" % "0.39.3" % IntegrationTest,
-      "com.dimafeng" %% "testcontainers-scala-postgresql" % "0.39.3" % IntegrationTest
+      "com.dimafeng" %% "testcontainers-scala-munit" % TestContainersVersion % IntegrationTest,
+      "com.dimafeng" %% "testcontainers-scala-postgresql" % TestContainersVersion % IntegrationTest
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     buildInfoKeys := Seq[BuildInfoKey](
@@ -180,7 +191,7 @@ lazy val root = (project in file("."))
     slickCodegenDatabaseUrl := databaseUrl,
     slickCodegenDatabaseUser := databaseUser,
     slickCodegenDatabasePassword := databasePassword,
-    slickCodegenDriver := _root_.slick.jdbc.PostgresProfile,
+    slickCodegenDriver := slick.jdbc.PostgresProfile,
     slickCodegenJdbcDriver := "org.postgresql.Driver",
     slickCodegenOutputPackage := "wow.doge.http4sdemo.slickcodegen",
     slickCodegenExcludedTables := Seq("schema_version"),

@@ -9,15 +9,15 @@ import monix.reactive.Observable
 import org.http4s.dsl.Http4sDsl
 import slick.jdbc.JdbcBackend
 import slick.jdbc.JdbcProfile
-import wow.doge.http4sdemo.dto.Author
-import wow.doge.http4sdemo.dto.Book
-import wow.doge.http4sdemo.dto.BookSearchMode
-import wow.doge.http4sdemo.dto.BookSearchMode.AuthorName
-import wow.doge.http4sdemo.dto.BookSearchMode.BookTitle
-import wow.doge.http4sdemo.dto.BookUpdate
-import wow.doge.http4sdemo.dto.NewAuthor
-import wow.doge.http4sdemo.dto.NewBook
 import wow.doge.http4sdemo.implicits._
+import wow.doge.http4sdemo.models.Author
+import wow.doge.http4sdemo.models.Book
+import wow.doge.http4sdemo.models.BookSearchMode
+import wow.doge.http4sdemo.models.BookSearchMode.AuthorName
+import wow.doge.http4sdemo.models.BookSearchMode.BookTitle
+import wow.doge.http4sdemo.models.BookUpdate
+import wow.doge.http4sdemo.models.NewAuthor
+import wow.doge.http4sdemo.models.NewBook
 import wow.doge.http4sdemo.slickcodegen.Tables
 
 object LibraryService {
@@ -121,7 +121,7 @@ final class LibraryServiceImpl(
               )
           }
           updateAction = dbio.selectBook(id).update(updatedRow)
-          _ <- DBIO.fromIO(logger.debug(s"SQL = ${updateAction.statements}"))
+          _ <- DBIO.fromIO(logger.trace(s"SQL = ${updateAction.statements}"))
           res <- updateAction
         } yield res)
       )
@@ -177,7 +177,7 @@ final class LibraryServiceImpl(
 
 }
 
-class LibraryDbio(val profile: JdbcProfile) {
+final class LibraryDbio(val profile: JdbcProfile) {
   import profile.api._
 
   /*  */

@@ -30,7 +30,7 @@ trait MonixBioSuite extends munit.TaglessFinalSuite[Task] {
     * doesn't print by itself. Log statements are only printed
     * if the test fails
     */
-  def loggerInterceptor(f: Logger[Task] => Task[Unit]) = for {
+  def withReplayLogger(f: Logger[Task] => Task[Unit]) = for {
     chain <- Ref[Task].of(Chain.empty[String])
     testLogger = new TracingStubLogger(chain, Formatter.colorful, Level.Debug)
     _ <- f(testLogger).tapError(err =>

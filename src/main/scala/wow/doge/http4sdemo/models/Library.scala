@@ -1,4 +1,4 @@
-package wow.doge.http4sdemo.dto
+package wow.doge.http4sdemo.models
 
 import java.time.LocalDateTime
 

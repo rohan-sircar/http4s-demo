@@ -14,7 +14,9 @@ import io.odin.formatter.Formatter
 import io.odin.Level
 import io.odin.LoggerMessage
 import io.odin.loggers.DefaultLogger
+import io.odin.loggers.ConsoleLogger
 import cats.data.Chain
+import io.odin.Logger
 
 /** A logger that only records log events in the given stack,
   * but doesn't actually print anything
@@ -28,10 +30,12 @@ final class TracingStubLogger(
   private def write(
       msg: LoggerMessage,
       formatter: Formatter
-  ): Task[Unit] =
-    chain.update(c => c :+ formatter.format(msg))
+  ): Task[Unit] = chain.update(_ :+ formatter.format(msg))
 
-  override def log(msg: LoggerMessage): Task[Unit] = write(msg, formatter)
+  def submit(msg: LoggerMessage): Task[Unit] = write(msg, formatter)
+
+  def withMinimalLevel(level: Level): Logger[Task] =
+    new TracingStubLogger(chain, formatter, level)
 }
 
 final class TracingStubLoggerReverse(
@@ -43,8 +47,10 @@ final class TracingStubLoggerReverse(
   private def write(
       msg: LoggerMessage,
       formatter: Formatter
-  ): Task[Unit] =
-    stack.update(lst => formatter.format(msg) :: lst)
+  ): Task[Unit] = stack.update(formatter.format(msg) :: _)
 
-  override def log(msg: LoggerMessage): Task[Unit] = write(msg, formatter)
+  def submit(msg: LoggerMessage): Task[Unit] = write(msg, formatter)
+
+  def withMinimalLevel(level: Level): Logger[Task] =
+    new TracingStubLoggerReverse(stack, formatter, level)
 }
