@@ -7,7 +7,7 @@ val FlywayVersion = "7.5.3"
 val MonixVerison = "3.3.0"
 // val MonixBioVersion = "1.1.0"
 val MonixBioVersion = "0a2ad29275"
-val SttpVersion = "2.2.9"
+val SttpVersion = "3.3.1"
 val OdinVersion = "0.11.0"
 val TestContainersVersion = "0.39.3"
 val PureconfigVersion = "0.14.0"
@@ -120,9 +120,9 @@ lazy val root = (project in file("."))
     javacOptions ++= Seq("-source", "11", "-target", "11"),
     //format: off
     libraryDependencies ++= Seq(
-      // "org.http4s"      %% "http4s-blaze-server"  % Http4sVersion,
       "org.http4s"      %% "http4s-ember-server"  % Http4sVersion,
-      // "org.http4s"      %% "http4s-blaze-clien t" % Http4sVersion,
+      "org.http4s"      %% "http4s-ember-client"  % Http4sVersion,
+      "org.http4s"      %% "http4s-dropwizard-metrics" % Http4sVersion,
       "org.http4s"      %% "http4s-circe"         % Http4sVersion,
       "org.http4s"      %% "http4s-dsl"           % Http4sVersion,
       "io.circe"        %% "circe-generic"        % CirceVersion,
@@ -137,10 +137,10 @@ lazy val root = (project in file("."))
       "io.monix" %% "monix" % MonixVerison,
       // "io.monix" %% "monix-bio" % "1.1.0",
       "com.github.monix" % "monix-bio" % MonixBioVersion,
-      "com.softwaremill.sttp.client" %% "core" % SttpVersion,
-      "com.softwaremill.sttp.client" %% "monix" % SttpVersion,
-      "com.softwaremill.sttp.client" %% "circe" % SttpVersion,
-      "com.softwaremill.sttp.client" %% "httpclient-backend-monix" % SttpVersion,
+      "com.softwaremill.sttp.client3" %% "core" % SttpVersion,
+      "com.softwaremill.sttp.client3" %% "monix" % SttpVersion,
+      "com.softwaremill.sttp.client3" %% "circe" % SttpVersion,
+      "com.softwaremill.sttp.client3" %% "httpclient-backend-monix" % SttpVersion,
       "com.softwaremill.quicklens" %% "quicklens" % "1.6.1",
       "com.softwaremill.common" %% "tagging" % "2.2.1",
       "com.softwaremill.macwire" %% "macros" % "2.3.6" % "provided",
