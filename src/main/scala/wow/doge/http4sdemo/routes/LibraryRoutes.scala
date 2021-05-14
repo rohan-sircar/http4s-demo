@@ -14,6 +14,7 @@ import wow.doge.http4sdemo.models.Book
 import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
 import wow.doge.http4sdemo.models.NewBook
+import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.services.LibraryService
 import wow.doge.http4sdemo.utils.extractReqId
 
@@ -22,15 +23,26 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
   val routes: HttpRoutes[Task] = {
     val dsl = Http4sDsl[Task]
     import dsl._
-    object Value extends QueryParamDecoderMatcher[String]("value")
+    object Value extends QueryParamDecoderMatcher[StringRefinement]("value")
     HttpRoutes.of[Task] {
 
-      case GET -> Root / "api" / "books" :?
+      case req @ GET -> Root / "api" / "books" / "search" :?
           BookSearchMode.Matcher(mode) +& Value(value) =>
         import org.http4s.circe.streamJsonArrayEncoder
         import io.circe.syntax._
         IO.deferAction(implicit s =>
           for {
+            reqId <- extractReqId(req)
+            clogger = logger.withConstContext(
+              Map(
+                "name" -> "Search book",
+                "request-id" -> reqId,
+                "request-uri" -> req.uri.toString,
+                "mode" -> mode.entryName,
+                "value" -> value.value
+              )
+            )
+            _ <- clogger.debugU("Request to search book")
             books <- IO.pure(
               libraryService
                 .searchBook(mode, value)
@@ -55,7 +67,7 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
           } yield res
         )
 
-      case req @ GET -> Root / "api" / "books" / IntVar(id) =>
+      case req @ GET -> Root / "api" / "books" / BookId(id) =>
         import org.http4s.circe.CirceEntityCodec._
         for {
           reqId <- extractReqId(req)
@@ -96,18 +108,19 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
             .onErrorHandleWith(_.toResponse)
         } yield res
 
-      case req @ PATCH -> Root / "api" / "books" / IntVar(id) =>
+      case req @ PATCH -> Root / "api" / "books" / BookId(id) =>
         import org.http4s.circe.CirceEntityCodec._
         for {
           reqId <- extractReqId(req)
+          updateData <- req.as[BookUpdate]
           clogger = logger.withConstContext(
             Map(
               "name" -> "Update book",
               "request-id" -> reqId,
-              "book-id" -> id.toString
+              "book-id" -> id.toString,
+              "update-data" -> updateData.toString
             )
           )
-          updateData <- req.as[BookUpdate]
           res <- libraryService
             .updateBook(id, updateData)
             .flatMap(_ => NoContent().hideErrors)
@@ -115,7 +128,7 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
             .onErrorHandleWith(_.toResponse)
         } yield res
 
-      case req @ DELETE -> Root / "api" / "books" / IntVar(id) =>
+      case req @ DELETE -> Root / "api" / "books" / BookId(id) =>
         for {
           reqId <- extractReqId(req)
           clogger = logger.withConstContext(

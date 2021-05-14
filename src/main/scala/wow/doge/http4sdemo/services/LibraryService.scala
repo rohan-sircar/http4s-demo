@@ -1,7 +1,10 @@
 package wow.doge.http4sdemo.services
 
+import cats.syntax.all._
 import io.circe.generic.semiauto._
 import io.odin.Logger
+import io.scalaland.chimney.cats._
+import io.scalaland.chimney.dsl._
 import monix.bio.IO
 import monix.bio.Task
 import monix.bio.UIO
@@ -13,20 +16,21 @@ import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.Author
 import wow.doge.http4sdemo.models.Book
 import wow.doge.http4sdemo.models.BookSearchMode
-import wow.doge.http4sdemo.models.BookSearchMode.AuthorName
-import wow.doge.http4sdemo.models.BookSearchMode.BookTitle
 import wow.doge.http4sdemo.models.BookUpdate
 import wow.doge.http4sdemo.models.NewAuthor
 import wow.doge.http4sdemo.models.NewBook
+import wow.doge.http4sdemo.models.RawNewAuthor
+import wow.doge.http4sdemo.models.RawNewBook
+import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.slickcodegen.Tables
 
 object LibraryService {
+  import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
   sealed trait Error extends Exception {
     def message: String
     override def getMessage(): String = message
     def toResponse = {
       val dsl = Http4sDsl[Task]
-      import org.http4s.circe.CirceEntityCodec._
       import dsl._
       implicit val codec = Error.codec
       this match {
@@ -39,9 +43,6 @@ object LibraryService {
   }
   final case class EntityDoesNotExist(message: String) extends Error
   final case class EntityAlreadyExists(message: String) extends Error
-  // final case class MessageBodyError(cause: MessageBodyFailure) extends Error
-  // final case class MyError2(message: String) extends Error
-  // case object C3 extends Error { val message: String = "C3" }
 
   object Error {
     implicit val codec = deriveCodec[Error]
@@ -58,19 +59,22 @@ trait LibraryService {
 
   def getBooks: Observable[Book]
 
-  def getBookById(id: Int): UIO[Option[Book]]
+  def getBookById(id: BookId): UIO[Option[Book]]
 
-  def searchBook(mode: BookSearchMode, value: String): Observable[Book]
+  def searchBook(
+      mode: BookSearchMode,
+      value: StringRefinement
+  ): Observable[Book]
 
-  def updateBook(id: Int, updateData: BookUpdate): IO[Error, Int]
+  def updateBook(id: BookId, updateData: BookUpdate): IO[Error, Int]
 
-  def deleteBook(id: Int): Task[Int]
+  def deleteBook(id: BookId): Task[Int]
 
   def insertBook(newBook: NewBook): IO[Error, Book]
 
   def insertAuthor(a: NewAuthor): Task[Int]
 
-  def booksForAuthor(authorId: Int): Observable[Book]
+  def booksForAuthor(authorId: AuthorId): Observable[Book]
 
 }
 
@@ -84,27 +88,39 @@ final class LibraryServiceImpl(
 
   import LibraryService._
 
-  def getBooks = db.streamO(dbio.getBooks.transactionally)
+  def getBooks = db
+    .streamO(dbio.getBooks.transactionally)
+    .mapEval(_.transformL[Book].toTask)
 
-  def getBookById(id: Int) = db.runL(dbio.getBook(id)).hideErrors
+  def getBookById(id: BookId) =
+    db.runL(dbio.getBook(id))
+      .flatMap(_.traverse(_.transformL[Book]))
+      .hideErrors
 
-  def searchBook(mode: BookSearchMode, value: String): Observable[Book] =
+  def searchBook(
+      mode: BookSearchMode,
+      value: StringRefinement
+  ): Observable[Book] =
     mode match {
-      case BookTitle =>
-        db.streamO(dbio.getBooksByTitle(value).transactionally)
+      case BookSearchMode.BookTitle =>
+        db.streamO(dbio.getBooksByTitle(BookTitle(value)).transactionally)
+          .mapEval(_.transformL[Book].toTask)
 
-      case AuthorName =>
+      case BookSearchMode.AuthorName =>
         for {
-          author <- db.streamO(dbio.getAuthorsByName(value).transactionally)
-          books <- db
+          author <- db
+            .streamO(dbio.getAuthorsByName(AuthorName(value)).transactionally)
+            .mapEval(_.transformL[Author].toTask)
+          book <- db
             .streamO(dbio.getBooksForAuthor(author.authorId).transactionally)
-            .map(Book.fromBooksRow)
-        } yield books
+            .mapEval(_.transformL[Book].toTask)
+        } yield book
     }
 
-  def insertAuthor(a: NewAuthor): Task[Int] = db.runL(dbio.insertAuthor(a))
+  def insertAuthor(a: NewAuthor): Task[Int] =
+    db.runL(dbio.insertAuthor(a))
 
-  def updateBook(id: Int, updateData: BookUpdate): IO[Error, Int] =
+  def updateBook(id: BookId, updateData: BookUpdate): IO[Error, Int] =
     for {
       _ <- logger.debugU(s"Request for updating book $id")
       _ <- logger.debugU(s"Value to be updated with -> $updateData")
@@ -132,7 +148,7 @@ final class LibraryServiceImpl(
         }
     } yield rows
 
-  def deleteBook(id: Int) = db.runL(dbio.deleteBook(id))
+  def deleteBook(id: BookId) = db.runL(dbio.deleteBook(id))
 
   def insertBook(newBook: NewBook): IO[Error, Book] =
     IO.deferAction { implicit s =>
@@ -140,7 +156,6 @@ final class LibraryServiceImpl(
         action <- UIO(for {
           _ <- dbio
             .selectBookByIsbn(newBook.isbn)
-            .map(Book.fromBooksTableFn)
             .result
             .headOption
             .flatMap {
@@ -168,81 +183,86 @@ final class LibraryServiceImpl(
           .mapErrorPartial { case e: Error =>
             e
           }
+          .flatMap(_.transformL[Book])
       } yield book
     }
 
-  def booksForAuthor(authorId: Int) =
+  def booksForAuthor(authorId: AuthorId) =
     db.streamO(dbio.getBooksForAuthor(authorId).transactionally)
-      .map(Book.fromBooksRow)
+      .mapEval(_.transformL[Book].toTask)
 
 }
 
+//ATM this is the last app layer before the database itself. So this is
+//where we convert our newtypes/refinements to primitives. The methods
+//still take refinements as arguments, conversion is done internally.
 final class LibraryDbio(val profile: JdbcProfile) {
   import profile.api._
 
   /*  */
 
-  def getBooks: StreamingDBIO[Seq[Book], Book] = Query.getBooksInner.result
+  def getBooks: StreamingDBIO[Seq[Tables.BooksRow], Tables.BooksRow] =
+    Tables.Books.result
 
   def insertBookAndGetId(newBook: NewBook): DBIO[Int] =
-    Query.insertBookGetId += newBook
+    Query.insertBookGetId += newBook.transformInto[RawNewBook]
 
-  def insertBookAndGetBook(newBook: NewBook): DBIO[Book] =
-    Query.insertBookGetBook += newBook
+  def insertBookAndGetBook(newBook: NewBook): DBIO[Tables.BooksRow] =
+    Query.insertBookGetBook += newBook.transformInto[RawNewBook]
 
   def insertAuthor(newAuthor: NewAuthor): DBIO[Int] =
-    Query.insertAuthorGetId += newAuthor
+    Query.insertAuthorGetId += newAuthor.transformInto[RawNewAuthor]
 
-  def selectBook(id: Int) = Tables.Books.filter(_.bookId === id)
+  def selectBook(id: BookId) =
+    Tables.Books.filter(_.bookId === id.id.value)
 
-  def getAuthor(id: Int) =
-    Query.selectAuthor(id).map(Author.fromAuthorsTableFn).result.headOption
+  def getAuthor(id: AuthorId) =
+    Query.selectAuthor(id).result.headOption
 
-  def getAuthorsByName(name: String) =
+  def getAuthorsByName(name: AuthorName) =
     Tables.Authors
-      .filter(_.authorName === name)
-      .map(Author.fromAuthorsTableFn)
+      .filter(_.authorName === name.name.value)
       .result
 
-  def deleteBook(id: Int) = selectBook(id).delete
+  def deleteBook(id: BookId) = selectBook(id).delete
 
-  def getBook(id: Int) = selectBook(id)
-    .map(Book.fromBooksTableFn)
-    .result
-    .headOption
+  def getBook(id: BookId) = selectBook(id).result.headOption
 
-  def selectBookByIsbn(isbn: String) = Tables.Books.filter(_.isbn === isbn)
+  def selectBookByIsbn(isbn: BookIsbn) =
+    Tables.Books.filter(_.isbn === isbn.inner.value)
 
-  def getBooksByTitle(title: String) =
-    Tables.Books.filter(_.bookTitle === title).map(Book.fromBooksTableFn).result
+  def getBooksByTitle(title: BookTitle) =
+    Tables.Books.filter(_.bookTitle === title.title.value).result
 
-  def getBooksForAuthor(authorId: Int) =
+  def getBooksForAuthor(authorId: AuthorId) =
     Query.booksForAuthorInner(authorId).result
 
   private object Query {
 
-    val getBooksInner = Book.fromBooksTable
+    // val getBooksInner = Book.fromBooksTable
 
     val insertBookGetId =
-      NewBook.fromBooksTable.returning(Tables.Books.map(_.bookId))
+      RawNewBook.fromBooksTable.returning(Tables.Books.map(_.bookId))
 
-    val insertBookGetBook = NewBook.fromBooksTable.returning(getBooksInner)
+    //does not work for sqlite, works for postgres
+    val insertBookGetBook =
+      RawNewBook.fromBooksTable.returning(Tables.Books)
 
     val insertAuthorGetId =
       Tables.Authors
-        .map(a => (a.authorName).mapTo[NewAuthor])
+        .map(a => (a.authorName).mapTo[RawNewAuthor])
         .returning(Tables.Authors.map(_.authorId))
 
     // val insertAuthor = NewAuthor.fromAuthorsTable
 
-    def booksForAuthorInner(authorId: Int) = for {
+    def booksForAuthorInner(authorId: AuthorId) = for {
       b <- Tables.Books
       a <- Tables.Authors
-      if b.authorId === a.authorId && b.authorId === authorId
+      if b.authorId === a.authorId && b.authorId === authorId.id.value
     } yield b
 
-    def selectAuthor(authorId: Int) =
-      Tables.Authors.filter(_.authorId === authorId)
+    def selectAuthor(authorId: AuthorId) =
+      Tables.Authors.filter(_.authorId === authorId.id.value)
   }
 }
 
@@ -250,20 +270,20 @@ trait NoopLibraryService extends LibraryService {
   def getBooks: Observable[Book] =
     Observable.raiseError(new NotImplementedError)
 
-  def getBookById(id: Int): UIO[Option[Book]] =
+  def getBookById(id: BookId): UIO[Option[Book]] =
     IO.terminate(new NotImplementedError)
 
   def searchBook(
       mode: BookSearchMode,
-      value: String
+      value: StringRefinement
   ): Observable[Book] = Observable.raiseError(new NotImplementedError)
 
   def updateBook(
-      id: Int,
+      id: BookId,
       updateData: BookUpdate
   ): IO[LibraryService.Error, Int] = IO.terminate(new NotImplementedError)
 
-  def deleteBook(id: Int): Task[Int] = IO.terminate(new NotImplementedError)
+  def deleteBook(id: BookId): Task[Int] = IO.terminate(new NotImplementedError)
 
   def insertBook(newBook: NewBook): IO[LibraryService.Error, Book] =
     IO.terminate(new NotImplementedError)
@@ -271,7 +291,7 @@ trait NoopLibraryService extends LibraryService {
   def insertAuthor(a: NewAuthor): Task[Int] =
     IO.terminate(new NotImplementedError)
 
-  def booksForAuthor(authorId: Int): Observable[Book] =
+  def booksForAuthor(authorId: AuthorId): Observable[Book] =
     Observable.raiseError(new NotImplementedError)
 
 }

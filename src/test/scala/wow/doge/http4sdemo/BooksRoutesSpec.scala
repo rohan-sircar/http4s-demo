@@ -1,6 +1,7 @@
 package wow.doge.http4sdemo
 
 import cats.syntax.all._
+import eu.timepit.refined.auto._
 import monix.bio.IO
 import monix.bio.Task
 import monix.bio.UIO
@@ -13,6 +14,7 @@ import org.http4s.implicits._
 import wow.doge.http4sdemo.models.Book
 import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
+import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.routes.LibraryRoutes
 import wow.doge.http4sdemo.services.LibraryService
 import wow.doge.http4sdemo.services.NoopLibraryService
@@ -24,7 +26,14 @@ class BooksRoutesSpec extends UnitTestBase {
   test("get books api should succeed") {
     import org.http4s.circe.CirceEntityCodec._
     withReplayLogger { logger =>
-      val book = Book(1, "book1", "adsgq342dsdc", 1, date)
+      val book =
+        Book(
+          BookId(1),
+          BookTitle("book1"),
+          BookIsbn("adsgq342dsdc"),
+          AuthorId(1),
+          date
+        )
       val service = new NoopLibraryService {
 
         override def getBooks: Observable[Book] =
@@ -48,7 +57,7 @@ class BooksRoutesSpec extends UnitTestBase {
     import org.http4s.circe.CirceEntityCodec._
     withReplayLogger { logger =>
       val service = new NoopLibraryService {
-        override def updateBook(id: Int, updateData: BookUpdate) =
+        override def updateBook(id: BookId, updateData: BookUpdate) =
           IO.raiseError(
             LibraryService.EntityDoesNotExist(
               s"Book with id=$id does not exist"
@@ -58,7 +67,7 @@ class BooksRoutesSpec extends UnitTestBase {
 
       for {
         _ <- IO.unit
-        reqBody = BookUpdate(Some("blah"), None)
+        reqBody = BookUpdate(Some(BookTitle("blahblah")), None)
         routes = new LibraryRoutes(service, logger).routes
         request = Request[Task](Method.PATCH, Root / "api" / "books" / "1")
           .withEntity(reqBody)
@@ -82,11 +91,14 @@ class BooksRoutesSpec extends UnitTestBase {
   test("search books by author name api should succeed") {
     import org.http4s.circe.CirceEntityCodec._
     withReplayLogger { logger =>
-      val value = "blah"
+      val value = BookIsbn("blahblah")
       val books =
-        List(Book(1, "book1", value, 1, date), Book(2, "book1", value, 1, date))
+        List(
+          Book(BookId(1), BookTitle("book1"), value, AuthorId(1), date),
+          Book(BookId(2), BookTitle("book1"), value, AuthorId(1), date)
+        )
       val service = new NoopLibraryService {
-        override def searchBook(mode: BookSearchMode, value: String) =
+        override def searchBook(mode: BookSearchMode, value: StringRefinement) =
           mode match {
             case BookSearchMode.BookTitle =>
               Observable.raiseError(new NotImplementedError)
@@ -99,10 +111,10 @@ class BooksRoutesSpec extends UnitTestBase {
         routes = new LibraryRoutes(service, logger).routes
         request = Request[Task](
           Method.GET,
-          Root / "api" / "books"
+          Root / "api" / "books" / "search"
             withQueryParams Map(
               "mode" -> BookSearchMode.AuthorName.entryName,
-              "value" -> "blah"
+              "value" -> "blahblah"
             )
         )
         res <- routes.run(request).value.hideErrors
@@ -117,11 +129,14 @@ class BooksRoutesSpec extends UnitTestBase {
   test("search books by book title api should succeed") {
     import org.http4s.circe.CirceEntityCodec._
     withReplayLogger { logger =>
-      val value = "blah"
+      val value = BookIsbn("blahblah")
       val books =
-        List(Book(1, "book1", value, 1, date), Book(2, "book1", value, 1, date))
+        List(
+          Book(BookId(1), BookTitle("book1"), value, AuthorId(1), date),
+          Book(BookId(2), BookTitle("book1"), value, AuthorId(1), date)
+        )
       val service = new NoopLibraryService {
-        override def searchBook(mode: BookSearchMode, value: String) =
+        override def searchBook(mode: BookSearchMode, value: StringRefinement) =
           mode match {
             case BookSearchMode.BookTitle =>
               Observable.fromIterable(books)
@@ -134,10 +149,10 @@ class BooksRoutesSpec extends UnitTestBase {
         routes = new LibraryRoutes(service, logger).routes
         request = Request[Task](
           Method.GET,
-          Root / "api" / "books"
+          Root / "api" / "books" / "search"
             withQueryParams Map(
               "mode" -> BookSearchMode.BookTitle.entryName,
-              "value" -> "blah"
+              "value" -> "blahblah"
             )
         )
         res <- routes.run(request).value.hideErrors
@@ -153,7 +168,7 @@ class BooksRoutesSpec extends UnitTestBase {
     import org.http4s.circe.CirceEntityCodec._
     withReplayLogger { logger =>
       val service = new NoopLibraryService {
-        override def getBookById(id: Int): UIO[Option[Book]] = UIO.none
+        override def getBookById(id: BookId): UIO[Option[Book]] = UIO.none
       }
       for {
         _ <- UIO.unit

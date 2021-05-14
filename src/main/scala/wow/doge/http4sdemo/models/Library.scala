@@ -6,71 +6,72 @@ import cats.syntax.either._
 import enumeratum.EnumEntry
 import enumeratum._
 import io.circe.generic.semiauto._
+import io.scalaland.chimney.cats._
 import io.scalaland.chimney.dsl._
 import org.http4s.ParseFailure
 import org.http4s.QueryParamDecoder
 import org.http4s.dsl.impl.QueryParamDecoderMatcher
 import slick.jdbc.JdbcProfile
+import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.slickcodegen.Tables
+import wow.doge.http4sdemo.utils.RefinementValidation
 
 final case class Book(
-    bookId: Int,
-    bookTitle: String,
-    isbn: String,
-    authorId: Int,
+    bookId: BookId,
+    bookTitle: BookTitle,
+    isbn: BookIsbn,
+    authorId: AuthorId,
     createdAt: LocalDateTime
 )
 object Book {
-  def tupled = (apply _).tupled
   implicit val codec = deriveCodec[Book]
-  def fromBooksRow(row: Tables.BooksRow) = row.transformInto[Book]
-  def fromBooksTableFn(implicit profile: JdbcProfile) = {
-    import profile.api._
-    (b: Tables.Books) =>
-      (b.bookId, b.bookTitle, b.isbn, b.authorId, b.createdAt).mapTo[Book]
-  }
-  def fromBooksTable(implicit profile: JdbcProfile) =
-    Tables.Books.map(fromBooksTableFn)
-
 }
 
-final case class NewBook(bookTitle: String, isbn: String, authorId: Int)
-object NewBook {
+final case class RawNewBook(bookTitle: String, isbn: String, authorId: Int)
+object RawNewBook {
   def tupled = (apply _).tupled
-  implicit val decoder = deriveDecoder[NewBook]
+  implicit val decoder = deriveDecoder[RawNewBook]
   def fromBooksTable(implicit profile: JdbcProfile) = {
     import profile.api._
 
-    Tables.Books.map(b => (b.bookTitle, b.isbn, b.authorId).mapTo[NewBook])
+    Tables.Books.map(b => (b.bookTitle, b.isbn, b.authorId).mapTo[RawNewBook])
   }
 }
 
-final case class BookUpdate(title: Option[String], authorId: Option[Int]) {
+final case class NewBook(
+    bookTitle: BookTitle,
+    isbn: BookIsbn,
+    authorId: AuthorId
+)
+object NewBook {
+  implicit val codec = deriveCodec[NewBook]
+}
+
+final case class BookUpdate(
+    title: Option[BookTitle],
+    authorId: Option[AuthorId]
+) {
   import com.softwaremill.quicklens._
   def update(row: Tables.BooksRow): Tables.BooksRow =
     row
       .modify(_.bookTitle)
-      .setToIfDefined(title)
+      .setToIfDefined(title.map(_.title.value))
       .modify(_.authorId)
-      .setToIfDefined(authorId)
+      .setToIfDefined(authorId.map(_.id.value))
 }
 object BookUpdate {
   implicit val codec = deriveCodec[BookUpdate]
 }
 
-final case class Author(authorId: Int, authorName: String)
+final case class Author(authorId: AuthorId, authorName: AuthorName)
 object Author {
-  def tupled = (apply _).tupled
   implicit val codec = deriveCodec[Author]
-  def fromAuthorsRow(row: Tables.AuthorsRow) = row.transformInto[Author]
-  def fromAuthorsTableFn(implicit profile: JdbcProfile) = {
-    import profile.api._
-    (a: Tables.Authors) => (a.authorId, a.authorName).mapTo[Author]
-  }
+  def fromAuthorsRow(row: Tables.AuthorsRow) =
+    row.transformIntoF[RefinementValidation, Author]
 }
 
-final case class NewAuthor(name: String)
-object NewAuthor {
+final case class RawNewAuthor(name: String)
+object RawNewAuthor {
   // def fromAuthorsTable(implicit profile: JdbcProfile) = {
   //   import profile.api._
 
@@ -78,15 +79,16 @@ object NewAuthor {
   // }
 }
 
+final case class NewAuthor(name: AuthorName)
+
 final case class BookWithAuthor(
-    id: Int,
-    title: String,
-    isbn: String,
+    id: BookId,
+    title: BookTitle,
+    isbn: BookIsbn,
     author: Author,
     createdAt: LocalDateTime
 )
 object BookWithAuthor {
-  def tupled = (apply _).tupled
   implicit val codec = deriveCodec[BookWithAuthor]
 }
 

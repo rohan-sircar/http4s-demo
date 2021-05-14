@@ -3,6 +3,7 @@ package wow.doge.http4sdemo
 import scala.util.Try
 
 import cats.data.ValidatedNec
+import cats.data.ValidatedNel
 import cats.syntax.either._
 import eu.timepit.refined.api._
 import io.odin.meta.Position
@@ -12,14 +13,20 @@ import io.scalaland.chimney.TransformerF
 import monix.bio.IO
 import monix.bio.Task
 import monix.reactive.Observable
+import org.http4s.ParseFailure
+import org.http4s.QueryParamDecoder
+import org.http4s.QueryParameterValue
 import slick.dbio.DBIO
 import slick.dbio.DBIOAction
 import slick.dbio.NoStream
 import slick.dbio.Streaming
 import slick.jdbc.JdbcBackend.DatabaseDef
+import wow.doge.http4sdemo.utils.RefinementValidation
+import wow.doge.http4sdemo.utils.transformIntoL
 
 package object implicits {
-  implicit class DatabaseDefExt(private val db: DatabaseDef) extends AnyVal {
+  implicit final class DatabaseDefExt(private val db: DatabaseDef)
+      extends AnyVal {
     def runL[R](a: DBIOAction[R, NoStream, Nothing]) =
       Task.deferFuture(db.run(a))
 
@@ -63,8 +70,6 @@ package object implicits {
       D.from(io.runToFuture)
   }
 
-  type RefinementValidation[+A] = ValidatedNec[String, A]
-
   implicit final def vnecRefinedTransformerFrom[T, P, F[_, _]](implicit
       validate: Validate[T, P],
       refType: RefType[F]
@@ -84,7 +89,34 @@ package object implicits {
 
   implicit final def refinedTransformerTo[P, T, F[_, _]](implicit
       refType: RefType[F]
-  ): Transformer[F[P, T], P] =
-    src => refType.unwrap(src)
+  ): Transformer[F[P, T], P] = src => refType.unwrap(src)
+
+  implicit final def queryDec[T, P, F[_, _]](implicit
+      validate: Validate[T, P],
+      refType: RefType[F],
+      S: T =:= String
+  ) = new QueryParamDecoder[F[T, P]] {
+    override def decode(
+        value: QueryParameterValue
+    ): ValidatedNel[ParseFailure, F[T, P]] =
+      refType
+        .refine(S.flip.apply(value.value))
+        .leftMap(err =>
+          ParseFailure(
+            s"Error parsing query param ${value.value}",
+            s"""
+            | Error parsing query param ${value.value}
+            | Details: $err
+          """
+          )
+        )
+        .toValidatedNel
+  }
+
+  implicit final class TransformerExt[A](private val src: A) extends AnyVal {
+    def transformL[B](implicit T: TransformerF[RefinementValidation, A, B]) =
+      transformIntoL(src)(T)
+
+  }
 
 }
