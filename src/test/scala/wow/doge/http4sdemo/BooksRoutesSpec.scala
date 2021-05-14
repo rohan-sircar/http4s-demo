@@ -16,7 +16,6 @@ import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
 import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.routes.LibraryRoutes
-import wow.doge.http4sdemo.services.LibraryService
 import wow.doge.http4sdemo.services.NoopLibraryService
 
 class BooksRoutesSpec extends UnitTestBase {
@@ -59,7 +58,7 @@ class BooksRoutesSpec extends UnitTestBase {
       val service = new NoopLibraryService {
         override def updateBook(id: BookId, updateData: BookUpdate) =
           IO.raiseError(
-            LibraryService.EntityDoesNotExist(
+            AppError.EntityDoesNotExist(
               s"Book with id=$id does not exist"
             )
           )
@@ -72,14 +71,14 @@ class BooksRoutesSpec extends UnitTestBase {
         request = Request[Task](Method.PATCH, Root / "api" / "books" / "1")
           .withEntity(reqBody)
         res <- routes.run(request).value
-        body <- res.traverse(_.as[LibraryService.Error])
+        body <- res.traverse(_.as[AppError])
         _ <- logger.debug(s"Request: $request, Response: $res, Body: $body")
         _ <- IO(assertEquals(res.map(_.status), Some(Status.NotFound)))
         _ <- IO(
           assertEquals(
             body,
             Some(
-              LibraryService.EntityDoesNotExist("Book with id=1 does not exist")
+              AppError.EntityDoesNotExist("Book with id=1 does not exist")
             )
           )
         )
@@ -178,14 +177,14 @@ class BooksRoutesSpec extends UnitTestBase {
           Root / "api" / "books" / "12312"
         )
         res <- routes.run(request).value.hideErrors
-        body <- res.traverse(_.as[LibraryService.Error])
+        body <- res.traverse(_.as[AppError])
         _ <- logger.debug(s"Request: $request, Response: $res, Body: $body")
         _ <- IO(assertEquals(res.map(_.status), Some(Status.NotFound)))
         _ <- IO
           .pure(body)
           .assertEquals(
             Some(
-              LibraryService
+              AppError
                 .EntityDoesNotExist("Book with id 12312 does not exist")
             )
           )

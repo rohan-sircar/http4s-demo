@@ -9,6 +9,7 @@ import monix.bio.IO
 import monix.bio.Task
 import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
+import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.Book
 import wow.doge.http4sdemo.models.BookSearchMode
@@ -23,11 +24,12 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
   val routes: HttpRoutes[Task] = {
     val dsl = Http4sDsl[Task]
     import dsl._
-    object Value extends QueryParamDecoderMatcher[StringRefinement]("value")
+    object BookSearchValue
+        extends QueryParamDecoderMatcher[StringRefinement]("value")
     HttpRoutes.of[Task] {
 
       case req @ GET -> Root / "api" / "books" / "search" :?
-          BookSearchMode.Matcher(mode) +& Value(value) =>
+          BookSearchMode.Matcher(mode) +& BookSearchValue(value) =>
         import org.http4s.circe.streamJsonArrayEncoder
         import io.circe.syntax._
         IO.deferAction(implicit s =>
@@ -83,7 +85,7 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
           bookJson <- libraryService.getBookById(id)
           res <- bookJson.fold(
             clogger.warnU(s"Request for non-existent book") >>
-              LibraryService
+              AppError
                 .EntityDoesNotExist(s"Book with id $id does not exist")
                 .toResponse
           )(b => Ok(b).hideErrors)

@@ -1,7 +1,6 @@
 package wow.doge.http4sdemo.services
 
 import cats.syntax.all._
-import io.circe.generic.semiauto._
 import io.odin.Logger
 import io.scalaland.chimney.cats._
 import io.scalaland.chimney.dsl._
@@ -9,9 +8,9 @@ import monix.bio.IO
 import monix.bio.Task
 import monix.bio.UIO
 import monix.reactive.Observable
-import org.http4s.dsl.Http4sDsl
 import slick.jdbc.JdbcBackend
 import slick.jdbc.JdbcProfile
+import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.Author
 import wow.doge.http4sdemo.models.Book
@@ -25,37 +24,35 @@ import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.slickcodegen.Tables
 
 object LibraryService {
-  import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
-  sealed trait Error extends Exception {
-    def message: String
-    override def getMessage(): String = message
-    def toResponse = {
-      val dsl = Http4sDsl[Task]
-      import dsl._
-      implicit val codec = Error.codec
-      this match {
-        case e @ LibraryService.EntityDoesNotExist(message) =>
-          NotFound(e: LibraryService.Error).hideErrors
-        case e @ LibraryService.EntityAlreadyExists(message) =>
-          BadRequest(e: LibraryService.Error).hideErrors
-      }
-    }
-  }
-  final case class EntityDoesNotExist(message: String) extends Error
-  final case class EntityAlreadyExists(message: String) extends Error
+  // import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
+  // sealed trait AppError extends Exception {
+  //   def message: String
+  //   override def getMessage(): String = message
+  //   def toResponse = {
+  //     val dsl = Http4sDsl[Task]
+  //     import dsl._
+  //     implicit val codec = AppError.codec
+  //     this match {
+  //       case e @ LibraryService.EntityDoesNotExist(message) =>
+  //         NotFound(e: LibraryService.AppError).hideErrors
+  //       case e @ LibraryService.EntityAlreadyExists(message) =>
+  //         BadRequest(e: LibraryService.AppError).hideErrors
+  //     }
+  //   }
+  // }
+  // final case class EntityDoesNotExist(message: String) extends AppError
+  // final case class EntityAlreadyExists(message: String) extends AppError
 
-  object Error {
-    implicit val codec = deriveCodec[Error]
-    // def convert(e: MessageBodyFailure) =  e match {
-    //   case InvalidMessageBodyFailure(details, cause) => ()
-    //   case MalformedMessageBodyFailure(details, cause) => ()
-    // }
-  }
+  // object AppError {
+  //   implicit val codec = deriveCodec[AppError]
+  //   // def convert(e: MessageBodyFailure) =  e match {
+  //   //   case InvalidMessageBodyFailure(details, cause) => ()
+  //   //   case MalformedMessageBodyFailure(details, cause) => ()
+  //   // }
+  // }
 }
 
 trait LibraryService {
-
-  import LibraryService._
 
   def getBooks: Observable[Book]
 
@@ -66,11 +63,11 @@ trait LibraryService {
       value: StringRefinement
   ): Observable[Book]
 
-  def updateBook(id: BookId, updateData: BookUpdate): IO[Error, Int]
+  def updateBook(id: BookId, updateData: BookUpdate): IO[AppError, Int]
 
   def deleteBook(id: BookId): Task[Int]
 
-  def insertBook(newBook: NewBook): IO[Error, Book]
+  def insertBook(newBook: NewBook): IO[AppError, Book]
 
   def insertAuthor(a: NewAuthor): Task[Int]
 
@@ -85,8 +82,6 @@ final class LibraryServiceImpl(
     logger: Logger[Task]
 ) extends LibraryService {
   import profile.api._
-
-  import LibraryService._
 
   def getBooks = db
     .streamO(dbio.getBooks.transactionally)
@@ -120,7 +115,7 @@ final class LibraryServiceImpl(
   def insertAuthor(a: NewAuthor): Task[Int] =
     db.runL(dbio.insertAuthor(a))
 
-  def updateBook(id: BookId, updateData: BookUpdate): IO[Error, Int] =
+  def updateBook(id: BookId, updateData: BookUpdate): IO[AppError, Int] =
     for {
       _ <- logger.debugU(s"Request for updating book $id")
       _ <- logger.debugU(s"Value to be updated with -> $updateData")
@@ -133,7 +128,7 @@ final class LibraryServiceImpl(
                 DBIO.successful(updateData.update(value))
             case None =>
               DBIO.failed(
-                EntityDoesNotExist(s"Book with id=$id does not exist")
+                AppError.EntityDoesNotExist(s"Book with id=$id does not exist")
               )
           }
           updateAction = dbio.selectBook(id).update(updatedRow)
@@ -143,14 +138,14 @@ final class LibraryServiceImpl(
       )
       rows <- db
         .runTryL(action.transactionally.asTry)
-        .mapErrorPartial { case e: Error =>
+        .mapErrorPartial { case e: AppError =>
           e
         }
     } yield rows
 
   def deleteBook(id: BookId) = db.runL(dbio.deleteBook(id))
 
-  def insertBook(newBook: NewBook): IO[Error, Book] =
+  def insertBook(newBook: NewBook): IO[AppError, Book] =
     IO.deferAction { implicit s =>
       for {
         action <- UIO(for {
@@ -162,7 +157,7 @@ final class LibraryServiceImpl(
               case None => DBIO.unit
               case Some(_) =>
                 DBIO.failed(
-                  EntityAlreadyExists(
+                  AppError.EntityAlreadyExists(
                     s"Book with isbn=${newBook.isbn} already exists"
                   )
                 )
@@ -170,7 +165,7 @@ final class LibraryServiceImpl(
           _ <- dbio.getAuthor(newBook.authorId).flatMap {
             case None =>
               DBIO.failed(
-                EntityDoesNotExist(
+                AppError.EntityDoesNotExist(
                   s"Author with id=${newBook.authorId} does not exist"
                 )
               )
@@ -180,7 +175,7 @@ final class LibraryServiceImpl(
         } yield book)
         book <- db
           .runTryL(action.transactionally.asTry)
-          .mapErrorPartial { case e: Error =>
+          .mapErrorPartial { case e: AppError =>
             e
           }
           .flatMap(_.transformL[Book])
@@ -281,11 +276,11 @@ trait NoopLibraryService extends LibraryService {
   def updateBook(
       id: BookId,
       updateData: BookUpdate
-  ): IO[LibraryService.Error, Int] = IO.terminate(new NotImplementedError)
+  ): IO[AppError, Int] = IO.terminate(new NotImplementedError)
 
   def deleteBook(id: BookId): Task[Int] = IO.terminate(new NotImplementedError)
 
-  def insertBook(newBook: NewBook): IO[LibraryService.Error, Book] =
+  def insertBook(newBook: NewBook): IO[AppError, Book] =
     IO.terminate(new NotImplementedError)
 
   def insertAuthor(a: NewAuthor): Task[Int] =

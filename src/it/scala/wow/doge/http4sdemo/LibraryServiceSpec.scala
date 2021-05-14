@@ -80,7 +80,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    LibraryService
+                    AppError
                       .EntityDoesNotExist("Author with id=23 does not exist")
                   )
                 )
@@ -124,7 +124,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    LibraryService
+                    AppError
                       .EntityAlreadyExists(
                         "Book with isbn=agege already exists"
                       )
@@ -308,7 +308,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    LibraryService
+                    AppError
                       .EntityDoesNotExist("Book with id=12414 does not exist")
                   )
                 )
