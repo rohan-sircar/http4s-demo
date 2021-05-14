@@ -2,6 +2,8 @@ package wow.doge.http4sdemo
 
 import scala.jdk.CollectionConverters._
 
+import cats.effect.Blocker
+import cats.effect.ContextShift
 import cats.effect.Sync
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
@@ -12,6 +14,7 @@ import org.flywaydb.core.api.configuration.FluentConfiguration
 import pureconfig.ConfigConvert
 import pureconfig.ConfigSource
 import pureconfig.generic.semiauto._
+import pureconfig.module.catseffect.syntax._
 
 final case class JdbcDatabaseConfig(
     url: String,
@@ -23,22 +26,24 @@ final case class JdbcDatabaseConfig(
 )
 
 object JdbcDatabaseConfig {
-  def loadFromGlobal[F[_]: Sync](
-      configNamespace: String
+  def loadFromGlobal[F[_]: Sync: ContextShift](
+      configNamespace: String,
+      blocker: Blocker
   ): F[JdbcDatabaseConfig] =
     Sync[F].suspend {
       val config = ConfigFactory.load()
-      load(config.getConfig(configNamespace))
+      load(config.getConfig(configNamespace), blocker)
     }
 
   // Integration with PureConfig
   implicit val configConvert: ConfigConvert[JdbcDatabaseConfig] =
     deriveConvert
 
-  def load[F[_]: Sync](config: Config): F[JdbcDatabaseConfig] =
-    Sync[F].delay {
-      ConfigSource.fromConfig(config).loadOrThrow[JdbcDatabaseConfig]
-    }
+  def load[F[_]: Sync: ContextShift](
+      config: Config,
+      blocker: Blocker
+  ): F[JdbcDatabaseConfig] =
+    ConfigSource.fromConfig(config).loadF[F, JdbcDatabaseConfig](blocker)
 
 }
 

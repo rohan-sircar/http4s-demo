@@ -22,6 +22,7 @@ import wow.doge.http4sdemo.schedulers.Schedulers
 import wow.doge.http4sdemo.utils.AppConfig
 import wow.doge.http4sdemo.utils.LoggerFormat.Json
 import wow.doge.http4sdemo.utils.LoggerFormat.Pretty
+
 object Main extends BIOApp {
   val profile: JdbcProfile = slick.jdbc.PostgresProfile
   val schedulers = Schedulers.default
@@ -37,7 +38,9 @@ object Main extends BIOApp {
     |        |___||_|__|  |__| |   __/\____   |/______|         \_____|\____/\__|_|_/ \____/ 
     |                          |__|        |__|                                        
      """.stripMargin)))
-    rootConfig <- Resource.liftF(Task(ConfigFactory.load()))
+    rootConfig <- Resource.liftF(
+      Task(ConfigFactory.load()).executeOn(schedulers.io.value)
+    )
     appConfig <- Resource.liftF(
       ConfigSource
         .fromConfig(rootConfig.getConfig("http4s-demo"))
@@ -56,12 +59,14 @@ object Main extends BIOApp {
     db <- SlickResource("http4s-demo.database", Some(rootConfig), schedulers.io)
     _ <- Resource.liftF((for {
       config <- JdbcDatabaseConfig.load(
-        rootConfig.getConfig("http4s-demo.database")
+        rootConfig.getConfig("http4s-demo.database"),
+        schedulers.io.blocker
       )
       _ <- DBMigrations.migrate(config)
     } yield ()).executeOn(schedulers.io.value))
     _ <- new Server(db, profile, logger, schedulers).resource
   } yield ()
+
   def run(args: List[String]) = {
     app
       .use(_ => Task.never)
