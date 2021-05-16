@@ -20,7 +20,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
     createSchema(containers)
   }
 
-  test("retrieve book by id should succeedd") {
+  test("retrieve book by id should succeed") {
     withReplayLogger { logger =>
       withContainersIO { case container: PostgreSQLContainer =>
         val io =
@@ -33,15 +33,14 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 db,
                 logger
               )
-              rawId <- service.insertAuthor(
+              id <- service.insertAuthor(
                 NewAuthor(AuthorName(StringRefinement("author1")))
               )
-              id <- rawId.transformL[numeric.PosInt]
               book <- service.insertBook(
                 NewBook(
                   BookTitle(StringRefinement("blahh")),
                   BookIsbn(StringRefinement("randomisbn")),
-                  AuthorId(id)
+                  id
                 )
               )
               _ <- service
@@ -150,22 +149,21 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 db,
                 logger
               )
-              rawId <- service.insertAuthor(
+              id <- service.insertAuthor(
                 NewAuthor(AuthorName(StringRefinement("barbar")))
               )
-              id <- rawId.transformL[numeric.PosInt]
               book1 <- service.insertBook(
                 NewBook(
                   BookTitle(StringRefinement("blah3")),
                   BookIsbn(StringRefinement("aeaega")),
-                  AuthorId(id)
+                  id
                 )
               )
               book2 <- service.insertBook(
                 NewBook(
                   BookTitle(StringRefinement("blah4")),
                   BookIsbn(StringRefinement("afgegg")),
-                  AuthorId(id)
+                  id
                 )
               )
               _ <- service
@@ -197,22 +195,21 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 db,
                 logger
               )
-              rawId <- service.insertAuthor(
+              id <- service.insertAuthor(
                 NewAuthor(AuthorName(StringRefinement("barbar2")))
               )
-              id <- rawId.transformL[numeric.PosInt]
               book1 <- service.insertBook(
                 NewBook(
                   BookTitle(StringRefinement("blah5")),
                   BookIsbn(StringRefinement("aswegq")),
-                  AuthorId(id)
+                  id
                 )
               )
               book2 <- service.insertBook(
                 NewBook(
                   BookTitle(StringRefinement("blah6")),
                   BookIsbn(StringRefinement("aaeqaf")),
-                  AuthorId(id)
+                  id
                 )
               )
               _ <- service
@@ -241,15 +238,14 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 db,
                 logger
               )
-              rawId <- service.insertAuthor(
+              id <- service.insertAuthor(
                 NewAuthor(AuthorName(StringRefinement("barbar3")))
               )
-              id <- rawId.transformL[numeric.PosInt]
               book1 <- service.insertBook(
                 NewBook(
                   BookTitle(StringRefinement("blah7")),
                   BookIsbn(StringRefinement("fwefq3f")),
-                  AuthorId(id)
+                  id
                 )
               )
               _ <- service
@@ -289,15 +285,14 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 db,
                 logger
               )
-              rawId <- service.insertAuthor(
+              id <- service.insertAuthor(
                 NewAuthor(AuthorName(StringRefinement("barbar4")))
               )
-              id <- rawId.transformL[numeric.PosInt]
               book1 <- service.insertBook(
                 NewBook(
                   BookTitle(StringRefinement("blah7")),
                   BookIsbn(StringRefinement("aegqweg")),
-                  AuthorId(id)
+                  id
                 )
               )
               _ <- service
@@ -309,7 +304,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 .assertEquals(
                   Left(
                     AppError
-                      .EntityDoesNotExist("Book with id=12414 does not exist")
+                      .EntityDoesNotExist("Book with id=1241 does not exist")
                   )
                 )
             } yield ()

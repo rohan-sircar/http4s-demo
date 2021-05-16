@@ -11,6 +11,7 @@ val SttpVersion = "3.3.1"
 val OdinVersion = "0.11.0"
 val TestContainersVersion = "0.39.3"
 val PureconfigVersion = "0.14.0"
+val RefinedVersion = "0.9.19"
 scalaVersion in ThisBuild := "2.13.4"
 
 resolvers in ThisBuild += "jitpack" at "https://jitpack.io"
@@ -153,7 +154,8 @@ lazy val root = (project in file("."))
       "com.beachape" %% "enumeratum" % "1.6.1",
       "com.chuusai" %% "shapeless" % "2.3.3",
       "com.lihaoyi" %% "sourcecode" % "0.2.1",
-      "eu.timepit" %% "refined" % "0.9.19",
+      "eu.timepit" %% "refined" % RefinedVersion,
+      "eu.timepit" %% "refined-pureconfig" % RefinedVersion,
       "com.zaxxer" % "HikariCP" % "3.4.2",
       "com.typesafe.slick" %% "slick" % "3.3.3",
       "com.typesafe.slick" %% "slick-hikaricp" % "3.3.3",

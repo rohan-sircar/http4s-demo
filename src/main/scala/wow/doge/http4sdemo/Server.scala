@@ -1,7 +1,5 @@
 package wow.doge.http4sdemo
 
-import scala.concurrent.duration._
-
 import cats.effect.Resource
 import cats.implicits._
 import com.codahale.metrics.SharedMetricRegistries
@@ -25,19 +23,23 @@ import wow.doge.http4sdemo.routes.LibraryRoutes
 import wow.doge.http4sdemo.schedulers.Schedulers
 import wow.doge.http4sdemo.services.LibraryDbio
 import wow.doge.http4sdemo.services.LibraryServiceImpl
+import wow.doge.http4sdemo.utils.HttpConfig
 import wow.doge.http4sdemo.utils.StructuredOdinLogger
 final class Server(
     db: DatabaseDef,
     p: JdbcProfile,
     logger: io.odin.Logger[Task],
-    schedulers: Schedulers
+    schedulers: Schedulers,
+    config: HttpConfig
 ) {
   private val log: String => Task[Unit] = str => logger.debug(str)
 
-  def resource =
+  val resource =
     for {
       _ <- Resource.liftF(Task.unit)
-      registry = SharedMetricRegistries.getOrCreate("default")
+      registry <- Resource.liftF(
+        Task(SharedMetricRegistries.getOrCreate("default"))
+      )
       metricsRoute = HttpRoutes.of[Task] {
         case req
             if req.method === Method.GET && req.uri === uri"/api/metrics" =>
@@ -49,8 +51,8 @@ final class Server(
         new LibraryRoutes(libraryService, logger).routes
       )
       httpApp2 <- Resource.liftF(
-        Throttle.apply(10, 1.second)(
-          Timeout(15.seconds)(
+        Throttle(config.throttle.amount.value, config.throttle.per)(
+          Timeout(config.timeout)(
             AutoSlash.httpRoutes(metricsRoute <+> httpApp).orNotFound
           )
         )

@@ -64,7 +64,7 @@ object Main extends BIOApp {
       )
       _ <- DBMigrations.migrate(config)
     } yield ()).executeOn(schedulers.io.value))
-    _ <- new Server(db, profile, logger, schedulers).resource
+    _ <- new Server(db, profile, logger, schedulers, appConfig.http).resource
   } yield ()
 
   def run(args: List[String]) = {
