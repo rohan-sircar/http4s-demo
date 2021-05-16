@@ -3,7 +3,6 @@ package wow.doge.http4sdemo
 import scala.util.Try
 
 import cats.data.ValidatedNec
-import cats.data.ValidatedNel
 import cats.syntax.either._
 import eu.timepit.refined.api._
 import io.odin.meta.Position
@@ -15,7 +14,6 @@ import monix.bio.Task
 import monix.reactive.Observable
 import org.http4s.ParseFailure
 import org.http4s.QueryParamDecoder
-import org.http4s.QueryParameterValue
 import slick.dbio.DBIO
 import slick.dbio.DBIOAction
 import slick.dbio.NoStream
@@ -23,6 +21,10 @@ import slick.dbio.Streaming
 import slick.jdbc.JdbcBackend.DatabaseDef
 import wow.doge.http4sdemo.utils.RefinementValidation
 import wow.doge.http4sdemo.utils.transformIntoL
+import slick.dbio
+import slick.jdbc.ResultSetType
+import slick.jdbc.ResultSetConcurrency
+import slick.jdbc.JdbcProfile
 
 package object implicits {
   implicit final class DatabaseDefExt(private val db: DatabaseDef)
@@ -35,8 +37,20 @@ package object implicits {
     ) =
       Task.deferFuture(db.run(a)).flatMap(r => IO.fromTry(ev(r)))
 
-    def streamO[T](a: DBIOAction[_, Streaming[T], Nothing]) =
-      Observable.fromReactivePublisher(db.stream(a))
+    //format: off
+    def streamO[T](a: DBIOAction[_, Streaming[T], dbio.Effect.All with dbio.Effect.Transactional])(implicit P: JdbcProfile) = {
+    //format: on
+      import P.api._
+      Observable.fromReactivePublisher(
+        db.stream(
+          a.withStatementParameters(
+            rsType = ResultSetType.ForwardOnly,
+            rsConcurrency = ResultSetConcurrency.ReadOnly,
+            fetchSize = 10000
+          ).transactionally
+        )
+      )
+    }
   }
 
   implicit final class MonixEvalTaskExt[T](private val task: monix.eval.Task[T])
@@ -71,47 +85,43 @@ package object implicits {
   }
 
   implicit final def vnecRefinedTransformerFrom[T, P, F[_, _]](implicit
-      validate: Validate[T, P],
-      refType: RefType[F]
+      V: Validate[T, P],
+      R: RefType[F]
   ): TransformerF[ValidatedNec[String, +*], T, F[T, P]] = (src: T) =>
-    refType.refine(src).toValidatedNec
+    R.refine(src).toValidatedNec
 
   implicit final def eitherRefinedTransformerFrom[T, P, F[_, _]](implicit
-      validate: Validate[T, P],
-      refType: RefType[F]
-  ): TransformerF[Either[String, +*], T, F[T, P]] = (src: T) =>
-    refType.refine(src)
+      V: Validate[T, P],
+      R: RefType[F]
+  ): TransformerF[Either[String, +*], T, F[T, P]] = (src: T) => R.refine(src)
 
   implicit final def optionRefinedTransformerFrom[T, P, F[_, _]](implicit
-      validate: Validate[T, P],
-      refType: RefType[F]
-  ): TransformerF[Option, T, F[T, P]] = (src: T) => refType.refine(src).toOption
+      V: Validate[T, P],
+      R: RefType[F]
+  ): TransformerF[Option, T, F[T, P]] = (src: T) => R.refine(src).toOption
 
   implicit final def refinedTransformerTo[P, T, F[_, _]](implicit
-      refType: RefType[F]
-  ): Transformer[F[P, T], P] = src => refType.unwrap(src)
+      R: RefType[F]
+  ): Transformer[F[P, T], P] = src => R.unwrap(src)
 
-  implicit final def queryDec[T, P, F[_, _]](implicit
-      validate: Validate[T, P],
-      refType: RefType[F],
-      S: T =:= String
-  ) = new QueryParamDecoder[F[T, P]] {
-    override def decode(
-        value: QueryParameterValue
-    ): ValidatedNel[ParseFailure, F[T, P]] =
-      refType
-        .refine(S.flip.apply(value.value))
+  implicit final def refinedQueryParamDecoder[T, P, F[_, _]](implicit
+      Q: QueryParamDecoder[T],
+      V: Validate[T, P],
+      R: RefType[F]
+  ): QueryParamDecoder[F[T, P]] =
+    Q.emap { v =>
+      R
+        .refine(v)
         .leftMap(err =>
           ParseFailure(
-            s"Error parsing query param ${value.value}",
+            s"Error parsing query param ${v}",
             s"""
-            | Error parsing query param ${value.value}
+            | Error parsing query param ${v}
             | Details: $err
-          """
+          """.stripMargin
           )
         )
-        .toValidatedNel
-  }
+    }
 
   implicit final class TransformerExt[A](private val src: A) extends AnyVal {
     def transformL[B](implicit T: TransformerF[RefinementValidation, A, B]) =

@@ -48,16 +48,11 @@ object NewBook {
 }
 
 final case class BookUpdate(
-    title: Option[BookTitle],
+    bookTitle: Option[BookTitle],
     authorId: Option[AuthorId]
 ) {
-  import com.softwaremill.quicklens._
   def update(row: Tables.BooksRow): Tables.BooksRow =
-    row
-      .modify(_.bookTitle)
-      .setToIfDefined(title.map(_.title.value))
-      .modify(_.authorId)
-      .setToIfDefined(authorId.map(_.id.value))
+    row.patchUsing(this)
 }
 object BookUpdate {
   implicit val codec = deriveCodec[BookUpdate]

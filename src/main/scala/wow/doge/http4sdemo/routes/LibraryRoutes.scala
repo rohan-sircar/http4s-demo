@@ -16,6 +16,7 @@ import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
 import wow.doge.http4sdemo.models.NewBook
 import wow.doge.http4sdemo.models.Refinements._
+import wow.doge.http4sdemo.models.pagination._
 import wow.doge.http4sdemo.services.LibraryService
 import wow.doge.http4sdemo.utils.extractReqId
 
@@ -34,7 +35,7 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
         import io.circe.syntax._
         IO.deferAction(implicit s =>
           for {
-            reqId <- extractReqId(req)
+            reqId <- IO.pure(extractReqId(req))
             clogger = logger.withConstContext(
               Map(
                 "name" -> "Search book",
@@ -45,6 +46,7 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
               )
             )
             _ <- clogger.debugU("Request to search book")
+            // EntityEncoder[monix.bio.Task, monix.reactive.Observable[io.circe.Json]]
             books <- IO.pure(
               libraryService
                 .searchBook(mode, value)
@@ -52,6 +54,34 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
                 .toStream[Task]
             )
             res <- Ok(books.map(_.asJson))
+          } yield res
+        )
+
+      case req @ GET -> Root / "api" / "books" / "paginated" :?
+          PaginationLimit.matcher(limit) +& PaginationPage.matcher(page) =>
+        import org.http4s.circe.streamJsonArrayEncoder
+        import io.circe.syntax._
+        IO.deferAction(implicit s =>
+          for {
+            reqId <- IO.pure(extractReqId(req))
+            pagination = Pagination(page, limit)
+            clogger = logger.withConstContext(
+              Map(
+                "name" -> "Get books paginated",
+                "request-id" -> reqId,
+                "request-uri" -> req.uri.toString,
+                "pagination" -> pagination.toString
+              )
+            )
+            _ <- clogger.debugU("Request for paginated books")
+            books <- IO.pure(
+              libraryService
+                .getPaginatedBooks(pagination)
+                .toReactivePublisher
+                .toStream[Task]
+            )
+            res <- Ok(books.map(_.asJson))
+            // res <- Ok()
           } yield res
         )
 
@@ -72,7 +102,7 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
       case req @ GET -> Root / "api" / "books" / BookId(id) =>
         import org.http4s.circe.CirceEntityCodec._
         for {
-          reqId <- extractReqId(req)
+          reqId <- IO.pure(extractReqId(req))
           clogger = logger.withConstContext(
             Map(
               "name" -> "Get book",
@@ -94,7 +124,7 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
       case req @ PUT -> Root / "api" / "books" =>
         import org.http4s.circe.CirceEntityCodec._
         for {
-          reqId <- extractReqId(req)
+          reqId <- IO.pure(extractReqId(req))
           newBook <- req.as[NewBook]
           clogger = logger.withConstContext(
             Map(
@@ -113,7 +143,7 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
       case req @ PATCH -> Root / "api" / "books" / BookId(id) =>
         import org.http4s.circe.CirceEntityCodec._
         for {
-          reqId <- extractReqId(req)
+          reqId <- IO.pure(extractReqId(req))
           updateData <- req.as[BookUpdate]
           clogger = logger.withConstContext(
             Map(
@@ -132,7 +162,7 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
 
       case req @ DELETE -> Root / "api" / "books" / BookId(id) =>
         for {
-          reqId <- extractReqId(req)
+          reqId <- IO.pure(extractReqId(req))
           clogger = logger.withConstContext(
             Map(
               "name" -> "Delete book",
