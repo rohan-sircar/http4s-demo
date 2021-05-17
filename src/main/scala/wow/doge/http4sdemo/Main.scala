@@ -17,14 +17,13 @@ import monix.bio.UIO
 import monix.execution.Scheduler
 import pureconfig.ConfigSource
 import pureconfig.module.catseffect.syntax._
-import slick.jdbc.JdbcProfile
 import wow.doge.http4sdemo.schedulers.Schedulers
 import wow.doge.http4sdemo.utils.AppConfig
 import wow.doge.http4sdemo.utils.LoggerFormat.Json
 import wow.doge.http4sdemo.utils.LoggerFormat.Pretty
 
 object Main extends BIOApp {
-  val profile: JdbcProfile = slick.jdbc.PostgresProfile
+  val profile = wow.doge.http4sdemo.profile.ExtendedPgProfile
   val schedulers = Schedulers.default
 
   override protected def scheduler: Scheduler = schedulers.async.value

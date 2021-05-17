@@ -12,6 +12,9 @@ import io.estatico.newtype.ops._
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.TransformerF
 import wow.doge.http4sdemo.implicits._
+import wow.doge.http4sdemo.profile.ExtendedPgProfile
+import wow.doge.http4sdemo.profile.ExtendedPgProfile.api._
+import wow.doge.http4sdemo.profile.ExtendedPgProfile.mapping._
 import wow.doge.http4sdemo.utils.RefinementValidation
 
 object Refinements {
@@ -43,6 +46,8 @@ object Refinements {
     implicit val fromT =
       implicitly[TransformerF[RefinementValidation, Int, IdRefinement]].coerce
     implicit val toT: Transformer[BookId, Int] = _.id.value
+    implicit val col: ExtendedPgProfile.ColumnType[BookId] =
+      implicitly[ExtendedPgProfile.ColumnType[IdRefinement]].coerce
   }
 
   @newtype final case class AuthorId(id: IdRefinement)
@@ -58,6 +63,9 @@ object Refinements {
     implicit val fromT: TransformerF[RefinementValidation, Int, AuthorId] =
       implicitly[TransformerF[RefinementValidation, Int, IdRefinement]].coerce
     implicit val toT: Transformer[AuthorId, Int] = _.id.value
+    implicit val col: ExtendedPgProfile.ColumnType[AuthorId] =
+      implicitly[ExtendedPgProfile.ColumnType[IdRefinement]].coerce
+    // implicit val tt = implicitly[slick.ast.TypedType[IdRefinement]].coerce
   }
 
   @newtype final case class BookTitle(title: StringRefinement)
@@ -71,6 +79,8 @@ object Refinements {
         TransformerF[RefinementValidation, String, StringRefinement]
       ].coerce
     implicit val toT: Transformer[BookTitle, String] = _.title.value
+    implicit val col: ExtendedPgProfile.ColumnType[BookTitle] =
+      implicitly[ExtendedPgProfile.ColumnType[StringRefinement]].coerce
   }
 
   @newtype final case class BookIsbn(inner: StringRefinement)
@@ -84,6 +94,8 @@ object Refinements {
         TransformerF[RefinementValidation, String, StringRefinement]
       ].coerce
     implicit val toT: Transformer[BookIsbn, String] = _.inner.value
+    implicit val col: ExtendedPgProfile.ColumnType[BookIsbn] =
+      implicitly[ExtendedPgProfile.ColumnType[StringRefinement]].coerce
   }
 
   @newtype final case class AuthorName(name: StringRefinement)
@@ -97,6 +109,17 @@ object Refinements {
         TransformerF[RefinementValidation, String, StringRefinement]
       ].coerce
     implicit val toT: Transformer[AuthorName, String] = _.name.value
+    implicit val col: ExtendedPgProfile.ColumnType[AuthorName] =
+      implicitly[ExtendedPgProfile.ColumnType[StringRefinement]].coerce
+  }
+
+  @newtype final case class NumRows(toInt: Int)
+  object NumRows {
+    implicit val encoder: Encoder[NumRows] = Encoder[Int].coerce
+    implicit val decoder: Decoder[NumRows] = Decoder[Int].coerce
+    // implicit val from =
+    //   implicitly[TransformerF[RefinementValidation, Int, Int]].coerce
+    // implicit val to: Transformer[NumRows, Int] = _.inner.value
   }
 
 }

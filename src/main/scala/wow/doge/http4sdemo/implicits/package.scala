@@ -14,17 +14,17 @@ import monix.bio.Task
 import monix.reactive.Observable
 import org.http4s.ParseFailure
 import org.http4s.QueryParamDecoder
+import slick.dbio
 import slick.dbio.DBIO
 import slick.dbio.DBIOAction
 import slick.dbio.NoStream
 import slick.dbio.Streaming
 import slick.jdbc.JdbcBackend.DatabaseDef
+import slick.jdbc.ResultSetConcurrency
+import slick.jdbc.ResultSetType
+import wow.doge.http4sdemo.profile.{ExtendedPgProfile => JdbcProfile}
 import wow.doge.http4sdemo.utils.RefinementValidation
 import wow.doge.http4sdemo.utils.transformIntoL
-import slick.dbio
-import slick.jdbc.ResultSetType
-import slick.jdbc.ResultSetConcurrency
-import slick.jdbc.JdbcProfile
 
 package object implicits {
   implicit final class DatabaseDefExt(private val db: DatabaseDef)

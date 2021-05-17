@@ -14,17 +14,17 @@ values
     ('Author3');
 
 insert into
-    books (isbn, book_title, author_id)
+    books (book_isbn, book_title, author_id)
 values
     ('aebwegbwe', 'book1', 3);
 
 insert into
-    books (isbn, book_title, author_id)
+    books (book_isbn, book_title, author_id)
 values
     ('abeqegbqeg', 'book2', 2);
 
 insert into
-    books (isbn, book_title, author_id)
+    books (book_isbn, book_title, author_id)
 values
     ('aebhqeqegq', 'book3', 1);
 

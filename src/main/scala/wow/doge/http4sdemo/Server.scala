@@ -2,6 +2,7 @@ package wow.doge.http4sdemo
 
 import cats.effect.Resource
 import cats.implicits._
+import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.SharedMetricRegistries
 import monix.bio.Task
 import org.http4s.HttpRoutes
@@ -18,7 +19,7 @@ import org.http4s.server.middleware.ResponseTiming
 import org.http4s.server.middleware.Throttle
 import org.http4s.server.middleware.Timeout
 import slick.jdbc.JdbcBackend.DatabaseDef
-import slick.jdbc.JdbcProfile
+import wow.doge.http4sdemo.profile.{ExtendedPgProfile => JdbcProfile}
 import wow.doge.http4sdemo.routes.LibraryRoutes
 import wow.doge.http4sdemo.schedulers.Schedulers
 import wow.doge.http4sdemo.services.LibraryDbio
@@ -40,11 +41,7 @@ final class Server(
       registry <- Resource.liftF(
         Task(SharedMetricRegistries.getOrCreate("default"))
       )
-      metricsRoute = HttpRoutes.of[Task] {
-        case req
-            if req.method === Method.GET && req.uri === uri"/api/metrics" =>
-          metricsResponse(registry)
-      }
+      metricsRoute = metricsRoutes(registry)
       libraryDbio = new LibraryDbio(p)
       libraryService = new LibraryServiceImpl(p, libraryDbio, db, logger)
       httpApp = Metrics(Dropwizard[Task](registry, "server"))(
@@ -70,5 +67,10 @@ final class Server(
         .withLogger(new StructuredOdinLogger(logger))
         .build
     } yield server
+
+  def metricsRoutes(registry: MetricRegistry) = HttpRoutes.of[Task] {
+    case req if req.method === Method.GET && req.uri === uri"/api/metrics" =>
+      metricsResponse(registry)
+  }
 
 }

@@ -5,7 +5,7 @@ create table authors (
 
 CREATE TABLE books (
     book_id SERIAL PRIMARY KEY,
-    isbn VARCHAR(50) UNIQUE NOT NULL,
+    book_isbn VARCHAR(50) UNIQUE NOT NULL,
     book_title VARCHAR(30) NOT NULL,
     author_id INTEGER REFERENCES authors(author_id) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
@@ -31,6 +31,6 @@ create table users (
 create table checkouts (
     checkout_id SERIAL PRIMARY KEY,
     book_id INTEGER REFERENCES books(book_id) NOT NULL,
-    taken_by INTEGER REFERENCES users(user_id) NOT NULL,
+    taken_by_user_id INTEGER REFERENCES users(user_id) NOT NULL,
     return_time timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

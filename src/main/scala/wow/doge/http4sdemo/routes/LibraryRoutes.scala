@@ -73,15 +73,12 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
                 "pagination" -> pagination.toString
               )
             )
-            _ <- clogger.debugU("Request for paginated books")
-            books <- IO.pure(
-              libraryService
-                .getPaginatedBooks(pagination)
-                .toReactivePublisher
-                .toStream[Task]
-            )
+            _ <- clogger.infoU("Request for paginated books")
+            books = libraryService
+              .getPaginatedBooks(pagination)
+              .toReactivePublisher
+              .toStream[Task]
             res <- Ok(books.map(_.asJson))
-            // res <- Ok()
           } yield res
         )
 

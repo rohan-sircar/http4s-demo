@@ -63,7 +63,8 @@ lazy val testCommon = (project in file("modules/test-common"))
     libraryDependencies ++= Seq(
       "com.github.monix" % "monix-bio" % "0a2ad29275",
       "com.github.valskalla" %% "odin-monix" % OdinVersion,
-      "de.lolhens" %% "munit-tagless-final" % "0.0.1"
+      "de.lolhens" %% "munit-tagless-final" % "0.0.1",
+      "be.venneborg" %% "slick-refined" % "0.5.0"
     )
   )
 
@@ -171,6 +172,7 @@ lazy val root = (project in file("."))
       "io.circe" %% "circe-fs2" % CirceVersion,
       "io.circe" %% "circe-refined" % CirceVersion,
       "io.estatico" %% "newtype" % "0.4.4",
+      "be.venneborg" %% "slick-refined" % "0.5.0",
       // "org.scalameta" %% "munit" % "0.7.23" % "it,test",
       "de.lolhens" %% "munit-tagless-final" % "0.0.1" % "it,test",
       "org.scalameta" %% "munit-scalacheck" % "0.7.23" % "it,test",
@@ -194,23 +196,66 @@ lazy val root = (project in file("."))
     slickCodegenDatabaseUser := databaseUser,
     slickCodegenDatabasePassword := databasePassword,
     slickCodegenDriver := slick.jdbc.PostgresProfile,
+    // slickCodegenDriver := RefinedPgProfile,
     slickCodegenJdbcDriver := "org.postgresql.Driver",
     slickCodegenOutputPackage := "wow.doge.http4sdemo.slickcodegen",
     slickCodegenExcludedTables := Seq("schema_version"),
     slickCodegenCodeGenerator := { (model: m.Model) =>
       new SourceCodeGenerator(model) {
+        // override def code = """
+        // """.stripMargin + "\n" + super.code
+
         override def Table = new Table(_) {
           // override def EntityType = new EntityType {
           //   override def caseClassFinal = true
           // }
           override def Column = new Column(_) {
+            // if(model.name == "SOME_SPECIAL_COLUMN_NAME") "MyCustomType" else super.rawType
             override def rawType = model.tpe match {
               case "java.sql.Timestamp" =>
                 "java.time.LocalDateTime" // kill j.s.Timestamp
               case _ =>
-                super.rawType
+                //books fields
+                if (model.name == "book_id") "BookId"
+                else if (model.name == "book_name") "BookName"
+                else if (model.name == "book_title") "BookTitle"
+                else if (model.name == "book_isbn") "BookIsbn"
+                //authors fields
+                else if (model.name == "author_id") "AuthorId"
+                else if (model.name == "author_name") "AuthorName"
+                else
+                  super.rawType
             }
           }
+        }
+        // ensure to use our customized postgres driver at `import profile.simple._`
+        override def packageCode(
+            profile: String,
+            pkg: String,
+            container: String,
+            parentType: Option[String]
+        ): String = {
+          //format: off
+          s"""
+          |package ${pkg}
+          |// AUTO-GENERATED Slick data model
+          |/** Stand-alone Slick data model for immediate use */
+          |object ${container} extends ${container} {
+          |  val profile = wow.doge.http4sdemo.profile.ExtendedPgProfile
+          |}
+          |
+          |/** Slick data model trait for extension, choice of backend or usage in the cake pattern. 
+          |  * (Make sure to initialize this late.) */
+          |trait ${container}${parentType.map(t => s" extends $t").getOrElse("")} {
+          |  val profile: wow.doge.http4sdemo.profile.ExtendedPgProfile
+          |  import profile.api._
+          |  import wow.doge.http4sdemo.profile.ExtendedPgProfile.mapping._
+          |  import wow.doge.http4sdemo.models.Refinements._
+          |  //import wow.doge.http4sdemo.models.Refinements.BookId._
+          |  ${indent(code)}
+          |}
+      """.stripMargin
+          //format: on
         }
       }
     },

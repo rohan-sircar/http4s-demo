@@ -254,7 +254,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                   BookUpdate(Some(BookTitle(StringRefinement("barbar7"))), None)
                 )
                 .attempt
-                .assertEquals(Right(1))
+                .assertEquals(Right(NumRows(1)))
               _ <- service
                 .getBookById(book1.bookId)
                 .assertEquals(
@@ -304,7 +304,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 .assertEquals(
                   Left(
                     AppError
-                      .EntityDoesNotExist("Book with id=1241 does not exist")
+                      .EntityDoesNotExist("Book with id=12414 does not exist")
                   )
                 )
             } yield ()
