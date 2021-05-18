@@ -64,7 +64,10 @@ lazy val testCommon = (project in file("modules/test-common"))
       "com.github.monix" % "monix-bio" % "0a2ad29275",
       "com.github.valskalla" %% "odin-monix" % OdinVersion,
       "de.lolhens" %% "munit-tagless-final" % "0.0.1",
-      "be.venneborg" %% "slick-refined" % "0.5.0"
+      "be.venneborg" %% "slick-refined" % "0.5.0",
+      "com.beachape" %% "enumeratum-slick" % "1.6.0",
+      "com.github.tminglei" %% "slick-pg" % "0.19.6",
+      "com.github.tminglei" %% "slick-pg_circe-json" % "0.19.6"
     )
   )
 
@@ -153,6 +156,7 @@ lazy val root = (project in file("."))
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
       "com.lihaoyi" %% "os-lib" % "0.7.1",
       "com.beachape" %% "enumeratum" % "1.6.1",
+      "com.beachape" %% "enumeratum-slick" % "1.6.0",
       "com.chuusai" %% "shapeless" % "2.3.3",
       "com.lihaoyi" %% "sourcecode" % "0.2.1",
       "eu.timepit" %% "refined" % RefinedVersion,
@@ -173,6 +177,8 @@ lazy val root = (project in file("."))
       "io.circe" %% "circe-refined" % CirceVersion,
       "io.estatico" %% "newtype" % "0.4.4",
       "be.venneborg" %% "slick-refined" % "0.5.0",
+      "com.github.tminglei" %% "slick-pg" % "0.19.6",
+      "com.github.tminglei" %% "slick-pg_circe-json" % "0.19.6",
       // "org.scalameta" %% "munit" % "0.7.23" % "it,test",
       "de.lolhens" %% "munit-tagless-final" % "0.0.1" % "it,test",
       "org.scalameta" %% "munit-scalacheck" % "0.7.23" % "it,test",
@@ -199,7 +205,7 @@ lazy val root = (project in file("."))
     // slickCodegenDriver := RefinedPgProfile,
     slickCodegenJdbcDriver := "org.postgresql.Driver",
     slickCodegenOutputPackage := "wow.doge.http4sdemo.slickcodegen",
-    slickCodegenExcludedTables := Seq("schema_version"),
+    slickCodegenExcludedTables := Seq("flyway_schema_history"),
     slickCodegenCodeGenerator := { (model: m.Model) =>
       new SourceCodeGenerator(model) {
         // override def code = """
@@ -210,25 +216,28 @@ lazy val root = (project in file("."))
           //   override def caseClassFinal = true
           // }
           override def Column = new Column(_) {
-            // if(model.name == "SOME_SPECIAL_COLUMN_NAME") "MyCustomType" else super.rawType
             override def rawType = model.tpe match {
-              case "java.sql.Timestamp" =>
-                "java.time.LocalDateTime" // kill j.s.Timestamp
+              case "java.sql.Date"      => "LocalDate"
+              case "java.sql.Time"      => "LocalTime"
+              case "java.sql.Timestamp" => "LocalDateTime"
               case _ =>
-                //books fields
-                if (model.name == "book_id") "BookId"
-                else if (model.name == "book_name") "BookName"
-                else if (model.name == "book_title") "BookTitle"
-                else if (model.name == "book_isbn") "BookIsbn"
-                //authors fields
-                else if (model.name == "author_id") "AuthorId"
-                else if (model.name == "author_name") "AuthorName"
-                else
-                  super.rawType
+                model.name match {
+                  //books fields
+                  case "book_id"    => "BookId"
+                  case "book_name"  => "BookName"
+                  case "book_title" => "BookTitle"
+                  case "book_isbn"  => "BookIsbn"
+                  //authors fields
+                  case "author_id"   => "AuthorId"
+                  case "author_name" => "AuthorName"
+                  //others
+                  case "color"                  => "Color"
+                  case s if s.endsWith("_json") => "Json"
+                  case _                        => super.rawType
+                }
             }
           }
         }
-        // ensure to use our customized postgres driver at `import profile.simple._`
         override def packageCode(
             profile: String,
             pkg: String,
@@ -251,7 +260,9 @@ lazy val root = (project in file("."))
           |  import profile.api._
           |  import wow.doge.http4sdemo.profile.ExtendedPgProfile.mapping._
           |  import wow.doge.http4sdemo.models.Refinements._
-          |  //import wow.doge.http4sdemo.models.Refinements.BookId._
+          |  import wow.doge.http4sdemo.models.common._
+          |  import io.circe.Json
+          |  import java.time._
           |  ${indent(code)}
           |}
       """.stripMargin

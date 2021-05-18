@@ -97,7 +97,7 @@ class BooksRoutesSpec extends UnitTestBase {
           Book(BookId(2), BookTitle("book1"), value, AuthorId(1), date)
         )
       val service = new NoopLibraryService {
-        override def searchBook(mode: BookSearchMode, value: StringRefinement) =
+        override def searchBook(mode: BookSearchMode, value: SearchQuery) =
           mode match {
             case BookSearchMode.BookTitle =>
               Observable.raiseError(new NotImplementedError)
@@ -113,7 +113,7 @@ class BooksRoutesSpec extends UnitTestBase {
           Root / "api" / "books" / "search"
             withQueryParams Map(
               "mode" -> BookSearchMode.AuthorName.entryName,
-              "value" -> "blahblah"
+              "q" -> "blahblah"
             )
         )
         res <- routes.run(request).value.hideErrors
@@ -135,7 +135,7 @@ class BooksRoutesSpec extends UnitTestBase {
           Book(BookId(2), BookTitle("book1"), value, AuthorId(1), date)
         )
       val service = new NoopLibraryService {
-        override def searchBook(mode: BookSearchMode, value: StringRefinement) =
+        override def searchBook(mode: BookSearchMode, value: SearchQuery) =
           mode match {
             case BookSearchMode.BookTitle =>
               Observable.fromIterable(books)
@@ -151,7 +151,7 @@ class BooksRoutesSpec extends UnitTestBase {
           Root / "api" / "books" / "search"
             withQueryParams Map(
               "mode" -> BookSearchMode.BookTitle.entryName,
-              "value" -> "blahblah"
+              "q" -> "blahblah"
             )
         )
         res <- routes.run(request).value.hideErrors

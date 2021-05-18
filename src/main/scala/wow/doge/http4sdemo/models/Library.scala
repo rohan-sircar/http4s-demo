@@ -24,7 +24,14 @@ final case class Book(
     createdAt: LocalDateTime
 )
 object Book {
+  def tupled = (apply _).tupled
   implicit val codec = deriveCodec[Book]
+
+  def fromBooksTableFn(implicit profile: JdbcProfile) = {
+    import profile.api._
+    (b: Tables.Books) =>
+      (b.bookId, b.bookTitle, b.bookIsbn, b.authorId, b.createdAt).mapTo[Book]
+  }
 }
 
 final case class NewBook(
@@ -36,10 +43,9 @@ object NewBook {
   def tupled = (apply _).tupled
   implicit val codec = deriveCodec[NewBook]
 
-  def fromBooksTable(implicit profile: JdbcProfile) = {
+  def fromBooksTableFn(implicit profile: JdbcProfile) = {
     import profile.api._
-
-    Tables.Books.map(b => (b.bookTitle, b.bookIsbn, b.authorId).mapTo[NewBook])
+    (b: Tables.Books) => (b.bookTitle, b.bookIsbn, b.authorId).mapTo[NewBook]
   }
 }
 

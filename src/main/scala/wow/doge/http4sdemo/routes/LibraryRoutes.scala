@@ -1,6 +1,5 @@
 package wow.doge.http4sdemo.routes
 
-import fs2.interop.reactivestreams._
 import io.circe.Codec
 import io.circe.generic.semiauto._
 import io.odin.Logger
@@ -25,13 +24,12 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
   val routes: HttpRoutes[Task] = {
     val dsl = Http4sDsl[Task]
     import dsl._
-    object BookSearchValue
-        extends QueryParamDecoderMatcher[StringRefinement]("value")
+    object BookSearchQuery extends QueryParamDecoderMatcher[SearchQuery]("q")
     HttpRoutes.of[Task] {
 
       case req @ GET -> Root / "api" / "books" / "search" :?
-          BookSearchMode.Matcher(mode) +& BookSearchValue(value) =>
-        import org.http4s.circe.streamJsonArrayEncoder
+          BookSearchMode.Matcher(mode) +& BookSearchQuery(query) =>
+        import wow.doge.http4sdemo.utils.observableArrayJsonEncoder
         import io.circe.syntax._
         IO.deferAction(implicit s =>
           for {
@@ -42,24 +40,18 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
                 "request-id" -> reqId,
                 "request-uri" -> req.uri.toString,
                 "mode" -> mode.entryName,
-                "value" -> value.value
+                "query" -> query.value
               )
             )
             _ <- clogger.debugU("Request to search book")
-            // EntityEncoder[monix.bio.Task, monix.reactive.Observable[io.circe.Json]]
-            books <- IO.pure(
-              libraryService
-                .searchBook(mode, value)
-                .toReactivePublisher
-                .toStream[Task]
-            )
+            books = libraryService.searchBook(mode, query)
             res <- Ok(books.map(_.asJson))
           } yield res
         )
 
       case req @ GET -> Root / "api" / "books" / "paginated" :?
           PaginationLimit.matcher(limit) +& PaginationPage.matcher(page) =>
-        import org.http4s.circe.streamJsonArrayEncoder
+        import wow.doge.http4sdemo.utils.observableArrayJsonEncoder
         import io.circe.syntax._
         IO.deferAction(implicit s =>
           for {
@@ -74,24 +66,18 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
               )
             )
             _ <- clogger.infoU("Request for paginated books")
-            books = libraryService
-              .getPaginatedBooks(pagination)
-              .toReactivePublisher
-              .toStream[Task]
+            books = libraryService.getPaginatedBooks(pagination)
             res <- Ok(books.map(_.asJson))
           } yield res
         )
 
       case GET -> Root / "api" / "books" =>
-        import org.http4s.circe.streamJsonArrayEncoder
+        import wow.doge.http4sdemo.utils.observableArrayJsonEncoder
         import io.circe.syntax._
         Task.deferAction(implicit s =>
           for {
             _ <- logger.infoU("Got request for books")
-            books <- IO.pure(
-              libraryService.getBooks.toReactivePublisher
-                .toStream[Task]
-            )
+            books = libraryService.getBooks
             res <- Ok(books.map(_.asJson))
           } yield res
         )

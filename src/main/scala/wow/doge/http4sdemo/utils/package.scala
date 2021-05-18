@@ -3,13 +3,20 @@ package wow.doge.http4sdemo
 import scala.concurrent.duration.FiniteDuration
 
 import cats.data.ValidatedNec
+import cats.effect.ConcurrentEffect
 import enumeratum._
 import eu.timepit.refined.pureconfig._
 import eu.timepit.refined.types.numeric.PosInt
+import fs2.interop.reactivestreams._
+import io.circe.Json
 import io.scalaland.chimney.TransformerF
 import monix.bio.IO
 import monix.bio.Task
+import monix.execution.Scheduler
+import monix.reactive.Observable
+import org.http4s.EntityEncoder
 import org.http4s.Request
+import org.http4s.circe.streamJsonArrayEncoder
 import org.http4s.server.middleware.RequestId
 import pureconfig.generic.semiauto._
 import pureconfig.module.enumeratum._
@@ -27,6 +34,12 @@ package object utils {
       .mapError(errs => new Exception(s"Failed to convert: $errs"))
       .hideErrors
   }
+
+  implicit def observableArrayJsonEncoder[F[_]: ConcurrentEffect](implicit
+      S: Scheduler
+  ): EntityEncoder[F, Observable[Json]] =
+    EntityEncoder[F, fs2.Stream[F, Json]]
+      .contramap[Observable[Json]](_.toReactivePublisher.toStream[F])
 }
 package utils {
 

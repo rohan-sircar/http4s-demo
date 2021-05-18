@@ -1,6 +1,7 @@
 package wow.doge.http4sdemo
 
 import com.dimafeng.testcontainers.PostgreSQLContainer
+import eu.timepit.refined.auto._
 import eu.timepit.refined.types.numeric
 import monix.bio.UIO
 import wow.doge.http4sdemo.implicits._
@@ -107,16 +108,16 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
               )
               _ <- service.insertBook(
                 NewBook(
-                  BookTitle(StringRefinement("blah2")),
-                  BookIsbn(StringRefinement("agege")),
+                  BookTitle("blah2"),
+                  BookIsbn("agege"),
                   AuthorId(numeric.PosInt(1))
                 )
               )
               _ <- service
                 .insertBook(
                   NewBook(
-                    BookTitle(StringRefinement("blah3")),
-                    BookIsbn(StringRefinement("agege")),
+                    BookTitle("blah3"),
+                    BookIsbn("agege"),
                     AuthorId(numeric.PosInt(1))
                   )
                 )
@@ -149,27 +150,44 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 db,
                 logger
               )
+
               id <- service.insertAuthor(
-                NewAuthor(AuthorName(StringRefinement("barbar")))
+                NewAuthor(AuthorName("barbar"))
               )
+              // _ = {
+              //   import profile.api._
+              //   db.run(
+              //     Tables.Books.++=(
+              //       Seq(
+              //         Tables.BooksRow(
+              //           BookId(1231231),
+              //           BookIsbn("aeaega"),
+              //           BookTitle("blah3"),
+              //           id,
+              //           LocalDateTime.now
+              //         )
+              //       )
+              //     )
+              //   )
+              // }
               book1 <- service.insertBook(
                 NewBook(
-                  BookTitle(StringRefinement("blah3")),
-                  BookIsbn(StringRefinement("aeaega")),
+                  BookTitle("blah3"),
+                  BookIsbn("aeaega"),
                   id
                 )
               )
               book2 <- service.insertBook(
                 NewBook(
-                  BookTitle(StringRefinement("blah4")),
-                  BookIsbn(StringRefinement("afgegg")),
+                  BookTitle("blah4"),
+                  BookIsbn("afgegg"),
                   id
                 )
               )
               _ <- service
                 .searchBook(
                   BookSearchMode.AuthorName,
-                  StringRefinement("barbar")
+                  "barbar"
                 )
                 .toListL
                 .toIO
@@ -196,24 +214,24 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 logger
               )
               id <- service.insertAuthor(
-                NewAuthor(AuthorName(StringRefinement("barbar2")))
+                NewAuthor(AuthorName("barbar2"))
               )
               book1 <- service.insertBook(
                 NewBook(
-                  BookTitle(StringRefinement("blah5")),
-                  BookIsbn(StringRefinement("aswegq")),
+                  BookTitle("blah5"),
+                  BookIsbn("aswegq"),
                   id
                 )
               )
               book2 <- service.insertBook(
                 NewBook(
-                  BookTitle(StringRefinement("blah6")),
-                  BookIsbn(StringRefinement("aaeqaf")),
+                  BookTitle("blah6"),
+                  BookIsbn("aaeqaf"),
                   id
                 )
               )
               _ <- service
-                .searchBook(BookSearchMode.BookTitle, StringRefinement("blah5"))
+                .searchBook(BookSearchMode.BookTitle, "blah5")
                 .toListL
                 .toIO
                 .attempt

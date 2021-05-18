@@ -34,3 +34,11 @@ create table checkouts (
     taken_by_user_id INTEGER REFERENCES users(user_id) NOT NULL,
     return_time timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+create type Color as ENUM ('RED', 'GREEN', 'BLUE');
+
+create table extras (
+    extras_id SERIAL PRIMARY KEY,
+    color Color NOT NULL default 'RED',
+    metadata_json jsonb NOT NULL default '{}' :: jsonb
+);

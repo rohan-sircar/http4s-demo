@@ -4,6 +4,7 @@ import eu.timepit.refined.api.Refined
 import eu.timepit.refined.api.RefinedTypeOps
 import eu.timepit.refined.collection._
 import eu.timepit.refined.numeric._
+import eu.timepit.refined.types.string.NonEmptyFiniteString
 import io.circe.Decoder
 import io.circe.Encoder
 import io.circe.refined._
@@ -31,6 +32,8 @@ object Refinements {
 
   type PaginationRefinement = Int Refined Interval.Closed[0, 50]
   object PaginationRefinement extends RefinedTypeOps[PaginationRefinement, Int]
+
+  type SearchQuery = NonEmptyFiniteString[60]
 
   //in case your're thinking "jeez this is boilerplatey", I'll have you know
   //I have a vscode snippet that takes care of most of this
