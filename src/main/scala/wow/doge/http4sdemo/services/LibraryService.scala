@@ -1,7 +1,6 @@
 package wow.doge.http4sdemo.services
 
 import io.odin.Logger
-import io.scalaland.chimney.dsl._
 import monix.bio.IO
 import monix.bio.Task
 import monix.bio.UIO
@@ -9,7 +8,6 @@ import monix.reactive.Observable
 import slick.jdbc.JdbcBackend
 import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.implicits._
-import wow.doge.http4sdemo.models.Author
 import wow.doge.http4sdemo.models.Book
 import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
@@ -18,32 +16,31 @@ import wow.doge.http4sdemo.models.NewBook
 import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.models.common.Color
 import wow.doge.http4sdemo.models.pagination.Pagination
-import wow.doge.http4sdemo.profile.ExtendedPgProfile.mapping._
 import wow.doge.http4sdemo.profile.{ExtendedPgProfile => JdbcProfile}
 import wow.doge.http4sdemo.slickcodegen.Tables
 
 trait LibraryService {
 
-  def getBooks: Observable[Book]
+  def getBooks(pagination: Pagination): Observable[Book]
 
   def getBookById(id: BookId): UIO[Option[Book]]
 
-  def searchBook(
+  def searchBooks(
       mode: BookSearchMode,
       value: SearchQuery
   ): Observable[Book]
-
-  def getPaginatedBooks(pagination: Pagination): Observable[Book]
 
   def updateBook(id: BookId, updateData: BookUpdate): IO[AppError, NumRows]
 
   def deleteBook(id: BookId): Task[NumRows]
 
-  def insertBook(newBook: NewBook): IO[AppError, Book]
+  def createBook(newBook: NewBook): IO[AppError, Book]
 
-  def insertAuthor(a: NewAuthor): Task[AuthorId]
+  def createBooks(newBooks: Iterable[NewBook]): UIO[Option[Int]]
 
-  def booksForAuthor(authorId: AuthorId): Observable[Book]
+  def createAuthor(a: NewAuthor): Task[AuthorId]
+
+  def getBooksByAuthorId(authorId: AuthorId): Observable[Book]
 
 }
 
@@ -55,14 +52,16 @@ final class LibraryServiceImpl(
 ) extends LibraryService {
   import profile.api._
 
-  def getBooks = db
-    .streamO(dbio.getBooks)
-    .map(_.transformInto[Book])
+  def getBooks(pagination: Pagination) =
+    db.streamO(dbio.getPaginatedBooks(pagination))
 
   def getBookById(id: BookId) =
     db.runL(dbio.getBook(id)).hideErrors
 
-  def searchBook(mode: BookSearchMode, query: SearchQuery): Observable[Book] = {
+  def searchBooks(
+      mode: BookSearchMode,
+      query: SearchQuery
+  ): Observable[Book] = {
     val makeStr = Observable.fromTask(
       s"%${query.value}%"
         .transformL[SearchQuery]
@@ -72,7 +71,7 @@ final class LibraryServiceImpl(
       case BookSearchMode.BookTitle =>
         for {
           s <- makeStr
-          res <- db.streamO(dbio.searchBooks(s)).map(_.transformInto[Book])
+          res <- db.streamO(dbio.searchBooks(s))
         } yield res
 
       case BookSearchMode.AuthorName =>
@@ -80,19 +79,19 @@ final class LibraryServiceImpl(
           s <- makeStr
           author <- db
             .streamO(dbio.searchAuthors(s))
-            .map(_.transformInto[Author])
           book <- db
             .streamO(dbio.getBooksForAuthor(author.authorId))
-            .map(_.transformInto[Book])
         } yield book
     }
   }
 
-  def getPaginatedBooks(pagination: Pagination) =
-    db.streamO(dbio.getPaginatedBooks(pagination))
-
-  def insertAuthor(a: NewAuthor): Task[AuthorId] =
+  def createAuthor(a: NewAuthor): Task[AuthorId] =
     db.runL(dbio.insertAuthor(a))
+
+  def createBooks(newBooks: Iterable[NewBook]): UIO[Option[Int]] =
+    db.runL(dbio.insertBooks(newBooks))
+      .tapEval(n => logger.debug(s"Result: $n"))
+      .hideErrors
 
   def updateBook(id: BookId, updateData: BookUpdate): IO[AppError, NumRows] =
     for {
@@ -123,12 +122,13 @@ final class LibraryServiceImpl(
 
   def deleteBook(id: BookId) = db.runL(dbio.deleteBook(id)).map(NumRows.apply)
 
-  def insertBook(newBook: NewBook): IO[AppError, Book] =
+  def createBook(newBook: NewBook): IO[AppError, Book] =
     IO.deferAction { implicit s =>
       for {
         action <- UIO(for {
           _ <- dbio
             .selectBookByIsbn(newBook.bookIsbn)
+            .map(_.bookId)
             .result
             .headOption
             .flatMap {
@@ -159,7 +159,7 @@ final class LibraryServiceImpl(
       } yield book
     }
 
-  def booksForAuthor(authorId: AuthorId) =
+  def getBooksByAuthorId(authorId: AuthorId) =
     db.streamO(dbio.getBooksForAuthor(authorId))
 
 }
@@ -169,14 +169,17 @@ final class LibraryDbio(val profile: JdbcProfile) {
 
   /*  */
 
-  def getBooks: StreamingDBIO[Seq[Tables.BooksRow], Tables.BooksRow] =
-    Tables.Books.result
+  def getBooks: StreamingDBIO[Seq[Book], Book] =
+    Tables.Books.map(Book.fromBooksTableFn).result
 
   def insertBookAndGetId(newBook: NewBook): DBIO[BookId] =
     Query.insertBookGetId += newBook
 
   def insertBookAndGetBook(newBook: NewBook): DBIO[Book] =
     Query.insertBookGetBook += newBook
+
+  def insertBooks(newBooks: Iterable[NewBook]): DBIO[Option[Int]] =
+    Tables.Books.map(NewBook.fromBooksTableFn) ++= newBooks
 
   def insertAuthor(newAuthor: NewAuthor): DBIO[AuthorId] =
     Query.insertAuthorGetId += newAuthor
@@ -220,6 +223,7 @@ final class LibraryDbio(val profile: JdbcProfile) {
   def searchBooks(query: SearchQuery) =
     Tables.Books
       .filter(_.bookTitle.asColumnOf[String].ilike(query.value))
+      .map(Book.fromBooksTableFn)
       .result
 
   def searchAuthors(query: SearchQuery) =
@@ -261,16 +265,13 @@ final class LibraryDbio(val profile: JdbcProfile) {
 }
 
 trait NoopLibraryService extends LibraryService {
-  def getBooks: Observable[Book] =
+  def getBooks(pagination: Pagination): Observable[Book] =
     Observable.raiseError(new NotImplementedError)
 
   def getBookById(id: BookId): UIO[Option[Book]] =
     IO.terminate(new NotImplementedError)
 
-  def searchBook(mode: BookSearchMode, query: SearchQuery): Observable[Book] =
-    Observable.raiseError(new NotImplementedError)
-
-  def getPaginatedBooks(pagination: Pagination): Observable[Book] =
+  def searchBooks(mode: BookSearchMode, query: SearchQuery): Observable[Book] =
     Observable.raiseError(new NotImplementedError)
 
   def updateBook(id: BookId, updateData: BookUpdate): IO[AppError, NumRows] =
@@ -279,13 +280,16 @@ trait NoopLibraryService extends LibraryService {
   def deleteBook(id: BookId): Task[NumRows] =
     IO.terminate(new NotImplementedError)
 
-  def insertBook(newBook: NewBook): IO[AppError, Book] =
+  def createBook(newBook: NewBook): IO[AppError, Book] =
     IO.terminate(new NotImplementedError)
 
-  def insertAuthor(a: NewAuthor): Task[AuthorId] =
+  def createBooks(newBooks: Iterable[NewBook]): UIO[Option[Int]] =
     IO.terminate(new NotImplementedError)
 
-  def booksForAuthor(authorId: AuthorId): Observable[Book] =
+  def createAuthor(a: NewAuthor): Task[AuthorId] =
+    IO.terminate(new NotImplementedError)
+
+  def getBooksByAuthorId(authorId: AuthorId): Observable[Book] =
     Observable.raiseError(new NotImplementedError)
 
 }

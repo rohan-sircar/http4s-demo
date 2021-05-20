@@ -1,4 +1,4 @@
-val Http4sVersion = "0.21.16"
+val Http4sVersion = "0.21.23"
 val CirceVersion = "0.13.0"
 val MunitVersion = "0.7.20"
 val LogbackVersion = "1.2.3"
@@ -258,7 +258,7 @@ lazy val root = (project in file("."))
           |trait ${container}${parentType.map(t => s" extends $t").getOrElse("")} {
           |  val profile: wow.doge.http4sdemo.profile.ExtendedPgProfile
           |  import profile.api._
-          |  import wow.doge.http4sdemo.profile.ExtendedPgProfile.mapping._
+          |  import profile.mapping._
           |  import wow.doge.http4sdemo.models.Refinements._
           |  import wow.doge.http4sdemo.models.common._
           |  import io.circe.Json

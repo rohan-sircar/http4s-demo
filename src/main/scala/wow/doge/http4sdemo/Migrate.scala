@@ -16,6 +16,9 @@ import pureconfig.ConfigSource
 import pureconfig.generic.semiauto._
 import pureconfig.module.catseffect.syntax._
 
+/** @author Alexandru Nedelcu
+  */
+
 final case class JdbcDatabaseConfig(
     url: String,
     driver: String,
@@ -30,7 +33,7 @@ object JdbcDatabaseConfig {
       configNamespace: String,
       blocker: Blocker
   ): F[JdbcDatabaseConfig] =
-    Sync[F].suspend {
+    Sync[F].defer {
       val config = ConfigFactory.load()
       load(config.getConfig(configNamespace), blocker)
     }

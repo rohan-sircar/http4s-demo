@@ -1,16 +1,15 @@
 package wow.doge.http4sdemo.routes
 
-import io.circe.Codec
-import io.circe.generic.semiauto._
+import io.circe.Json
 import io.odin.Logger
 import io.odin.syntax._
 import monix.bio.IO
 import monix.bio.Task
+import monix.reactive.Observable
 import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
 import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.implicits._
-import wow.doge.http4sdemo.models.Book
 import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
 import wow.doge.http4sdemo.models.NewBook
@@ -44,12 +43,12 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
               )
             )
             _ <- clogger.debugU("Request to search book")
-            books = libraryService.searchBook(mode, query)
+            books = libraryService.searchBooks(mode, query)
             res <- Ok(books.map(_.asJson))
           } yield res
         )
 
-      case req @ GET -> Root / "api" / "books" / "paginated" :?
+      case req @ GET -> Root / "api" / "books" :?
           PaginationLimit.matcher(limit) +& PaginationPage.matcher(page) =>
         import wow.doge.http4sdemo.utils.observableArrayJsonEncoder
         import io.circe.syntax._
@@ -59,28 +58,28 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
             pagination = Pagination(page, limit)
             clogger = logger.withConstContext(
               Map(
-                "name" -> "Get books paginated",
+                "name" -> "Get books",
                 "request-id" -> reqId,
                 "request-uri" -> req.uri.toString,
                 "pagination" -> pagination.toString
               )
             )
-            _ <- clogger.infoU("Request for paginated books")
-            books = libraryService.getPaginatedBooks(pagination)
+            _ <- clogger.infoU("Request for books")
+            books = libraryService.getBooks(pagination)
             res <- Ok(books.map(_.asJson))
           } yield res
         )
 
-      case GET -> Root / "api" / "books" =>
-        import wow.doge.http4sdemo.utils.observableArrayJsonEncoder
-        import io.circe.syntax._
-        Task.deferAction(implicit s =>
-          for {
-            _ <- logger.infoU("Got request for books")
-            books = libraryService.getBooks
-            res <- Ok(books.map(_.asJson))
-          } yield res
-        )
+      // case GET -> Root / "api" / "books" =>
+      //   import wow.doge.http4sdemo.utils.observableArrayJsonEncoder
+      //   import io.circe.syntax._
+      //   IO.deferAction(implicit s =>
+      //     for {
+      //       _ <- logger.infoU("Got request for books")
+      //       books = libraryService.getBooks
+      //       res <- Ok(books.map(_.asJson))
+      //     } yield res
+      //   )
 
       case req @ GET -> Root / "api" / "books" / BookId(id) =>
         import org.http4s.circe.CirceEntityCodec._
@@ -117,7 +116,7 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
             )
           )
           res <- libraryService
-            .insertBook(newBook)
+            .createBook(newBook)
             .tapError(err => clogger.errorU(err.toString))
             .flatMap(book => Created(book).hideErrors)
             .onErrorHandleWith(_.toResponse)
@@ -160,26 +159,23 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
 
       //TODO: use convenience method for decoding json stream
       case req @ POST -> Root / "api" / "books" =>
-        import org.http4s.circe.CirceEntityCodec.circeEntityDecoder
-        for {
-          newBooks <- req.as[List[Book]]
-          // obs = Observable.fromIterable(newBooks)
-          // book <- libraryService.insertBook(newBook)
-          res <- Ok("blah")
-        } yield res
+        import wow.doge.http4sdemo.utils.observableArrayJsonDecoder
+        IO.deferAction(implicit s =>
+          for {
+            // newBooks <- req.as[List[Book]]
+            newBooks <- req.as[Observable[Json]]
+            _ <- newBooks
+              .mapEvalF(_.as[NewBook])
+              .bufferTumbling(50)
+              .doOnNext(books => libraryService.createBooks(books).toTask.void)
+              .completedL
+              .toIO
+            // obs = Observable.fromIterable(newBooks)
+            // book <- libraryService.insertBook(newBook)
+            res <- Ok()
+          } yield res
+        )
     }
   }
 
-}
-
-final case class User(id: String, email: String)
-object User {
-  val tupled = (this.apply _).tupled
-  // implicit val decoder: Decoder[User] = deriveDecoder
-  // implicit def entityDecoder[F[_]: Sync]: EntityDecoder[F, User] =
-  //   jsonOf
-  // implicit val encoder: Encoder[User] = deriveEncoder
-  // implicit def entityEncoder[F[_]: Applicative]: EntityEncoder[F, User] =
-  //   jsonEncoderOf
-  implicit val codec: Codec[User] = deriveCodec
 }

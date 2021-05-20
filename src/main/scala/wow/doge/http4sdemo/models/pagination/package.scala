@@ -55,8 +55,8 @@ package object pagination {
     implicit val to: Transformer[PaginationLimit, Int] = _.inner.value
   }
 
-  //this is a derived type(from limit and page number), so constraint
-  //the constructor to ensure the value within is constrained
+  //this is a derived type(from limit and page number), so constrain
+  //the constructor visiblity to ensure the value within is constrained
   @newtype final case class PaginationOffset private[pagination] (toInt: Int)
   object PaginationOffset {
     implicit val encoder: Encoder[PaginationOffset] =

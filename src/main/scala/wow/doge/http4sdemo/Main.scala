@@ -28,8 +28,8 @@ object Main extends BIOApp {
 
   override protected def scheduler: Scheduler = schedulers.async.value
   val app = for {
-    startTime <- Resource.liftF(IO.clock.realTime(MILLISECONDS))
-    _ <- Resource.liftF(Task(println("""
+    startTime <- Resource.eval(IO.clock.realTime(MILLISECONDS))
+    _ <- Resource.eval(Task(println("""
     |        .__     __    __            _____                      .___                     
     |        |  |___/  |__/  |_______   /  |  |  ______           __| _/____   _____   ____  
     |        |  |  \   __\   __\____ \ /   |  |_/  ___/  ______  / __ |/ __ \ /     \ /  _ \ 
@@ -37,10 +37,10 @@ object Main extends BIOApp {
     |        |___||_|__|  |__| |   __/\____   |/______|         \_____|\____/\__|_|_/ \____/ 
     |                          |__|        |__|                                        
      """.stripMargin)))
-    rootConfig <- Resource.liftF(
+    rootConfig <- Resource.eval(
       Task(ConfigFactory.load()).executeOn(schedulers.io.value)
     )
-    appConfig <- Resource.liftF(
+    appConfig <- Resource.eval(
       ConfigSource
         .fromConfig(rootConfig.getConfig("http4s-demo"))
         .loadF[Task, AppConfig](schedulers.io.blocker)
@@ -52,11 +52,11 @@ object Main extends BIOApp {
       },
       minLevel = Level.Debug
     ).withAsync()
-    _ <- Resource.liftF(
+    _ <- Resource.eval(
       logger.info(s"Starting ${BuildInfo.name}-${BuildInfo.version}")
     )
     db <- SlickResource("http4s-demo.database", Some(rootConfig), schedulers.io)
-    _ <- Resource.liftF((for {
+    _ <- Resource.eval((for {
       config <- JdbcDatabaseConfig.load(
         rootConfig.getConfig("http4s-demo.database"),
         schedulers.io.blocker

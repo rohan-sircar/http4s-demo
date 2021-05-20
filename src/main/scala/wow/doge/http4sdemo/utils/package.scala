@@ -14,8 +14,10 @@ import monix.bio.IO
 import monix.bio.Task
 import monix.execution.Scheduler
 import monix.reactive.Observable
+import org.http4s.EntityDecoder
 import org.http4s.EntityEncoder
 import org.http4s.Request
+import org.http4s.circe.streamJsonArrayDecoder
 import org.http4s.circe.streamJsonArrayEncoder
 import org.http4s.server.middleware.RequestId
 import pureconfig.generic.semiauto._
@@ -39,7 +41,14 @@ package object utils {
       S: Scheduler
   ): EntityEncoder[F, Observable[Json]] =
     EntityEncoder[F, fs2.Stream[F, Json]]
-      .contramap[Observable[Json]](_.toReactivePublisher.toStream[F])
+      .contramap(_.toReactivePublisher.toStream[F])
+
+  implicit def observableArrayJsonDecoder[F[_]: ConcurrentEffect]
+      : EntityDecoder[F, Observable[Json]] =
+    EntityDecoder[F, fs2.Stream[F, Json]].map(stream =>
+      Observable.fromReactivePublisher(stream.toUnicastPublisher)
+    )
+
 }
 package utils {
 

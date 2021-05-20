@@ -34,7 +34,7 @@ package common {
       QueryParamDecoder[String].emap(s =>
         withNameEither(s).leftMap(e => ParseFailure(e.getMessage, e.getMessage))
       )
-    object Matcher extends QueryParamDecoderMatcher[Color]("color")
+    object matcher extends QueryParamDecoderMatcher[Color]("color")
 
   }
 

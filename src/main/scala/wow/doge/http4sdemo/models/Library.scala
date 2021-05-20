@@ -53,8 +53,7 @@ final case class BookUpdate(
     bookTitle: Option[BookTitle],
     authorId: Option[AuthorId]
 ) {
-  def update(row: Tables.BooksRow): Tables.BooksRow =
-    row.patchUsing(this)
+  def update(row: Tables.BooksRow): Tables.BooksRow = row.patchUsing(this)
 }
 object BookUpdate {
   implicit val codec = deriveCodec[BookUpdate]

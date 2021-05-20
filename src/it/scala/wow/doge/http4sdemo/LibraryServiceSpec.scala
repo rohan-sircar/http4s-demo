@@ -34,13 +34,13 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 db,
                 logger
               )
-              id <- service.insertAuthor(
-                NewAuthor(AuthorName(StringRefinement("author1")))
+              id <- service.createAuthor(
+                NewAuthor(AuthorName("author1"))
               )
-              book <- service.insertBook(
+              book <- service.createBook(
                 NewBook(
-                  BookTitle(StringRefinement("blahh")),
-                  BookIsbn(StringRefinement("randomisbn")),
+                  BookTitle("blahh"),
+                  BookIsbn("randomisbn"),
                   id
                 )
               )
@@ -70,10 +70,10 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 logger
               )
               _ <- service
-                .insertBook(
+                .createBook(
                   NewBook(
-                    BookTitle(StringRefinement("blah2g")),
-                    BookIsbn(StringRefinement("agege")),
+                    BookTitle("blah2g"),
+                    BookIsbn("agege"),
                     AuthorId(numeric.PosInt(23))
                   )
                 )
@@ -106,7 +106,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 db,
                 logger
               )
-              _ <- service.insertBook(
+              _ <- service.createBook(
                 NewBook(
                   BookTitle("blah2"),
                   BookIsbn("agege"),
@@ -114,7 +114,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 )
               )
               _ <- service
-                .insertBook(
+                .createBook(
                   NewBook(
                     BookTitle("blah3"),
                     BookIsbn("agege"),
@@ -151,7 +151,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 logger
               )
 
-              id <- service.insertAuthor(
+              id <- service.createAuthor(
                 NewAuthor(AuthorName("barbar"))
               )
               // _ = {
@@ -170,14 +170,14 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
               //     )
               //   )
               // }
-              book1 <- service.insertBook(
+              book1 <- service.createBook(
                 NewBook(
                   BookTitle("blah3"),
                   BookIsbn("aeaega"),
                   id
                 )
               )
-              book2 <- service.insertBook(
+              book2 <- service.createBook(
                 NewBook(
                   BookTitle("blah4"),
                   BookIsbn("afgegg"),
@@ -185,7 +185,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 )
               )
               _ <- service
-                .searchBook(
+                .searchBooks(
                   BookSearchMode.AuthorName,
                   "barbar"
                 )
@@ -213,17 +213,17 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 db,
                 logger
               )
-              id <- service.insertAuthor(
+              id <- service.createAuthor(
                 NewAuthor(AuthorName("barbar2"))
               )
-              book1 <- service.insertBook(
+              book1 <- service.createBook(
                 NewBook(
                   BookTitle("blah5"),
                   BookIsbn("aswegq"),
                   id
                 )
               )
-              book2 <- service.insertBook(
+              book2 <- service.createBook(
                 NewBook(
                   BookTitle("blah6"),
                   BookIsbn("aaeqaf"),
@@ -231,7 +231,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 )
               )
               _ <- service
-                .searchBook(BookSearchMode.BookTitle, "blah5")
+                .searchBooks(BookSearchMode.BookTitle, "blah5")
                 .toListL
                 .toIO
                 .attempt
@@ -256,20 +256,16 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 db,
                 logger
               )
-              id <- service.insertAuthor(
-                NewAuthor(AuthorName(StringRefinement("barbar3")))
+              id <- service.createAuthor(
+                NewAuthor(AuthorName("barbar3"))
               )
-              book1 <- service.insertBook(
-                NewBook(
-                  BookTitle(StringRefinement("blah7")),
-                  BookIsbn(StringRefinement("fwefq3f")),
-                  id
-                )
+              book1 <- service.createBook(
+                NewBook(BookTitle("blah7"), BookIsbn("fwefq3f"), id)
               )
               _ <- service
                 .updateBook(
                   book1.bookId,
-                  BookUpdate(Some(BookTitle(StringRefinement("barbar7"))), None)
+                  BookUpdate(Some(BookTitle("barbar7")), None)
                 )
                 .attempt
                 .assertEquals(Right(NumRows(1)))
@@ -278,7 +274,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 .assertEquals(
                   Some(
                     book1
-                      .copy(bookTitle = BookTitle(StringRefinement("barbar7")))
+                      .copy(bookTitle = BookTitle("barbar7"))
                   )
                 )
             } yield ()
@@ -303,20 +299,20 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 db,
                 logger
               )
-              id <- service.insertAuthor(
-                NewAuthor(AuthorName(StringRefinement("barbar4")))
+              id <- service.createAuthor(
+                NewAuthor(AuthorName("barbar4"))
               )
-              book1 <- service.insertBook(
+              book1 <- service.createBook(
                 NewBook(
-                  BookTitle(StringRefinement("blah7")),
-                  BookIsbn(StringRefinement("aegqweg")),
+                  BookTitle("blah7"),
+                  BookIsbn("aegqweg"),
                   id
                 )
               )
               _ <- service
                 .updateBook(
                   BookId(IdRefinement(12414)),
-                  BookUpdate(Some(BookTitle(StringRefinement("barbar7"))), None)
+                  BookUpdate(Some(BookTitle("barbar7")), None)
                 )
                 .attempt
                 .assertEquals(

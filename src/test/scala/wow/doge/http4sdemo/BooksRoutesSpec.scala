@@ -15,6 +15,7 @@ import wow.doge.http4sdemo.models.Book
 import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
 import wow.doge.http4sdemo.models.Refinements._
+import wow.doge.http4sdemo.models.pagination.Pagination
 import wow.doge.http4sdemo.routes.LibraryRoutes
 import wow.doge.http4sdemo.services.NoopLibraryService
 
@@ -35,7 +36,7 @@ class BooksRoutesSpec extends UnitTestBase {
         )
       val service = new NoopLibraryService {
 
-        override def getBooks: Observable[Book] =
+        override def getBooks(pagination: Pagination): Observable[Book] =
           Observable.fromIterable(book :: Nil)
 
       }
@@ -97,7 +98,7 @@ class BooksRoutesSpec extends UnitTestBase {
           Book(BookId(2), BookTitle("book1"), value, AuthorId(1), date)
         )
       val service = new NoopLibraryService {
-        override def searchBook(mode: BookSearchMode, value: SearchQuery) =
+        override def searchBooks(mode: BookSearchMode, value: SearchQuery) =
           mode match {
             case BookSearchMode.BookTitle =>
               Observable.raiseError(new NotImplementedError)
@@ -135,7 +136,7 @@ class BooksRoutesSpec extends UnitTestBase {
           Book(BookId(2), BookTitle("book1"), value, AuthorId(1), date)
         )
       val service = new NoopLibraryService {
-        override def searchBook(mode: BookSearchMode, value: SearchQuery) =
+        override def searchBooks(mode: BookSearchMode, value: SearchQuery) =
           mode match {
             case BookSearchMode.BookTitle =>
               Observable.fromIterable(books)

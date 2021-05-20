@@ -33,7 +33,7 @@ object Refinements {
   type PaginationRefinement = Int Refined Interval.Closed[0, 50]
   object PaginationRefinement extends RefinedTypeOps[PaginationRefinement, Int]
 
-  type SearchQuery = NonEmptyFiniteString[60]
+  type SearchQuery = NonEmptyFiniteString[25]
 
   //in case your're thinking "jeez this is boilerplatey", I'll have you know
   //I have a vscode snippet that takes care of most of this

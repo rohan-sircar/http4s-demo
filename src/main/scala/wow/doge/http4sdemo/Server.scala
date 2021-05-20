@@ -12,9 +12,10 @@ import org.http4s.implicits._
 import org.http4s.metrics.dropwizard.Dropwizard
 import org.http4s.metrics.dropwizard.metricsResponse
 import org.http4s.server.middleware.AutoSlash
-import org.http4s.server.middleware.Logger
 import org.http4s.server.middleware.Metrics
 import org.http4s.server.middleware.RequestId
+import org.http4s.server.middleware.RequestLogger
+import org.http4s.server.middleware.ResponseLogger
 import org.http4s.server.middleware.ResponseTiming
 import org.http4s.server.middleware.Throttle
 import org.http4s.server.middleware.Timeout
@@ -33,12 +34,12 @@ final class Server(
     schedulers: Schedulers,
     config: HttpConfig
 ) {
-  private val log: String => Task[Unit] = str => logger.debug(str)
+  private val log: String => Task[Unit] = str => logger.info(str)
 
   val resource =
     for {
-      _ <- Resource.liftF(Task.unit)
-      registry <- Resource.liftF(
+      _ <- Resource.eval(Task.unit)
+      registry <- Resource.eval(
         Task(SharedMetricRegistries.getOrCreate("default"))
       )
       metricsRoute = metricsRoutes(registry)
@@ -47,7 +48,7 @@ final class Server(
       httpApp = Metrics(Dropwizard[Task](registry, "server"))(
         new LibraryRoutes(libraryService, logger).routes
       )
-      httpApp2 <- Resource.liftF(
+      httpApp2 <- Resource.eval(
         Throttle(config.throttle.amount.value, config.throttle.per)(
           Timeout(config.timeout)(
             AutoSlash.httpRoutes(metricsRoute <+> httpApp).orNotFound
@@ -55,8 +56,12 @@ final class Server(
         )
       )
       finalHttpApp =
-        Logger.httpApp(true, false, logAction = log.pure[Option])(
-          ResponseTiming(RequestId(httpApp2))
+        ResponseLogger.httpApp(true, false, logAction = log.pure[Option])(
+          RequestId(
+            RequestLogger.httpApp(true, false, logAction = log.pure[Option])(
+              ResponseTiming(httpApp2)
+            )
+          )
         )
       server <- EmberServerBuilder
         .default[Task]
