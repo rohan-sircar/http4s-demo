@@ -43,7 +43,13 @@ class BooksRoutesSpec extends UnitTestBase {
       for {
         _ <- IO.unit
         routes = new LibraryRoutes(service, logger).routes
-        request = Request[Task](Method.GET, uri"/api/books")
+        request = Request[Task](
+          Method.GET,
+          uri"/api/books" withQueryParams Map(
+            "page" -> 0,
+            "limit" -> 5
+          )
+        )
         res <- routes.run(request).value
         body <- res.traverse(_.as[List[Book]])
         _ <- logger.debug(s"Request: $request, Response: $res, Body: $body")
