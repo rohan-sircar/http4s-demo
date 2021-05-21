@@ -1,5 +1,6 @@
 package wow.doge.http4sdemo.routes
 
+import cats.syntax.show._
 import io.circe.Json
 import io.odin.Logger
 import io.odin.syntax._
@@ -13,6 +14,7 @@ import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
 import wow.doge.http4sdemo.models.NewBook
+import wow.doge.http4sdemo.models.NewExtra
 import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.models.pagination._
 import wow.doge.http4sdemo.services.LibraryService
@@ -24,6 +26,7 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
     val dsl = Http4sDsl[Task]
     import dsl._
     object BookSearchQuery extends QueryParamDecoderMatcher[SearchQuery]("q")
+    object StringSearchQuery extends QueryParamDecoderMatcher[String]("q")
     HttpRoutes.of[Task] {
 
       case req @ GET -> Root / "api" / "books" / "search" :?
@@ -175,6 +178,50 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
             res <- Ok()
           } yield res
         )
+
+      case req @ GET -> Root / "api" / "extras" / "search" :?
+          StringSearchQuery(q) =>
+        import wow.doge.http4sdemo.utils.observableArrayJsonEncoder
+        import io.circe.syntax._
+        IO.deferAction(implicit s =>
+          for {
+            reqId <- IO.pure(extractReqId(req))
+            clogger = logger.withConstContext(
+              Map(
+                "name" -> "Get books",
+                "request-id" -> reqId,
+                "request-uri" -> req.uri.toString,
+                "q" -> q
+              )
+            )
+            _ <- clogger.infoU("Request for searching extras")
+            extras = libraryService.searchExtras(q)
+            res <- Ok(extras.map(_.asJson))
+          } yield res
+        )
+
+      case req @ PUT -> Root / "api" / "extras" =>
+        import org.http4s.circe.CirceEntityCodec._
+        for {
+          reqId <- IO.pure(extractReqId(req))
+          newExtra <- req
+            .as[NewExtra]
+            .tapError(err => logger.error("An error occured", err))
+          clogger = logger.withConstContext(
+            Map(
+              "name" -> "Create extra",
+              "request-id" -> reqId,
+              "new-extra-data" -> newExtra.show
+            )
+          )
+          // Printer.noSpaces.print(newExtra.metadata)
+          _ <- clogger.infoU("Request for creating extras")
+          res <- libraryService
+            .createExtra(newExtra)
+            // .tapError(err => clogger.errorU(err.toString))
+            .flatMap(id => Created(id).hideErrors)
+          // .onErrorHandleWith(_.toResponse)
+        } yield res
     }
   }
 

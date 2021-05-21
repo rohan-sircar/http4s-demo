@@ -65,9 +65,9 @@ lazy val testCommon = (project in file("modules/test-common"))
       "com.github.valskalla" %% "odin-monix" % OdinVersion,
       "de.lolhens" %% "munit-tagless-final" % "0.0.1",
       "be.venneborg" %% "slick-refined" % "0.5.0",
-      "com.beachape" %% "enumeratum-slick" % "1.6.0",
       "com.github.tminglei" %% "slick-pg" % "0.19.6",
-      "com.github.tminglei" %% "slick-pg_circe-json" % "0.19.6"
+      "com.github.tminglei" %% "slick-pg_circe-json" % "0.19.6",
+      "com.beachape" %% "enumeratum" % "1.6.1"
     )
   )
 
@@ -156,7 +156,7 @@ lazy val root = (project in file("."))
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
       "com.lihaoyi" %% "os-lib" % "0.7.1",
       "com.beachape" %% "enumeratum" % "1.6.1",
-      "com.beachape" %% "enumeratum-slick" % "1.6.0",
+      "com.beachape" %% "enumeratum-circe" % "1.6.1",
       "com.chuusai" %% "shapeless" % "2.3.3",
       "com.lihaoyi" %% "sourcecode" % "0.2.1",
       "eu.timepit" %% "refined" % RefinedVersion,
@@ -231,9 +231,11 @@ lazy val root = (project in file("."))
                   case "author_id"   => "AuthorId"
                   case "author_name" => "AuthorName"
                   //others
-                  case "color"                  => "Color"
-                  case s if s.endsWith("_json") => "Json"
-                  case _                        => super.rawType
+                  case "color"                    => "Color"
+                  case s if s.endsWith("_json")   => "Json"
+                  case s if s.endsWith("_tokens") => "TsVector"
+                  case "tsv"                      => "TsVector"
+                  case _                          => super.rawType
                 }
             }
           }
@@ -263,6 +265,7 @@ lazy val root = (project in file("."))
           |  import wow.doge.http4sdemo.models.common._
           |  import io.circe.Json
           |  import java.time._
+          |  import com.github.tminglei.slickpg.TsVector
           |  ${indent(code)}
           |}
       """.stripMargin

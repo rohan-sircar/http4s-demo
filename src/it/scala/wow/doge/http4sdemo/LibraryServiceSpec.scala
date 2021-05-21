@@ -311,7 +311,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
               )
               _ <- service
                 .updateBook(
-                  BookId(IdRefinement(12414)),
+                  BookId(12414),
                   BookUpdate(Some(BookTitle("barbar7")), None)
                 )
                 .attempt

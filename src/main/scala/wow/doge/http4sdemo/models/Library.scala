@@ -2,16 +2,21 @@ package wow.doge.http4sdemo.models
 
 import java.time.LocalDateTime
 
+import cats.Show
 import cats.syntax.either._
 import enumeratum.EnumEntry
 import enumeratum._
+import io.circe.Json
+import io.circe.Printer
 import io.circe.generic.semiauto._
 import io.scalaland.chimney.cats._
 import io.scalaland.chimney.dsl._
 import org.http4s.ParseFailure
 import org.http4s.QueryParamDecoder
 import org.http4s.dsl.impl.QueryParamDecoderMatcher
+import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.Refinements._
+import wow.doge.http4sdemo.models.common.Color
 import wow.doge.http4sdemo.profile.{ExtendedPgProfile => JdbcProfile}
 import wow.doge.http4sdemo.slickcodegen.Tables
 import wow.doge.http4sdemo.utils.RefinementValidation
@@ -91,4 +96,44 @@ object BookSearchMode extends Enum[BookSearchMode] {
     )
   object Matcher extends QueryParamDecoderMatcher[BookSearchMode]("mode")
 
+}
+
+final case class Extra(
+    extrasId: Int,
+    color: Color,
+    metadata: Json,
+    content: String
+)
+object Extra {
+  def tupled = (apply _).tupled
+  implicit val codec = deriveCodec[Extra]
+
+  def fromExtrasTableFn(implicit profile: JdbcProfile) = {
+    import profile.api._
+    (e: Tables.Extras) =>
+      (e.extrasId, e.color, e.metadataJson, e.content).mapTo[Extra]
+  }
+}
+
+final case class NewExtra(
+    color: Color,
+    metadata: Json,
+    content: String
+)
+object NewExtra {
+  def tupled = (apply _).tupled
+  implicit val codec = deriveCodec[NewExtra]
+
+  implicit val show = Show.show[NewExtra] { ne =>
+    val printer = Printer.noSpaces
+    val color = ne.color.entryName
+    val m = printer.print(ne.metadata)
+    val content = ne.content
+    s"NewExtra($color,$m,$content)"
+  }
+
+  def fromExtrasTableFn(implicit profile: JdbcProfile) = {
+    import profile.api._
+    (e: Tables.Extras) => (e.color, e.metadataJson, e.content).mapTo[NewExtra]
+  }
 }

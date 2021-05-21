@@ -4,7 +4,9 @@ import scala.util.Try
 
 import cats.data.ValidatedNec
 import cats.syntax.either._
+import com.github.tminglei.slickpg.TsVector
 import eu.timepit.refined.api._
+import io.circe.generic.semiauto._
 import io.odin.meta.Position
 import io.odin.meta.Render
 import io.scalaland.chimney.Transformer
@@ -128,5 +130,8 @@ package object implicits {
       transformIntoL(src)(T)
 
   }
+
+  implicit val decoder = deriveDecoder[TsVector]
+  implicit val encoder = deriveEncoder[TsVector]
 
 }

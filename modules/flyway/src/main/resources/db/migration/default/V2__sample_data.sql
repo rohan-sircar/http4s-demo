@@ -67,3 +67,16 @@ insert into
     users (user_name)
 values
     ('user2');
+
+insert into
+    extras (
+        color,
+        metadata_json,
+        content
+    )
+values
+    (
+        'BLUE',
+        '{"foo":"bar"}',
+        'quick fox jumped over fence'
+    );

@@ -11,8 +11,10 @@ import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.Book
 import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
+import wow.doge.http4sdemo.models.Extra
 import wow.doge.http4sdemo.models.NewAuthor
 import wow.doge.http4sdemo.models.NewBook
+import wow.doge.http4sdemo.models.NewExtra
 import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.models.common.Color
 import wow.doge.http4sdemo.models.pagination.Pagination
@@ -42,6 +44,10 @@ trait LibraryService {
 
   def getBooksByAuthorId(authorId: AuthorId): Observable[Book]
 
+  def searchExtras(query: String): Observable[Extra]
+
+  def createExtra(ne: NewExtra): Task[Int]
+
 }
 
 final class LibraryServiceImpl(
@@ -51,6 +57,8 @@ final class LibraryServiceImpl(
     logger: Logger[Task]
 ) extends LibraryService {
   import profile.api._
+
+  // val x = toTsVector("Asadwgfq".bind)
 
   def getBooks(pagination: Pagination) =
     db.streamO(dbio.getPaginatedBooks(pagination))
@@ -162,6 +170,14 @@ final class LibraryServiceImpl(
   def getBooksByAuthorId(authorId: AuthorId) =
     db.streamO(dbio.getBooksForAuthor(authorId))
 
+  def extrasRow = db.streamO(dbio.extrasRows)
+
+  def createExtra(ne: NewExtra) = db
+    .runL(dbio.insertExtra(ne))
+    .tapError(err => logger.error("DB error", err))
+
+  def searchExtras(query: String) = db.streamO(dbio.searchExtra(query))
+
 }
 
 final class LibraryDbio(val profile: JdbcProfile) {
@@ -233,6 +249,20 @@ final class LibraryDbio(val profile: JdbcProfile) {
 
   Tables.Extras.filter(_.color === Color.blue)
 
+  val extrasRows = Tables.Extras.map(Extra.fromExtrasTableFn).result
+
+  def insertExtra(newExtra: NewExtra) = Tables.Extras
+    .map(NewExtra.fromExtrasTableFn)
+    .returning(Tables.Extras.map(_.extrasId)) += newExtra
+
+  def searchExtra(query: String) = {
+    val q = toTsQuery(query.bind)
+    Tables.Extras
+      .filter(_.tsv @@ q)
+      .map(Extra.fromExtrasTableFn)
+      .result
+  }
+
   private object Query {
 
     val insertBookGetId =
@@ -291,5 +321,11 @@ trait NoopLibraryService extends LibraryService {
 
   def getBooksByAuthorId(authorId: AuthorId): Observable[Book] =
     Observable.raiseError(new NotImplementedError)
+
+  def searchExtras(query: String): Observable[Extra] =
+    Observable.raiseError(new NotImplementedError)
+
+  def createExtra(ne: NewExtra): Task[Int] =
+    IO.terminate(new NotImplementedError)
 
 }

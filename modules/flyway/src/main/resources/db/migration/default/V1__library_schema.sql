@@ -40,5 +40,13 @@ create type Color as ENUM ('RED', 'GREEN', 'BLUE');
 create table extras (
     extras_id SERIAL PRIMARY KEY,
     color Color NOT NULL default 'RED',
-    metadata_json jsonb NOT NULL default '{}' :: jsonb
+    metadata_json jsonb NOT NULL default '{}' :: jsonb,
+    content TEXT NOT NULL -- content_tokens TSVECTOR NOT NULL
 );
+
+ALTER TABLE
+    extras
+ADD
+    COLUMN tsv tsvector NOT NULL GENERATED ALWAYS AS (to_tsvector('english', content)) STORED;
+
+CREATE INDEX tsv_idx ON extras USING GIN (tsv);
