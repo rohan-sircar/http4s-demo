@@ -1,29 +1,27 @@
 package wow.doge.http4sdemo.profile
 
+import scala.reflect.ClassTag
+
 import be.venneborg.refined.RefinedMapping
 import be.venneborg.refined.RefinedSupport
-import slick.jdbc.PostgresProfile
+import com.github.tminglei.slickpg.ExPostgresProfile
+import com.github.tminglei.slickpg.PgDate2Support
 import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.str.PgStringSupport
-import com.github.tminglei.slickpg.PgDate2Support
-// import com.github.tminglei.slickpg.d
-import com.github.tminglei.slickpg.ExPostgresProfile
-import slick.basic.Capability
-import slick.driver
-import slick.jdbc
 import enumeratum._
-import scala.reflect.ClassTag
+import slick.basic.Capability
+import slick.jdbc
+import slick.jdbc.PostgresProfile
 
 trait MyPgCirceJsonSupport extends PgCirceJsonSupport {
   driver: PostgresProfile =>
-  import driver.api._
   import io.circe._
   import io.circe.parser._
   import io.circe.syntax._
 
-  trait JsonImplicits extends CirceImplicits2
+  trait MyJsonImplicits extends MyCirceImplicits
 
-  trait CirceImplicits2 extends CirceImplicits {
+  trait MyCirceImplicits extends CirceImplicits {
     import utils.JsonUtils.clean
     override implicit val circeJsonTypeMapper: jdbc.JdbcType[Json] = {
       new GenericJdbcType[Json](
@@ -53,11 +51,11 @@ trait ExtendedPgProfile
   override val pgjson = "jsonb"
 
   override protected def computeCapabilities: Set[Capability] =
-    super.computeCapabilities + driver.JdbcProfile.capabilities.insertOrUpdate
+    super.computeCapabilities + slick.jdbc.JdbcCapabilities.insertOrUpdate
 
   override val api = new API
     with RefinedImplicits
-    with JsonImplicits
+    with MyJsonImplicits
     with PgStringImplicits
     with SearchImplicits
     with SearchAssistants

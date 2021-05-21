@@ -1,21 +1,16 @@
 package wow.doge.http4sdemo
 
+import java.time.LocalDateTime
+
 import scala.concurrent.Future
 
-import cats.syntax.all._
+import cats.data.Chain
+import cats.effect.concurrent.Ref
+import io.odin.Level
 import io.odin.Logger
-import io.odin.fileLogger
-import io.odin.syntax._
+import io.odin.formatter.Formatter
 import monix.bio.Task
 import monix.execution.Scheduler
-import munit.TestOptions
-import java.time.LocalDateTime
-import cats.effect.concurrent.Ref
-import io.odin.formatter.Formatter
-import io.odin.Level
-import monix.reactive.Observable
-import monix.{eval => me}
-import cats.data.Chain
 import wow.doge.http4sdemo.utils.TracingStubLogger
 
 trait MonixBioSuite extends munit.TaglessFinalSuite[Task] {
