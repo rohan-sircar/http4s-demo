@@ -6,6 +6,7 @@ import io.odin.Logger
 import io.odin.syntax._
 import monix.bio.IO
 import monix.bio.Task
+import monix.reactive.Consumer
 import monix.reactive.Observable
 import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
@@ -162,20 +163,23 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
 
       //TODO: use convenience method for decoding json stream
       case req @ POST -> Root / "api" / "books" =>
+        import org.http4s.circe.CirceEntityCodec._
         import wow.doge.http4sdemo.utils.observableArrayJsonDecoder
         IO.deferAction(implicit s =>
           for {
             // newBooks <- req.as[List[Book]]
             newBooks <- req.as[Observable[Json]]
-            _ <- newBooks
+            numRows <- newBooks
               .mapEvalF(_.as[NewBook])
               .bufferTumbling(50)
-              .doOnNext(books => libraryService.createBooks(books).toTask.void)
-              .completedL
+              .scanEvalF(Task.pure(NumRows(0))) { case (numRows, books) =>
+                libraryService
+                  .createBooks(books.toList)
+                  .map(o => numRows :+ o.getOrElse(NumRows(0)))
+              }
+              .consumeWith(Consumer.foldLeft(NumRows(0))(_ :+ _))
               .toIO
-            // obs = Observable.fromIterable(newBooks)
-            // book <- libraryService.insertBook(newBook)
-            res <- Ok()
+            res <- Ok(numRows)
           } yield res
         )
 
@@ -204,9 +208,7 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
         import org.http4s.circe.CirceEntityCodec._
         for {
           reqId <- IO.pure(extractReqId(req))
-          newExtra <- req
-            .as[NewExtra]
-            .tapError(err => logger.error("An error occured", err))
+          newExtra <- req.as[NewExtra]
           clogger = logger.withConstContext(
             Map(
               "name" -> "Create extra",
@@ -214,11 +216,9 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
               "new-extra-data" -> newExtra.show
             )
           )
-          // Printer.noSpaces.print(newExtra.metadata)
           _ <- clogger.infoU("Request for creating extras")
           res <- libraryService
             .createExtra(newExtra)
-            // .tapError(err => clogger.errorU(err.toString))
             .flatMap(id => Created(id).hideErrors)
           // .onErrorHandleWith(_.toResponse)
         } yield res

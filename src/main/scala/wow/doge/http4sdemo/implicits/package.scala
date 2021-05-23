@@ -5,6 +5,7 @@ import scala.util.Try
 import cats.data.ValidatedNec
 import cats.syntax.either._
 import com.github.tminglei.slickpg.TsVector
+import com.rms.miu.slickcats.DBIOInstances
 import eu.timepit.refined.api._
 import io.circe.generic.semiauto._
 import io.odin.meta.Position
@@ -28,7 +29,8 @@ import wow.doge.http4sdemo.profile.{ExtendedPgProfile => JdbcProfile}
 import wow.doge.http4sdemo.utils.RefinementValidation
 import wow.doge.http4sdemo.utils.transformIntoL
 
-package object implicits {
+package object implicits extends DBIOInstances {
+  // with slickeffect.DBIOInstances
   implicit final class DatabaseDefExt(private val db: DatabaseDef)
       extends AnyVal {
     def runL[R](a: DBIOAction[R, NoStream, Nothing]) =
@@ -81,7 +83,7 @@ package object implicits {
   }
 
   implicit final class DBIOExt(private val D: DBIO.type) extends AnyVal {
-    def unit = D.successful(())
+    def unit: DBIO[Unit] = D.successful(())
     def fromIO[T](io: IO[Throwable, T])(implicit s: monix.execution.Scheduler) =
       D.from(io.runToFuture)
   }
@@ -131,7 +133,7 @@ package object implicits {
 
   }
 
-  implicit val decoder = deriveDecoder[TsVector]
-  implicit val encoder = deriveEncoder[TsVector]
+  implicit val tsVectorDecoder = deriveDecoder[TsVector]
+  implicit val tsVectorEncoder = deriveEncoder[TsVector]
 
 }

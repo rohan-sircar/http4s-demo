@@ -9,17 +9,14 @@ import enumeratum._
 import io.circe.Json
 import io.circe.Printer
 import io.circe.generic.semiauto._
-import io.scalaland.chimney.cats._
 import io.scalaland.chimney.dsl._
 import org.http4s.ParseFailure
 import org.http4s.QueryParamDecoder
 import org.http4s.dsl.impl.QueryParamDecoderMatcher
-import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.models.common.Color
 import wow.doge.http4sdemo.profile.{ExtendedPgProfile => JdbcProfile}
 import wow.doge.http4sdemo.slickcodegen.Tables
-import wow.doge.http4sdemo.utils.RefinementValidation
 
 final case class Book(
     bookId: BookId,
@@ -54,11 +51,16 @@ object NewBook {
   }
 }
 
+final case class BookUpdateRow(
+    bookTitle: BookTitle,
+    authorId: AuthorId
+)
+
 final case class BookUpdate(
     bookTitle: Option[BookTitle],
     authorId: Option[AuthorId]
 ) {
-  def update(row: Tables.BooksRow): Tables.BooksRow = row.patchUsing(this)
+  def update(row: BookUpdateRow): BookUpdateRow = row.patchUsing(this)
 }
 object BookUpdate {
   implicit val codec = deriveCodec[BookUpdate]
@@ -66,9 +68,12 @@ object BookUpdate {
 
 final case class Author(authorId: AuthorId, authorName: AuthorName)
 object Author {
+  def tupled = (apply _).tupled
   implicit val codec = deriveCodec[Author]
-  def fromAuthorsRow(row: Tables.AuthorsRow) =
-    row.transformIntoF[RefinementValidation, Author]
+  def fromAuthorsTableFn(implicit profile: JdbcProfile) = {
+    import profile.api._
+    (a: Tables.Authors) => (a.authorId, a.authorName).mapTo[Author]
+  }
 }
 
 final case class NewAuthor(name: AuthorName)

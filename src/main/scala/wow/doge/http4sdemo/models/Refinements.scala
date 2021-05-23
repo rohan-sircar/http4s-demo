@@ -120,6 +120,10 @@ object Refinements {
   object NumRows {
     implicit val encoder: Encoder[NumRows] = Encoder[Int].coerce
     implicit val decoder: Decoder[NumRows] = Decoder[Int].coerce
+
+    implicit class NumRowsOps(private val N: NumRows) extends AnyVal {
+      def :+(T: NumRows) = NumRows(N.toInt + T.toInt)
+    }
     // implicit val from =
     //   implicitly[TransformerF[RefinementValidation, Int, Int]].coerce
     // implicit val to: Transformer[NumRows, Int] = _.inner.value

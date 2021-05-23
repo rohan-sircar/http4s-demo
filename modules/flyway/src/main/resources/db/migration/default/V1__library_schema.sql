@@ -11,6 +11,13 @@ CREATE TABLE books (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
+ALTER TABLE
+    books
+ADD
+    COLUMN tsv tsvector NOT NULL GENERATED ALWAYS AS (to_tsvector('english', book_title)) STORED;
+
+CREATE INDEX books_tsv_idx ON books USING GIN (tsv);
+
 create table books_store (
     books_store_id SERIAL PRIMARY KEY,
     book_id INTEGER REFERENCES books(book_id) NOT NULL,
@@ -49,4 +56,4 @@ ALTER TABLE
 ADD
     COLUMN tsv tsvector NOT NULL GENERATED ALWAYS AS (to_tsvector('english', content)) STORED;
 
-CREATE INDEX tsv_idx ON extras USING GIN (tsv);
+CREATE INDEX extras_tsv_idx ON extras USING GIN (tsv);

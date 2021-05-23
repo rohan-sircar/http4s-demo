@@ -1,16 +1,20 @@
 package wow.doge.http4sdemo.services
 
+import cats.syntax.all._
 import io.odin.Logger
 import monix.bio.IO
 import monix.bio.Task
 import monix.bio.UIO
+import monix.execution.Scheduler
 import monix.reactive.Observable
 import slick.jdbc.JdbcBackend
 import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.implicits._
+import wow.doge.http4sdemo.models.Author
 import wow.doge.http4sdemo.models.Book
 import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
+import wow.doge.http4sdemo.models.BookUpdateRow
 import wow.doge.http4sdemo.models.Extra
 import wow.doge.http4sdemo.models.NewAuthor
 import wow.doge.http4sdemo.models.NewBook
@@ -38,7 +42,7 @@ trait LibraryService {
 
   def createBook(newBook: NewBook): IO[AppError, Book]
 
-  def createBooks(newBooks: Iterable[NewBook]): UIO[Option[Int]]
+  def createBooks(newBooks: List[NewBook]): IO[AppError, Option[NumRows]]
 
   def createAuthor(a: NewAuthor): Task[AuthorId]
 
@@ -58,8 +62,6 @@ final class LibraryServiceImpl(
 ) extends LibraryService {
   import profile.api._
 
-  // val x = toTsVector("Asadwgfq".bind)
-
   def getBooks(pagination: Pagination) =
     db.streamO(dbio.getPaginatedBooks(pagination))
 
@@ -78,8 +80,7 @@ final class LibraryServiceImpl(
     mode match {
       case BookSearchMode.BookTitle =>
         for {
-          s <- makeStr
-          res <- db.streamO(dbio.searchBooks(s))
+          res <- db.streamO(dbio.searchBooks(query))
         } yield res
 
       case BookSearchMode.AuthorName =>
@@ -96,17 +97,12 @@ final class LibraryServiceImpl(
   def createAuthor(a: NewAuthor): Task[AuthorId] =
     db.runL(dbio.insertAuthor(a))
 
-  def createBooks(newBooks: Iterable[NewBook]): UIO[Option[Int]] =
-    db.runL(dbio.insertBooks(newBooks))
-      .tapEval(n => logger.debug(s"Result: $n"))
-      .hideErrors
-
   def updateBook(id: BookId, updateData: BookUpdate): IO[AppError, NumRows] =
     for {
       _ <- logger.debugU(s"Request for updating book $id")
       action <- UIO.deferAction(implicit s =>
         UIO(for {
-          mbRow <- dbio.selectBook(id).result.headOption
+          mbRow <- dbio.getBookUpdateRowById(id).result.headOption
           updatedRow <- mbRow match {
             case Some(value) =>
               DBIO.fromIO(logger.debug(s"Original value -> $value")) >>
@@ -116,7 +112,7 @@ final class LibraryServiceImpl(
                 AppError.EntityDoesNotExist(s"Book with id=$id does not exist")
               )
           }
-          updateAction = dbio.selectBook(id).update(updatedRow)
+          updateAction = dbio.getBookUpdateRowById(id).update(updatedRow)
           _ <- DBIO.fromIO(logger.trace(s"SQL = ${updateAction.statements}"))
           res <- updateAction
         } yield res)
@@ -134,29 +130,8 @@ final class LibraryServiceImpl(
     IO.deferAction { implicit s =>
       for {
         action <- UIO(for {
-          _ <- dbio
-            .selectBookByIsbn(newBook.bookIsbn)
-            .map(_.bookId)
-            .result
-            .headOption
-            .flatMap {
-              case None => DBIO.unit
-              case Some(_) =>
-                DBIO.failed(
-                  AppError.EntityAlreadyExists(
-                    s"Book with isbn=${newBook.bookIsbn} already exists"
-                  )
-                )
-            }
-          _ <- dbio.getAuthor(newBook.authorId).flatMap {
-            case None =>
-              DBIO.failed(
-                AppError.EntityDoesNotExist(
-                  s"Author with id=${newBook.authorId} does not exist"
-                )
-              )
-            case Some(_) => DBIO.unit
-          }
+          _ <- dbio.checkBookIsbnExists(newBook.bookIsbn)
+          _ <- dbio.checkAuthorWithIdExists(newBook.authorId)
           book <- dbio.insertBookAndGetBook(newBook)
         } yield book)
         book <- db
@@ -166,6 +141,82 @@ final class LibraryServiceImpl(
           }
       } yield book
     }
+
+  def createBooks(newBooks: List[NewBook]): IO[AppError, Option[NumRows]] =
+    for {
+      l <- IO.pure(LazyList.from(newBooks))
+      _ <-
+        if (l.length === l.distinctBy(_.bookIsbn.value).length)
+          IO.unit
+        else
+          IO.raiseError(
+            new AppError.BadInput(s"Duplicate isbns provided")
+          )
+      verifyIsbns =
+        for {
+          //try fetching books with given isbns
+          l2 <- IO.deferAction(implicit s =>
+            db.runL(
+              l
+                .traverse(nb =>
+                  dbio
+                    .selectBookByIsbn(nb.bookIsbn)
+                    .map(_.bookIsbn)
+                    .result
+                    .headOption: DBIO[Option[BookIsbn]]
+                )
+                //collect all found isbns into a list
+                .map(_.mapFilter(identity).toList)
+            ).hideErrors
+          )
+          //if the list of isbns from above is not empty, return an error
+          //since it means that these isbns already exist
+          _ <-
+            if (l2.isEmpty) IO.unit
+            else
+              IO.raiseError(
+                new AppError.EntityAlreadyExists(
+                  s"Books with these isbns already exist: $l2"
+                )
+              )
+        } yield ()
+      verifyAuthorIds = for {
+        l3 <-
+          IO.deferAction(implicit s =>
+            db.runTryL(
+              l
+                .traverse(nb =>
+                  dbio
+                    .getAuthor(nb.authorId)
+                    .map(o => nb.authorId -> o.map(_.authorId)): DBIO[
+                    (AuthorId, Option[AuthorId])
+                  ]
+                )
+                .map(_.foldLeft(List.empty[AuthorId]) {
+                  case (acc, (_, Some(_))) => acc
+                  case (acc, (id, None))   => id :: acc
+                })
+                .transactionally
+                .asTry
+            ).mapErrorPartial { case e: AppError => e }
+          )
+        _ <-
+          if (l3.isEmpty) IO.unit
+          else
+            IO.raiseError(
+              new AppError.EntityDoesNotExist(
+                s"Authors with these ids do not exist: $l3"
+              )
+            )
+      } yield ()
+      //run the verifications in parallel
+      _ <- IO.parSequenceUnordered(List(verifyIsbns, verifyAuthorIds))
+      action = dbio.insertBooks(newBooks)
+      res <- db
+        .runTryL(action.transactionally.asTry)
+        .mapErrorPartial { case e: AppError => e }
+        .map(_.map(NumRows.apply))
+    } yield res
 
   def getBooksByAuthorId(authorId: AuthorId) =
     db.streamO(dbio.getBooksForAuthor(authorId))
@@ -183,11 +234,6 @@ final class LibraryServiceImpl(
 final class LibraryDbio(val profile: JdbcProfile) {
   import profile.api._
 
-  /*  */
-
-  def getBooks: StreamingDBIO[Seq[Book], Book] =
-    Tables.Books.map(Book.fromBooksTableFn).result
-
   def insertBookAndGetId(newBook: NewBook): DBIO[BookId] =
     Query.insertBookGetId += newBook
 
@@ -195,7 +241,7 @@ final class LibraryDbio(val profile: JdbcProfile) {
     Query.insertBookGetBook += newBook
 
   def insertBooks(newBooks: Iterable[NewBook]): DBIO[Option[Int]] =
-    Tables.Books.map(NewBook.fromBooksTableFn) ++= newBooks
+    (Tables.Books.map(NewBook.fromBooksTableFn) ++= newBooks)
 
   def insertAuthor(newAuthor: NewAuthor): DBIO[AuthorId] =
     Query.insertAuthorGetId += newAuthor
@@ -203,8 +249,12 @@ final class LibraryDbio(val profile: JdbcProfile) {
   def selectBook(id: BookId) =
     Tables.Books.filter(_.bookId === id)
 
+  def getBookUpdateRowById(id: BookId) =
+    selectBook(id)
+      .map(b => (b.bookTitle, b.authorId).mapTo[BookUpdateRow])
+
   def getAuthor(id: AuthorId) =
-    Query.selectAuthor(id).result.headOption
+    Query.selectAuthor(id).map(Author.fromAuthorsTableFn).result.headOption
 
   def getAuthorsByName(name: AuthorName) =
     Tables.Authors
@@ -238,7 +288,7 @@ final class LibraryDbio(val profile: JdbcProfile) {
 
   def searchBooks(query: SearchQuery) =
     Tables.Books
-      .filter(_.bookTitle.asColumnOf[String].ilike(query.value))
+      .filter(_.tsv @@ toTsQuery(query.value.bind))
       .map(Book.fromBooksTableFn)
       .result
 
@@ -261,6 +311,34 @@ final class LibraryDbio(val profile: JdbcProfile) {
       .filter(_.tsv @@ q)
       .map(Extra.fromExtrasTableFn)
       .result
+  }
+
+  def checkBookIsbnExists(bookIsbn: BookIsbn)(implicit S: Scheduler) = {
+    selectBookByIsbn(bookIsbn)
+      .map(_.bookId)
+      .result
+      .headOption
+      .flatMap {
+        case None => DBIO.unit
+        case Some(_) =>
+          DBIO.failed(
+            AppError.EntityAlreadyExists(
+              s"Book with isbn=${bookIsbn} already exists"
+            )
+          )
+      }
+  }
+
+  def checkAuthorWithIdExists(id: AuthorId)(implicit S: Scheduler) = {
+    getAuthor(id).flatMap {
+      case None =>
+        DBIO.failed(
+          AppError.EntityDoesNotExist(
+            s"Author with id=$id does not exist"
+          )
+        )
+      case Some(_) => DBIO.unit
+    }
   }
 
   private object Query {
@@ -313,7 +391,7 @@ trait NoopLibraryService extends LibraryService {
   def createBook(newBook: NewBook): IO[AppError, Book] =
     IO.terminate(new NotImplementedError)
 
-  def createBooks(newBooks: Iterable[NewBook]): UIO[Option[Int]] =
+  def createBooks(newBooks: List[NewBook]): IO[AppError, Option[NumRows]] =
     IO.terminate(new NotImplementedError)
 
   def createAuthor(a: NewAuthor): Task[AuthorId] =

@@ -95,34 +95,6 @@ lazy val root = (project in file("."))
     inConfig(IntegrationTest)(scalafixConfigSettings(IntegrationTest)),
     buildInfoOptions ++= Seq(BuildInfoOption.ToJson, BuildInfoOption.BuildTime),
     buildInfoPackage := "wow.doge.http4sdemo",
-    scalacOptions ++= Seq(
-      "-encoding",
-      "UTF-8",
-      "-deprecation",
-      "-feature",
-      "-language:existentials",
-      "-language:experimental.macros",
-      "-language:higherKinds",
-      "-language:implicitConversions",
-      "-unchecked",
-      "-Xlint",
-      "-Ywarn-numeric-widen",
-      "-Ymacro-annotations",
-      //silence warnings for by-name implicits
-      "-Wconf:cat=lint-byname-implicit:s",
-      //give errors on non exhaustive matches
-      "-Wconf:msg=match may not be exhaustive:e",
-      // """-Wconf:site=wow\.doge\.http4sdemo\.slickcodegen\Tables\$:i""",
-      "-Wconf:msg=early initializers are deprecated:i",
-      """-Wconf:site=wow\.doge\.http4sdemo\.slickcodegen\..*:i""",
-      // """-Wconf:src=target/src_managed/Tables.scala:s""",
-      "-explaintypes" // Explain type errors in more detail.
-    ),
-    scalacOptions ++= {
-      if (insideCI.value) Seq("-Xfatal-warnings")
-      else Seq.empty
-    },
-    javacOptions ++= Seq("-source", "11", "-target", "11"),
     //format: off
     libraryDependencies ++= Seq(
       "org.http4s"      %% "http4s-ember-server"  % Http4sVersion,
@@ -275,9 +247,9 @@ lazy val root = (project in file("."))
     },
     sourceGenerators in Compile += slickCodegen.taskValue
   )
+  .aggregate(testCommon)
   .dependsOn(flyway, testCommon)
 
-ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.4.3"
 inThisBuild(
   List(
     scalaVersion := scalaVersion.value, // 2.11.12, or 2.13.3
@@ -285,7 +257,36 @@ inThisBuild(
     semanticdbVersion := "4.4.2", // use Scalafix compatible version
     addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"),
     addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
-    dynverSeparator := "-"
+    dynverSeparator := "-",
+    scalacOptions ++= Seq(
+      "-encoding",
+      "UTF-8",
+      "-deprecation",
+      "-feature",
+      "-language:existentials",
+      "-language:experimental.macros",
+      "-language:higherKinds",
+      "-language:implicitConversions",
+      "-unchecked",
+      "-Xlint",
+      "-Ywarn-numeric-widen",
+      "-Ymacro-annotations",
+      //silence warnings for by-name implicits
+      "-Wconf:cat=lint-byname-implicit:s",
+      //give errors on non exhaustive matches
+      "-Wconf:msg=match may not be exhaustive:e",
+      // """-Wconf:site=wow\.doge\.http4sdemo\.slickcodegen\Tables\$:i""",
+      "-Wconf:msg=early initializers are deprecated:i",
+      """-Wconf:site=wow\.doge\.http4sdemo\.slickcodegen\..*:i""",
+      // """-Wconf:src=target/src_managed/Tables.scala:s""",
+      "-explaintypes" // Explain type errors in more detail.
+    ),
+    scalacOptions ++= {
+      if (insideCI.value) Seq("-Xfatal-warnings")
+      else Seq.empty
+    },
+    javacOptions ++= Seq("-source", "11", "-target", "11"),
+    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.4.3"
   )
 )
 

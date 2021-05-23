@@ -17,6 +17,8 @@ sealed trait AppError extends Exception {
         NotFound(e: AppError).hideErrors
       case e @ AppError.EntityAlreadyExists(message) =>
         BadRequest(e: AppError).hideErrors
+      case e @ AppError.BadInput(message) =>
+        BadRequest(e: AppError).hideErrors
     }
   }
 }
@@ -25,4 +27,5 @@ object AppError {
   implicit val codec = deriveCodec[AppError]
   final case class EntityDoesNotExist(message: String) extends AppError
   final case class EntityAlreadyExists(message: String) extends AppError
+  final case class BadInput(message: String) extends AppError
 }

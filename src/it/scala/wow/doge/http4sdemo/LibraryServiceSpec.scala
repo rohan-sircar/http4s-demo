@@ -21,7 +21,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
     createSchema(containers)
   }
 
-  test("retrieve book by id should succeed") {
+  test("get book by id should succeed") {
     withReplayLogger { logger =>
       withContainersIO { case container: PostgreSQLContainer =>
         val io =
@@ -55,7 +55,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
   }
 
   test(
-    "insert book should fail gracefully when provided author does not exist"
+    "create book should fail gracefully when provided author does not exist"
   ) {
     withReplayLogger { logger =>
       withContainersIO { case container: PostgreSQLContainer =>
@@ -92,7 +92,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
   }
 
   test(
-    "insert book should fail gracefully when book with isbn already exists"
+    "create book should fail gracefully when book with isbn already exists"
   ) {
     withReplayLogger { logger =>
       withContainersIO { case container: PostgreSQLContainer =>
@@ -319,6 +319,171 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                   Left(
                     AppError
                       .EntityDoesNotExist("Book with id=12414 does not exist")
+                  )
+                )
+            } yield ()
+          )
+        io
+      }
+    }
+  }
+
+  test(
+    "create books should fail gracefully on duplicate isbn's in input"
+  ) {
+    withReplayLogger { logger =>
+      withContainersIO { case container: PostgreSQLContainer =>
+        val io =
+          withDb(container.jdbcUrl)(db =>
+            for {
+              _ <- UIO.unit
+              service: LibraryService = new LibraryServiceImpl(
+                profile,
+                new LibraryDbio(profile),
+                db,
+                logger
+              )
+              id <- service.createAuthor(
+                NewAuthor(AuthorName("barbar4"))
+              )
+              books = List(
+                NewBook(
+                  BookTitle("blah7"),
+                  BookIsbn("aegqweg"),
+                  id
+                ),
+                NewBook(
+                  BookTitle("blah8"),
+                  BookIsbn("aegqweg"),
+                  id
+                )
+              )
+              _ <- service
+                .createBooks(books)
+                .attempt
+                .assertEquals(
+                  Left(
+                    AppError.BadInput("Duplicate isbns provided")
+                  )
+                )
+            } yield ()
+          )
+        io
+      }
+    }
+  }
+
+  test(
+    "create books should fail gracefully if any provided isbns already exist"
+  ) {
+    withReplayLogger { logger =>
+      withContainersIO { case container: PostgreSQLContainer =>
+        val io =
+          withDb(container.jdbcUrl)(db =>
+            for {
+              _ <- UIO.unit
+              service: LibraryService = new LibraryServiceImpl(
+                profile,
+                new LibraryDbio(profile),
+                db,
+                logger
+              )
+              id <- service.createAuthor(
+                NewAuthor(AuthorName("barbar4"))
+              )
+              _ <- service.createBook(
+                NewBook(
+                  BookTitle("blah10"),
+                  BookIsbn("safasfa"),
+                  id
+                )
+              )
+              _ <- service.createBook(
+                NewBook(
+                  BookTitle("blah10"),
+                  BookIsbn("asdasfa"),
+                  id
+                )
+              )
+              books = List(
+                NewBook(
+                  BookTitle("blah7"),
+                  BookIsbn("asasweg"),
+                  id
+                ),
+                NewBook(
+                  BookTitle("blah8"),
+                  BookIsbn("safasfa"),
+                  id
+                ),
+                NewBook(
+                  BookTitle("blah10"),
+                  BookIsbn("asdasfa"),
+                  id
+                )
+              )
+              _ <- service
+                .createBooks(books)
+                .attempt
+                .assertEquals(
+                  Left(
+                    AppError
+                      .EntityAlreadyExists(
+                        "Books with these isbns already exist: List(safasfa, asdasfa)"
+                      )
+                  )
+                )
+            } yield ()
+          )
+        io
+      }
+    }
+  }
+
+  test(
+    "create books should fail gracefully if any provided author id's don't exist"
+  ) {
+    withReplayLogger { logger =>
+      withContainersIO { case container: PostgreSQLContainer =>
+        val io =
+          withDb(container.jdbcUrl)(db =>
+            for {
+              _ <- UIO.unit
+              service: LibraryService = new LibraryServiceImpl(
+                profile,
+                new LibraryDbio(profile),
+                db,
+                logger
+              )
+              id <- service.createAuthor(
+                NewAuthor(AuthorName("barbar4"))
+              )
+              books = List(
+                NewBook(
+                  BookTitle("blah11"),
+                  BookIsbn("asgfaqe"),
+                  id
+                ),
+                NewBook(
+                  BookTitle("blah12"),
+                  BookIsbn("sasfasf"),
+                  AuthorId(2134)
+                ),
+                NewBook(
+                  BookTitle("blah12"),
+                  BookIsbn("asdasfa"),
+                  AuthorId(2123)
+                )
+              )
+              _ <- service
+                .createBooks(books)
+                .attempt
+                .assertEquals(
+                  Left(
+                    AppError
+                      .EntityDoesNotExist(
+                        "Authors with these ids do not exist: List(2123, 2134)"
+                      )
                   )
                 )
             } yield ()

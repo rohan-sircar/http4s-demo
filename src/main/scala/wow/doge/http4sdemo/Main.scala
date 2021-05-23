@@ -18,9 +18,9 @@ import monix.execution.Scheduler
 import pureconfig.ConfigSource
 import pureconfig.module.catseffect.syntax._
 import wow.doge.http4sdemo.schedulers.Schedulers
-import wow.doge.http4sdemo.utils.AppConfig
-import wow.doge.http4sdemo.utils.LoggerFormat.Json
-import wow.doge.http4sdemo.utils.LoggerFormat.Pretty
+import wow.doge.http4sdemo.utils.config.AppConfig
+import wow.doge.http4sdemo.utils.config.LoggerFormat.Json
+import wow.doge.http4sdemo.utils.config.LoggerFormat.Pretty
 
 object Main extends BIOApp {
   val profile = wow.doge.http4sdemo.profile.ExtendedPgProfile

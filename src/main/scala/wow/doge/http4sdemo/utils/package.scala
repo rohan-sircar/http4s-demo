@@ -1,12 +1,7 @@
 package wow.doge.http4sdemo
 
-import scala.concurrent.duration.FiniteDuration
-
 import cats.data.ValidatedNec
 import cats.effect.ConcurrentEffect
-import enumeratum._
-import eu.timepit.refined.pureconfig._
-import eu.timepit.refined.types.numeric.PosInt
 import fs2.interop.reactivestreams._
 import io.circe.Json
 import io.scalaland.chimney.TransformerF
@@ -20,8 +15,6 @@ import org.http4s.Request
 import org.http4s.circe.streamJsonArrayDecoder
 import org.http4s.circe.streamJsonArrayEncoder
 import org.http4s.server.middleware.RequestId
-import pureconfig.generic.semiauto._
-import pureconfig.module.enumeratum._
 
 package object utils {
   type RefinementValidation[+A] = ValidatedNec[String, A]
@@ -54,32 +47,4 @@ package utils {
 
   //not used currently
   final case class AppContext(reqId: String)
-
-  final case class ThrottleConfig(amount: PosInt, per: FiniteDuration)
-  object ThrottleConfig {
-    implicit val configReader = deriveConvert[ThrottleConfig]
-  }
-
-  final case class HttpConfig(throttle: ThrottleConfig, timeout: FiniteDuration)
-  object HttpConfig {
-    implicit val configReader = deriveConvert[HttpConfig]
-  }
-
-  sealed trait LoggerFormat extends EnumEntry with EnumEntry.Hyphencase
-  object LoggerFormat extends Enum[LoggerFormat] {
-    val values = findValues
-    case object Json extends LoggerFormat
-    case object Pretty extends LoggerFormat
-    //TODO: Make PR to update the docs about this
-    implicit val configReader = enumeratumConfigConvert[LoggerFormat]
-  }
-
-  final case class AppConfig(
-      loggerFormat: LoggerFormat,
-      http: HttpConfig
-  )
-  object AppConfig {
-    implicit val configReader = deriveConvert[AppConfig]
-  }
-
 }

@@ -25,8 +25,8 @@ import wow.doge.http4sdemo.routes.LibraryRoutes
 import wow.doge.http4sdemo.schedulers.Schedulers
 import wow.doge.http4sdemo.services.LibraryDbio
 import wow.doge.http4sdemo.services.LibraryServiceImpl
-import wow.doge.http4sdemo.utils.HttpConfig
 import wow.doge.http4sdemo.utils.StructuredOdinLogger
+import wow.doge.http4sdemo.utils.config.HttpConfig
 final class Server(
     db: DatabaseDef,
     p: JdbcProfile,
