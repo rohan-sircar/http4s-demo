@@ -3,7 +3,9 @@ native-image --trace-class-initialization --static -H:+ReportExceptionStackTrace
 --initialize-at-run-time=org.postgresql.sspi.SSPIClient \
 --initialize-at-build-time=scala.runtime.Statics$VM \
 --initialize-at-run-time=scala.tools.nsc.profile.ExtendedThreadMxBean \
- --verbose -jar "./target/scala-2.13/http4s-demo-assembly-0.0.1-SNAPSHOT.jar" http4s-demoBinaryImage 
+--initialize-at-run-time=monix.execution.internal.jctools \
+--initialize-at-run-time=com.zaxxer.hikari.metrics.dropwizard.CodaHaleMetricsTracker \
+ --verbose -jar "./target/scala-2.13/http4s-demo-assembly-0.0.1-SNAPSHOT-7-c25f2e08-20210506-1239.jar" http4s-demoBinaryImage 
 
 
 
