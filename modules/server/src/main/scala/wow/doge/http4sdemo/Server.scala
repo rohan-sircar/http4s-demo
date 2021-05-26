@@ -20,21 +20,20 @@ import org.http4s.server.middleware.ResponseTiming
 import org.http4s.server.middleware.Throttle
 import org.http4s.server.middleware.Timeout
 import slick.jdbc.JdbcBackend.DatabaseDef
-import wow.doge.http4sdemo.app.utils.StructuredOdinLogger
+import wow.doge.http4sdemo.server.utils.StructuredOdinLogger
+import wow.doge.http4sdemo.server.utils.config.HttpConfig
 import wow.doge.http4sdemo.profile.{ExtendedPgProfile => JdbcProfile}
 import wow.doge.http4sdemo.routes.LibraryRoutes
 import wow.doge.http4sdemo.schedulers.Schedulers
 import wow.doge.http4sdemo.services.LibraryDbio
 import wow.doge.http4sdemo.services.LibraryServiceImpl
-import wow.doge.http4sdemo.app.utils.config.HttpConfig
 
 final class Server(
     db: DatabaseDef,
     p: JdbcProfile,
-    logger: io.odin.Logger[Task],
     schedulers: Schedulers,
     config: HttpConfig
-) {
+)(implicit logger: io.odin.Logger[Task]) {
   private val log: String => Task[Unit] = str => logger.info(str)
 
   val resource =
@@ -47,7 +46,7 @@ final class Server(
       libraryDbio = new LibraryDbio(p)
       libraryService = new LibraryServiceImpl(p, libraryDbio, db, logger)
       httpApp = Metrics(Dropwizard[Task](registry, "server"))(
-        new LibraryRoutes(libraryService, logger).routes
+        new LibraryRoutes(libraryService).routes
       )
       httpApp2 <- Resource.eval(
         Throttle(config.throttle.amount.value, config.throttle.per)(

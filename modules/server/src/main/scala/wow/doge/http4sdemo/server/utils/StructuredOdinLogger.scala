@@ -1,4 +1,4 @@
-package wow.doge.http4sdemo.app.utils
+package wow.doge.http4sdemo.server.utils
 
 import cats.effect.Sync
 import cats.syntax.all._

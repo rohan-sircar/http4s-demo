@@ -25,7 +25,7 @@ class BooksRoutesSpec extends UnitTestBase {
 
   test("get books api should succeed") {
     import org.http4s.circe.CirceEntityCodec._
-    withReplayLogger { logger =>
+    withReplayLogger { implicit logger =>
       val book =
         Book(
           BookId(1),
@@ -42,7 +42,7 @@ class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- IO.unit
-        routes = new LibraryRoutes(service, logger).routes
+        routes = new LibraryRoutes(service).routes
         request = Request[Task](
           Method.GET,
           uri"/api/books" withQueryParams Map(
@@ -61,7 +61,7 @@ class BooksRoutesSpec extends UnitTestBase {
 
   test("update book api should fail gracefully when book does not exist") {
     import org.http4s.circe.CirceEntityCodec._
-    withReplayLogger { logger =>
+    withReplayLogger { implicit logger =>
       val service = new NoopLibraryService {
         override def updateBook(id: BookId, updateData: BookUpdate) =
           IO.raiseError(
@@ -74,7 +74,7 @@ class BooksRoutesSpec extends UnitTestBase {
       for {
         _ <- IO.unit
         reqBody = BookUpdate(Some(BookTitle("blahblah")), None)
-        routes = new LibraryRoutes(service, logger).routes
+        routes = new LibraryRoutes(service).routes
         request = Request[Task](Method.PATCH, Root / "api" / "books" / "1")
           .withEntity(reqBody)
         res <- routes.run(request).value
@@ -96,7 +96,7 @@ class BooksRoutesSpec extends UnitTestBase {
 
   test("search books by author name api should succeed") {
     import org.http4s.circe.CirceEntityCodec._
-    withReplayLogger { logger =>
+    withReplayLogger { implicit logger =>
       val value = BookIsbn("blahblah")
       val books =
         List(
@@ -114,7 +114,7 @@ class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- IO.unit
-        routes = new LibraryRoutes(service, logger).routes
+        routes = new LibraryRoutes(service).routes
         request = Request[Task](
           Method.GET,
           Root / "api" / "books" / "search"
@@ -134,7 +134,7 @@ class BooksRoutesSpec extends UnitTestBase {
 
   test("search books by book title api should succeed") {
     import org.http4s.circe.CirceEntityCodec._
-    withReplayLogger { logger =>
+    withReplayLogger { implicit logger =>
       val value = BookIsbn("blahblah")
       val books =
         List(
@@ -152,7 +152,7 @@ class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- UIO.unit
-        routes = new LibraryRoutes(service, logger).routes
+        routes = new LibraryRoutes(service).routes
         request = Request[Task](
           Method.GET,
           Root / "api" / "books" / "search"
@@ -172,13 +172,13 @@ class BooksRoutesSpec extends UnitTestBase {
 
   test("get book by id should fail gracefully when book does not exist") {
     import org.http4s.circe.CirceEntityCodec._
-    withReplayLogger { logger =>
+    withReplayLogger { implicit logger =>
       val service = new NoopLibraryService {
         override def getBookById(id: BookId): UIO[Option[Book]] = UIO.none
       }
       for {
         _ <- UIO.unit
-        routes = new LibraryRoutes(service, logger).routes
+        routes = new LibraryRoutes(service).routes
         request = Request[Task](
           Method.GET,
           Root / "api" / "books" / "12312"

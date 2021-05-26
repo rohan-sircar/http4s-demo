@@ -12,6 +12,11 @@ val OdinVersion = "0.11.0"
 val TestContainersVersion = "0.39.3"
 val PureconfigVersion = "0.14.0"
 val RefinedVersion = "0.9.19"
+val EnumeratumVersion = "1.6.1"
+val SlickVersion = "3.3.3"
+val SlickPgVersion = "0.19.6"
+val ChimneyVersion = "0.6.1"
+
 scalaVersion in ThisBuild := "2.13.6"
 
 resolvers in ThisBuild += "jitpack" at "https://jitpack.io"
@@ -66,45 +71,38 @@ lazy val common = (project in file("modules/common"))
       "io.circe" %% "circe-generic" % CirceVersion,
       "org.typelevel" %% "log4cats-core" % "1.3.1",
       "co.fs2" %% "fs2-reactive-streams" % "2.5.0",
-      "com.github.monix" % "monix-bio" % "0a2ad29275",
+      "com.github.monix" % "monix-bio" % MonixBioVersion,
       "com.github.valskalla" %% "odin-monix" % OdinVersion,
       "de.lolhens" %% "munit-tagless-final" % "0.0.1",
       "be.venneborg" %% "slick-refined" % "0.5.0",
-      "com.github.tminglei" %% "slick-pg" % "0.19.6",
-      "com.github.tminglei" %% "slick-pg_circe-json" % "0.19.6",
-      "com.beachape" %% "enumeratum" % "1.6.1",
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
-      "com.beachape" %% "enumeratum" % "1.6.1",
-      "com.beachape" %% "enumeratum-circe" % "1.6.1",
+      "com.beachape" %% "enumeratum" % EnumeratumVersion,
+      "com.beachape" %% "enumeratum-circe" % EnumeratumVersion,
       "com.chuusai" %% "shapeless" % "2.3.3",
       "com.lihaoyi" %% "sourcecode" % "0.2.1",
       "eu.timepit" %% "refined" % RefinedVersion,
       "eu.timepit" %% "refined-pureconfig" % RefinedVersion,
-      "com.zaxxer" % "HikariCP" % "3.4.2",
-      "com.typesafe.slick" %% "slick" % "3.3.3",
-      "com.typesafe.slick" %% "slick-hikaricp" % "3.3.3",
-      "com.h2database" % "h2" % "1.4.199",
-      "org.postgresql" % "postgresql" % "42.2.18",
+      "com.typesafe.slick" %% "slick" % SlickVersion,
       "com.github.pureconfig" %% "pureconfig" % PureconfigVersion,
       "com.github.pureconfig" %% "pureconfig-enumeratum" % PureconfigVersion,
       "com.github.pureconfig" %% "pureconfig-cats-effect" % PureconfigVersion,
-      "io.scalaland" %% "chimney" % "0.6.1",
-      "io.scalaland" %% "chimney-cats" % "0.6.1",
+      "io.scalaland" %% "chimney" % ChimneyVersion,
+      "io.scalaland" %% "chimney-cats" % ChimneyVersion,
       "com.rms.miu" %% "slick-cats" % "0.10.4",
       "com.kubukoz" %% "slick-effect" % "0.3.0",
       "io.circe" %% "circe-fs2" % CirceVersion,
       "io.circe" %% "circe-refined" % CirceVersion,
       "io.estatico" %% "newtype" % "0.4.4",
       "be.venneborg" %% "slick-refined" % "0.5.0",
-      "com.github.tminglei" %% "slick-pg" % "0.19.6",
-      "com.github.tminglei" %% "slick-pg_circe-json" % "0.19.6"
+      "com.github.tminglei" %% "slick-pg" % SlickPgVersion,
+      "com.github.tminglei" %% "slick-pg_circe-json" % SlickPgVersion
     )
   )
 
 lazy val testCommon = (project in file("modules/test-common"))
   .settings(
     libraryDependencies ++= Seq(
-      "com.github.monix" % "monix-bio" % "0a2ad29275",
+      "com.github.monix" % "monix-bio" % MonixBioVersion,
       "com.github.valskalla" %% "odin-monix" % OdinVersion,
       "de.lolhens" %% "munit-tagless-final" % "0.0.1",
       "be.venneborg" %% "slick-refined" % "0.5.0",
@@ -115,7 +113,7 @@ lazy val testCommon = (project in file("modules/test-common"))
   )
   .dependsOn(common)
 
-lazy val app = (project in file("modules/app"))
+lazy val server = (project in file("modules/server"))
   .enablePlugins(
     CodegenPlugin,
     DockerPlugin,
@@ -149,14 +147,10 @@ lazy val app = (project in file("modules/app"))
       "org.http4s"      %% "http4s-dsl"           % Http4sVersion,
       "io.circe"        %% "circe-generic"        % CirceVersion,
       "org.scalameta"   %% "munit"                % MunitVersion           % "it,test",
-      "org.typelevel"   %% "munit-cats-effect-2"  % MunitCatsEffectVersion % "it,test",
       // "ch.qos.logback"  %  "logback-classic"      % LogbackVersion,
-      "org.scalameta"   %% "svm-subs"             % "20.2.0",
-      "co.fs2"          %% "fs2-reactive-streams" % "2.5.0",
+      //format: on
     ),
-    //format: on
     libraryDependencies ++= Seq(
-      // "org.typelevel" %% "log4cats-slf4j" % "1.3.1",
       "io.monix" %% "monix" % MonixVersion,
       // "io.monix" %% "monix-bio" % "1.1.0",
       "com.github.monix" % "monix-bio" % MonixBioVersion,
@@ -173,16 +167,15 @@ lazy val app = (project in file("modules/app"))
       "com.github.valskalla" %% "odin-extras" % OdinVersion,
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
       "com.lihaoyi" %% "os-lib" % "0.7.1",
-      "com.beachape" %% "enumeratum" % "1.6.1",
-      "com.beachape" %% "enumeratum-circe" % "1.6.1",
+      "com.beachape" %% "enumeratum" % EnumeratumVersion,
+      "com.beachape" %% "enumeratum-circe" % EnumeratumVersion,
       "com.chuusai" %% "shapeless" % "2.3.3",
       "com.lihaoyi" %% "sourcecode" % "0.2.1",
       "eu.timepit" %% "refined" % RefinedVersion,
       "eu.timepit" %% "refined-pureconfig" % RefinedVersion,
       "com.zaxxer" % "HikariCP" % "3.4.2",
-      "com.typesafe.slick" %% "slick" % "3.3.3",
-      "com.typesafe.slick" %% "slick-hikaricp" % "3.3.3",
-      "com.h2database" % "h2" % "1.4.199",
+      "com.typesafe.slick" %% "slick" % SlickVersion,
+      "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion,
       "org.postgresql" % "postgresql" % "42.2.18",
       "com.github.pureconfig" %% "pureconfig" % PureconfigVersion,
       "com.github.pureconfig" %% "pureconfig-enumeratum" % PureconfigVersion,
@@ -195,8 +188,8 @@ lazy val app = (project in file("modules/app"))
       "io.circe" %% "circe-refined" % CirceVersion,
       "io.estatico" %% "newtype" % "0.4.4",
       "be.venneborg" %% "slick-refined" % "0.5.0",
-      "com.github.tminglei" %% "slick-pg" % "0.19.6",
-      "com.github.tminglei" %% "slick-pg_circe-json" % "0.19.6",
+      "com.github.tminglei" %% "slick-pg" % SlickPgVersion,
+      "com.github.tminglei" %% "slick-pg_circe-json" % SlickPgVersion,
       // "org.scalameta" %% "munit" % "0.7.23" % "it,test",
       "de.lolhens" %% "munit-tagless-final" % "0.0.1" % "it,test",
       "org.scalameta" %% "munit-scalacheck" % "0.7.23" % "it,test",
@@ -298,7 +291,6 @@ lazy val app = (project in file("modules/app"))
 
 inThisBuild(
   List(
-    scalaVersion := scalaVersion.value, // 2.11.12, or 2.13.3
     semanticdbEnabled := true, // enable SemanticDB
     semanticdbVersion := "4.4.18", // use Scalafix compatible version
     addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"),

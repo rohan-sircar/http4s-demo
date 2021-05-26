@@ -10,12 +10,14 @@ import io.odin.Level
 import io.odin.Logger
 import io.odin.formatter.Formatter
 import monix.bio.Task
-import monix.execution.Scheduler
+import wow.doge.http4sdemo.schedulers.Schedulers
 import wow.doge.http4sdemo.utils.TracingStubLogger
 
 trait MonixBioSuite extends munit.TaglessFinalSuite[Task] {
+  val schedulers = Schedulers.default
+
   override protected def toFuture[A](f: Task[A]): Future[A] = {
-    implicit val s = Scheduler.global
+    implicit val s = schedulers.async.value
     f.runToFuture
   }
 

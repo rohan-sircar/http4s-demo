@@ -1,4 +1,4 @@
-package wow.doge.http4sdemo.app.utils.config
+package wow.doge.http4sdemo.server.utils.config
 import scala.concurrent.duration.FiniteDuration
 
 import enumeratum._

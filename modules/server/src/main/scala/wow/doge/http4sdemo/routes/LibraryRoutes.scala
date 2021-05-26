@@ -11,7 +11,8 @@ import monix.reactive.Observable
 import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
 import wow.doge.http4sdemo.AppError
-import wow.doge.http4sdemo.app.utils.extractReqId
+import wow.doge.http4sdemo.server.utils.extractReqId
+import wow.doge.http4sdemo.server.utils.enrichLogger
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
@@ -21,7 +22,9 @@ import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.models.pagination._
 import wow.doge.http4sdemo.services.LibraryService
 
-class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
+class LibraryRoutes(libraryService: LibraryService)(implicit
+    logger: Logger[Task]
+) {
 
   val routes: HttpRoutes[Task] = {
     val dsl = Http4sDsl[Task]
@@ -37,18 +40,23 @@ class LibraryRoutes(libraryService: LibraryService, logger: Logger[Task]) {
         IO.deferAction(implicit s =>
           for {
             reqId <- IO.pure(extractReqId(req))
-            clogger = logger.withConstContext(
-              Map(
-                "name" -> "Search book",
-                "request-id" -> reqId,
-                "request-uri" -> req.uri.toString,
-                "mode" -> mode.entryName,
-                "query" -> query.value
-              )
+            clogger <- IO.pure(
+              enrichLogger(req, Map("name" -> "Search book"))
             )
+            // clogger = logger.withConstContext(
+            //   Map(
+            //     "name" -> "Search book",
+            //     "request-id" -> reqId,
+            //     "request-uri" -> req.uri.toString,
+            //     "mode" -> mode.entryName,
+            //     "query" -> query.value
+            //   )
+            // )
             _ <- clogger.debugU("Request to search book")
             books = libraryService.searchBooks(mode, query)
-            res <- Ok(books.map(_.asJson))
+            res <- Ok(
+              books.map(_.asJson)
+            )
           } yield res
         )
 

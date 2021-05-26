@@ -4,7 +4,6 @@ import com.dimafeng.testcontainers.PostgreSQLContainer
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.numeric
 import monix.bio.UIO
-import monix.execution.Scheduler
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
@@ -18,7 +17,7 @@ import wow.doge.http4sdemo.services.LibraryServiceImpl
 class LibraryServiceSpec extends DatabaseIntegrationTestBase {
 
   override def afterContainersStart(containers: Containers): Unit = {
-    implicit val s = Scheduler.global
+    implicit val s = schedulers.async.value
     super.afterContainersStart(containers)
     createSchema(containers).runSyncUnsafe(munitTimeout)
   }

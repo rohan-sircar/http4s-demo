@@ -15,9 +15,9 @@ import wow.doge.http4sdemo.profile.ExtendedPgProfile
 trait DatabaseIntegrationTestBase
     extends MonixBioSuite
     with TestContainerForAll {
-  def databaseName = "testcontainer-scala"
-  def username = "scala"
-  def password = "scala"
+  val databaseName = "testcontainer-scala"
+  val username = "scala"
+  val password = "scala"
 
   override val containerDef: ContainerDef = PostgreSQLContainer.Def(
     dockerImageName = DockerImageName.parse("postgres:12-alpine"),
@@ -50,7 +50,6 @@ trait DatabaseIntegrationTestBase
   ).bracket(f)(db => UIO(db.close()))
 
   def createSchema(containers: Containers) = {
-    // implicit val s = Scheduler.global
     containers match {
       case container: PostgreSQLContainer =>
         val config = JdbcDatabaseConfig(

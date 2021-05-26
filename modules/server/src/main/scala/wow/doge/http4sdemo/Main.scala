@@ -17,17 +17,18 @@ import monix.bio.UIO
 import monix.execution.Scheduler
 import pureconfig.ConfigSource
 import pureconfig.module.catseffect.syntax._
+import wow.doge.http4sdemo.server.utils.config.AppConfig
+import wow.doge.http4sdemo.server.utils.config.LoggerFormat.Json
+import wow.doge.http4sdemo.server.utils.config.LoggerFormat.Pretty
 import wow.doge.http4sdemo.schedulers.Schedulers
-import wow.doge.http4sdemo.app.utils.config.AppConfig
-import wow.doge.http4sdemo.app.utils.config.LoggerFormat.Json
-import wow.doge.http4sdemo.app.utils.config.LoggerFormat.Pretty
 
 object Main extends BIOApp {
   val profile = wow.doge.http4sdemo.profile.ExtendedPgProfile
   val schedulers = Schedulers.default
 
   override protected def scheduler: Scheduler = schedulers.async.value
-  val app = for {
+
+  val program = for {
     startTime <- Resource.eval(IO.clock.realTime(MILLISECONDS))
     _ <- Resource.eval(Task(println("""
     |        .__     __    __            _____                      .___                     
@@ -63,11 +64,11 @@ object Main extends BIOApp {
       )
       _ <- DBMigrations.migrate(config)
     } yield ()).executeOn(schedulers.io.value))
-    _ <- new Server(db, profile, logger, schedulers, appConfig.http).resource
+    _ <- new Server(db, profile, schedulers, appConfig.http)(logger).resource
   } yield ()
 
   def run(args: List[String]) = {
-    app
+    program
       .use(_ => Task.never)
       .onErrorHandleWith(ex => UIO(ex.printStackTrace()))
       .as(ExitCode.Success)
