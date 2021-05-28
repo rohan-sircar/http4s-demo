@@ -1,11 +1,11 @@
 package wow.doge.http4sdemo.server
+import cats.Show
+import cats.syntax.show._
+import io.odin.Logger
+import io.odin.syntax._
 import monix.bio.Task
 import org.http4s.Request
 import org.http4s.server.middleware.RequestId
-import cats.Show
-import io.odin.Logger
-import io.odin.syntax._
-import cats.syntax.show._
 package object utils {
   def extractReqId(req: Request[Task]) =
     req.attributes.lookup(RequestId.requestIdAttrKey).getOrElse("null")

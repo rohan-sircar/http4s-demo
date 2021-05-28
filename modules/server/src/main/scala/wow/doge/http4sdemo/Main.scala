@@ -5,11 +5,6 @@ import scala.concurrent.duration.MILLISECONDS
 import cats.effect.ExitCode
 import cats.effect.Resource
 import com.typesafe.config.ConfigFactory
-import io.odin.Level
-import io.odin.consoleLogger
-import io.odin.formatter.Formatter
-import io.odin.json.{Formatter => JFormatter}
-import io.odin.syntax._
 import monix.bio.BIOApp
 import monix.bio.IO
 import monix.bio.Task
@@ -17,10 +12,8 @@ import monix.bio.UIO
 import monix.execution.Scheduler
 import pureconfig.ConfigSource
 import pureconfig.module.catseffect.syntax._
-import wow.doge.http4sdemo.server.utils.config.AppConfig
-import wow.doge.http4sdemo.server.utils.config.LoggerFormat.Json
-import wow.doge.http4sdemo.server.utils.config.LoggerFormat.Pretty
 import wow.doge.http4sdemo.schedulers.Schedulers
+import wow.doge.http4sdemo.server.config.AppConfig
 
 object Main extends BIOApp {
   val profile = wow.doge.http4sdemo.profile.ExtendedPgProfile
@@ -46,13 +39,7 @@ object Main extends BIOApp {
         .fromConfig(rootConfig.getConfig("http4s-demo"))
         .loadF[Task, AppConfig](schedulers.io.blocker)
     )
-    logger <- consoleLogger[Task](
-      formatter = appConfig.loggerFormat match {
-        case Json   => JFormatter.json
-        case Pretty => Formatter.colorful
-      },
-      minLevel = Level.Debug
-    ).withAsync()
+    logger <- AppLogger.routed[Task](appConfig.logger)
     _ <- Resource.eval(
       logger.info(s"Starting ${BuildInfo.name}-${BuildInfo.version}")
     )
@@ -64,6 +51,7 @@ object Main extends BIOApp {
       )
       _ <- DBMigrations.migrate(config)
     } yield ()).executeOn(schedulers.io.value))
+    _ <- Resource.eval(logger.debug(s"Value = ${appConfig.logger.routes}"))
     _ <- new Server(db, profile, schedulers, appConfig.http)(logger).resource
   } yield ()
 

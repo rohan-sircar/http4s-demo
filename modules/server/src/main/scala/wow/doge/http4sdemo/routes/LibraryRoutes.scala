@@ -11,8 +11,6 @@ import monix.reactive.Observable
 import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
 import wow.doge.http4sdemo.AppError
-import wow.doge.http4sdemo.server.utils.extractReqId
-import wow.doge.http4sdemo.server.utils.enrichLogger
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
@@ -20,6 +18,8 @@ import wow.doge.http4sdemo.models.NewBook
 import wow.doge.http4sdemo.models.NewExtra
 import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.models.pagination._
+import wow.doge.http4sdemo.server.utils.enrichLogger
+import wow.doge.http4sdemo.server.utils.extractReqId
 import wow.doge.http4sdemo.services.LibraryService
 
 class LibraryRoutes(libraryService: LibraryService)(implicit

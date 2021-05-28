@@ -1,7 +1,6 @@
 package org.slf4j.impl
 
 import scala.collection.immutable.ArraySeq
-import scala.concurrent.duration._
 
 import _root_.monix.execution.Scheduler
 import cats.effect.Clock
@@ -10,10 +9,11 @@ import cats.effect.Effect
 import cats.effect.IO
 import cats.effect.Timer
 import io.odin._
-import io.odin.formatter.Formatter
 import io.odin.slf4j.OdinLoggerBinder
-import io.odin.syntax._
+import pureconfig.ConfigSource
+import wow.doge.http4sdemo.AppLogger
 import wow.doge.http4sdemo.schedulers.Schedulers
+import wow.doge.http4sdemo.server.config.AppConfig
 
 //effect type should be specified inbefore
 //log line will be recorded right after the call with no suspension
@@ -25,28 +25,39 @@ class StaticLoggerBinder extends OdinLoggerBinder[IO] {
   implicit val cs: ContextShift[IO] = IO.contextShift(s)
   implicit val F: Effect[IO] = IO.ioEffect
 
+  val config = ConfigSource.default.at("http4s-demo").loadOrThrow[AppConfig]
+
   val (defaultConsoleLogger, release1) =
-    consoleLogger[IO](minLevel = Level.Debug, formatter = Formatter.colorful)
-      .withAsync(timeWindow = 1.milliseconds, maxBufferSize = Some(2000))
-      .allocated
-      .unsafeRunSync()
+    AppLogger[IO](config.logger).allocated.unsafeRunSync()
 
   ArraySeq(release1).foreach(r => sys.addShutdownHook(r.unsafeRunSync()))
 
-  val loggers: PartialFunction[String, Logger[IO]] = {
-    // case s
-    //     if s.startsWith("slick.jdbc.JdbcBackend.statement") |
-    //       s.startsWith("slick.jdbc.JdbcBackend.statementAndParameter") |
-    //       s.startsWith("slick.jdbc.JdbcBackend.parameter") |
-    //       s.startsWith("slick.jdbc.StatementInvoker.result")
-    //     // s.startsWith("slick")
-    //     =>
-    //   defaultConsoleLogger.withMinimalLevel(Level.Debug)
+  val loggers = new PartialFunction[String, Logger[IO]] {
+    val routes = config.logger.routes.value
+    override def apply(packageName: String): Logger[IO] = {
+      routes.view
+        .filter { case route -> _ =>
+          packageName.startsWith(route)
+        }
+        .map { case _ -> level =>
+          defaultConsoleLogger.withMinimalLevel(level.toOdin)
+        }
+        .head
+      // .headOption
+      // .getOrElse(Logger.noop)
+    }
 
-    case _ => //if wildcard case isn't provided, default logger is no-op
-      // defaultConsoleLogger.withMinimalLevel(Level.Info)
-      Logger.noop[IO]
+    override def isDefinedAt(packageName: String): Boolean = {
+      routes
+        .filter { case route -> _ =>
+          packageName.startsWith(route)
+        }
+        .toList
+        .length > 0
+    }
+
   }
+
 }
 
 object StaticLoggerBinder extends StaticLoggerBinder {

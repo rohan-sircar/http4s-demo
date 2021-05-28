@@ -4,6 +4,8 @@ import cats.effect.Resource
 import cats.implicits._
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.SharedMetricRegistries
+import io.odin.meta.Position
+import io.odin.meta.Render
 import monix.bio.Task
 import org.http4s.HttpRoutes
 import org.http4s.Method
@@ -20,11 +22,11 @@ import org.http4s.server.middleware.ResponseTiming
 import org.http4s.server.middleware.Throttle
 import org.http4s.server.middleware.Timeout
 import slick.jdbc.JdbcBackend.DatabaseDef
-import wow.doge.http4sdemo.server.utils.StructuredOdinLogger
-import wow.doge.http4sdemo.server.utils.config.HttpConfig
 import wow.doge.http4sdemo.profile.{ExtendedPgProfile => JdbcProfile}
 import wow.doge.http4sdemo.routes.LibraryRoutes
 import wow.doge.http4sdemo.schedulers.Schedulers
+import wow.doge.http4sdemo.server.config.HttpConfig
+import wow.doge.http4sdemo.server.utils.StructuredOdinLogger
 import wow.doge.http4sdemo.services.LibraryDbio
 import wow.doge.http4sdemo.services.LibraryServiceImpl
 
@@ -34,7 +36,16 @@ final class Server(
     schedulers: Schedulers,
     config: HttpConfig
 )(implicit logger: io.odin.Logger[Task]) {
-  private val log: String => Task[Unit] = str => logger.info(str)
+  private val log: String => Task[Unit] = str =>
+    logger.info(str)(
+      Render[String],
+      Position(
+        fileName = "httpLogger",
+        enclosureName = "httpLogger",
+        packageName = "httpLogger",
+        line = -1
+      )
+    )
 
   val resource =
     for {
@@ -69,7 +80,7 @@ final class Server(
         .withPort(8081)
         .withHttpApp(finalHttpApp)
         .withBlocker(schedulers.io.blocker)
-        .withLogger(new StructuredOdinLogger(logger))
+        .withLogger(new StructuredOdinLogger(logger, "org.http4s.ember"))
         .build
     } yield server
 

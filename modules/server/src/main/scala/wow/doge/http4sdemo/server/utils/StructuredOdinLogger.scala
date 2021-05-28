@@ -5,9 +5,10 @@ import cats.syntax.all._
 import io.chrisdavenport.log4cats.SelfAwareStructuredLogger
 import io.odin.Level
 import io.odin.Logger
+import io.odin.meta.Position
 
-final class StructuredOdinLogger[F[_]](val logger: Logger[F])(implicit
-    F: Sync[F]
+final class StructuredOdinLogger[F[_]](val logger: Logger[F], val name: String)(
+    implicit F: Sync[F]
 ) extends SelfAwareStructuredLogger[F] {
   override def isTraceEnabled: F[Boolean] =
     F.delay(logger.minLevel <= Level.Trace)
@@ -19,6 +20,13 @@ final class StructuredOdinLogger[F[_]](val logger: Logger[F])(implicit
     F.delay(logger.minLevel <= Level.Warn)
   override def isErrorEnabled: F[Boolean] =
     F.delay(logger.minLevel <= Level.Error)
+
+  private implicit val pos = Position(
+    fileName = name,
+    enclosureName = name,
+    packageName = name,
+    line = -1
+  )
 
   override def trace(t: Throwable)(msg: => String): F[Unit] =
     isTraceEnabled
