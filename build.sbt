@@ -138,6 +138,10 @@ lazy val server = (project in file("modules/server"))
     inConfig(IntegrationTest)(scalafixConfigSettings(IntegrationTest)),
     buildInfoOptions ++= Seq(BuildInfoOption.ToJson, BuildInfoOption.BuildTime),
     buildInfoPackage := "wow.doge.http4sdemo",
+    fork in IntegrationTest := true,
+    envVars in IntegrationTest := Map("PROJECT_ENV" -> "test"),
+    fork in Test := true,
+    envVars in Test := Map("PROJECT_ENV" -> "test"),
     //format: off
     libraryDependencies ++= Seq(
       "org.http4s"      %% "http4s-ember-server"  % Http4sVersion,

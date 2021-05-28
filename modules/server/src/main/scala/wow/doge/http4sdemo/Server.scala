@@ -57,7 +57,7 @@ final class Server(
       libraryDbio = new LibraryDbio(p)
       libraryService = new LibraryServiceImpl(p, libraryDbio, db, logger)
       httpApp = Metrics(Dropwizard[Task](registry, "server"))(
-        new LibraryRoutes(libraryService).routes
+        new LibraryRoutes(libraryService)(logger).routes
       )
       httpApp2 <- Resource.eval(
         Throttle(config.throttle.amount.value, config.throttle.per)(
