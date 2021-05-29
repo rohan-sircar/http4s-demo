@@ -65,6 +65,30 @@ lazy val flyway = (project in file("modules/flyway"))
     flywayBaselineOnMigrate := true
   )
 
+lazy val shared = (project in file("modules/shared"))
+  .settings(
+    //format: off
+    libraryDependencies ++= Seq(
+      "io.circe"                   %% "circe-generic"          % CirceVersion,
+      "co.fs2"                     %% "fs2-reactive-streams"   % "2.5.0",
+      "com.github.monix"            % "monix-bio"              % MonixBioVersion,
+      "com.github.valskalla"       %% "odin-monix"             % OdinVersion,
+      // "de.lolhens"                 %% "munit-tagless-final"    % "0.0.1",
+      "com.beachape"               %% "enumeratum"             % EnumeratumVersion,
+      "com.beachape"               %% "enumeratum-circe"       % EnumeratumVersion,
+      "com.chuusai"                %% "shapeless"              % "2.3.3",
+      "com.lihaoyi"                %% "sourcecode"             % "0.2.1",
+      "eu.timepit"                 %% "refined"                % RefinedVersion,
+      "io.scalaland"               %% "chimney"                % ChimneyVersion,
+      "io.scalaland"               %% "chimney-cats"           % ChimneyVersion,
+      "io.circe"                   %% "circe-fs2"              % CirceVersion,
+      "io.circe"                   %% "circe-refined"          % CirceVersion,
+      "io.estatico"                %% "newtype"                % "0.4.4",
+      //format: on
+    )
+  )
+  .disablePlugins(RevolverPlugin)
+
 lazy val common = (project in file("modules/common"))
   .settings(
     //format: off
@@ -102,6 +126,8 @@ lazy val common = (project in file("modules/common"))
       //format: on
     )
   )
+  .disablePlugins(RevolverPlugin)
+  .dependsOn(shared)
 
 lazy val testCommon = (project in file("modules/test-common"))
   .settings(
@@ -109,7 +135,9 @@ lazy val testCommon = (project in file("modules/test-common"))
       "com.github.monix" % "monix-bio" % MonixBioVersion
     )
   )
+  .disablePlugins(RevolverPlugin)
   .dependsOn(common)
+  .dependsOn(shared)
 
 lazy val server = (project in file("modules/server"))
   .enablePlugins(
@@ -286,8 +314,9 @@ lazy val server = (project in file("modules/server"))
     },
     sourceGenerators in Compile += slickCodegen.taskValue
   )
-  .aggregate(common, testCommon)
+  .aggregate(common, testCommon, shared)
   .dependsOn(flyway, common, testCommon)
+  .dependsOn(shared)
 
 inThisBuild(
   List(

@@ -9,7 +9,6 @@ import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.TransformerF
 import monix.bio.IO
 import monix.bio.Task
-import wow.doge.http4sdemo.utils.transformIntoL
 
 package object implicits {
   // with slickeffect.DBIOInstances
@@ -62,8 +61,11 @@ package object implicits {
   implicit final class TransformerExt[A](private val src: A) extends AnyVal {
     def transformL[B](implicit
         T: TransformerF[ValidatedNec[String, +*], A, B]
-    ) =
-      transformIntoL(src)(T)
+    ) = {
+      IO.fromEither(T.transform(src).toEither)
+        .mapError(errs => new Exception(s"Failed to convert: $errs"))
+        .hideErrors
+    }
 
   }
 
