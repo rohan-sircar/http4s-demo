@@ -271,11 +271,12 @@ lazy val server = (project in file("modules/server"))
           |  val profile: wow.doge.http4sdemo.profile.ExtendedPgProfile
           |  import profile.api._
           |  import profile.mapping._
-          |  import wow.doge.http4sdemo.models.Refinements._
+          |  import wow.doge.http4sdemo.refinements.Refinements._
           |  import wow.doge.http4sdemo.models.common._
           |  import io.circe.Json
           |  import java.time._
           |  import com.github.tminglei.slickpg.TsVector
+          |  import wow.doge.http4sdemo.server.implicits.ColumnTypes._
           |  ${indent(code)}
           |}
       """.stripMargin

@@ -1,12 +1,7 @@
 package wow.doge.http4sdemo.models
 
-import cats.syntax.either._
 import enumeratum.EnumEntry
 import enumeratum._
-import org.http4s.ParseFailure
-import org.http4s.QueryParamDecoder
-import org.http4s.dsl.impl.QueryParamDecoderMatcher
-import wow.doge.http4sdemo.profile.{ExtendedPgProfile => JdbcProfile}
 
 package object common {}
 
@@ -24,14 +19,6 @@ package common {
     val green: Color = Green
     val blue: Color  = Blue
     //format: on
-
-    implicit val col = JdbcProfile.mappedColumnTypeForEnum("Color", Color)
-
-    implicit val qpd: QueryParamDecoder[Color] =
-      QueryParamDecoder[String].emap(s =>
-        withNameEither(s).leftMap(e => ParseFailure(e.getMessage, e.getMessage))
-      )
-    object matcher extends QueryParamDecoderMatcher[Color]("color")
 
   }
 

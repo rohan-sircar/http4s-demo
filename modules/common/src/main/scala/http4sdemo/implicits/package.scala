@@ -1,61 +1,18 @@
 package wow.doge.http4sdemo
 
-import scala.util.Try
-
 import cats.data.ValidatedNec
 import cats.syntax.either._
-import com.github.tminglei.slickpg.TsVector
-import com.rms.miu.slickcats.DBIOInstances
 import eu.timepit.refined.api._
-import io.circe.generic.semiauto._
 import io.odin.meta.Position
 import io.odin.meta.Render
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.TransformerF
 import monix.bio.IO
 import monix.bio.Task
-import monix.reactive.Observable
-import org.http4s.ParseFailure
-import org.http4s.QueryParamDecoder
-import slick.dbio
-import slick.dbio.DBIO
-import slick.dbio.DBIOAction
-import slick.dbio.NoStream
-import slick.dbio.Streaming
-import slick.jdbc.JdbcBackend.DatabaseDef
-import slick.jdbc.ResultSetConcurrency
-import slick.jdbc.ResultSetType
-import wow.doge.http4sdemo.profile.{ExtendedPgProfile => JdbcProfile}
-import wow.doge.http4sdemo.utils.RefinementValidation
 import wow.doge.http4sdemo.utils.transformIntoL
 
-package object implicits extends DBIOInstances {
+package object implicits {
   // with slickeffect.DBIOInstances
-  implicit final class DatabaseDefExt(private val db: DatabaseDef)
-      extends AnyVal {
-    def runL[R](a: DBIOAction[R, NoStream, Nothing]) =
-      Task.deferFuture(db.run(a))
-
-    def runTryL[R, A](a: DBIOAction[R, NoStream, Nothing])(implicit
-        ev: R <:< Try[A]
-    ) =
-      Task.deferFuture(db.run(a)).flatMap(r => IO.fromTry(ev(r)))
-
-    //format: off
-    def streamO[T](a: DBIOAction[_, Streaming[T], dbio.Effect.All with dbio.Effect.Transactional])(implicit P: JdbcProfile) = {
-    //format: on
-      import P.api._
-      Observable.fromReactivePublisher(
-        db.stream(
-          a.withStatementParameters(
-            rsType = ResultSetType.ForwardOnly,
-            rsConcurrency = ResultSetConcurrency.ReadOnly,
-            fetchSize = 10000
-          ).transactionally
-        )
-      )
-    }
-  }
 
   implicit final class MonixEvalTaskExt[T](private val task: monix.eval.Task[T])
       extends AnyVal {
@@ -82,12 +39,6 @@ package object implicits extends DBIOInstances {
       logger.error(msg).hideErrors
   }
 
-  implicit final class DBIOExt(private val D: DBIO.type) extends AnyVal {
-    def unit: DBIO[Unit] = D.successful(())
-    def fromIO[T](io: IO[Throwable, T])(implicit s: monix.execution.Scheduler) =
-      D.from(io.runToFuture)
-  }
-
   implicit final def vnecRefinedTransformerFrom[T, P, F[_, _]](implicit
       V: Validate[T, P],
       R: RefType[F]
@@ -108,32 +59,12 @@ package object implicits extends DBIOInstances {
       R: RefType[F]
   ): Transformer[F[P, T], P] = src => R.unwrap(src)
 
-  implicit final def refinedQueryParamDecoder[T, P, F[_, _]](implicit
-      Q: QueryParamDecoder[T],
-      V: Validate[T, P],
-      R: RefType[F]
-  ): QueryParamDecoder[F[T, P]] =
-    Q.emap { v =>
-      R
-        .refine(v)
-        .leftMap(err =>
-          ParseFailure(
-            s"Error parsing query param ${v}",
-            s"""
-            | Error parsing query param ${v}
-            | Details: $err
-          """.stripMargin
-          )
-        )
-    }
-
   implicit final class TransformerExt[A](private val src: A) extends AnyVal {
-    def transformL[B](implicit T: TransformerF[RefinementValidation, A, B]) =
+    def transformL[B](implicit
+        T: TransformerF[ValidatedNec[String, +*], A, B]
+    ) =
       transformIntoL(src)(T)
 
   }
-
-  implicit val tsVectorDecoder = deriveDecoder[TsVector]
-  implicit val tsVectorEncoder = deriveEncoder[TsVector]
 
 }

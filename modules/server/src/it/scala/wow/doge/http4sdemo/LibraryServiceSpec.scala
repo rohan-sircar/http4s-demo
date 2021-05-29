@@ -9,7 +9,7 @@ import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
 import wow.doge.http4sdemo.models.NewAuthor
 import wow.doge.http4sdemo.models.NewBook
-import wow.doge.http4sdemo.models.Refinements._
+import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.services.LibraryDbio
 import wow.doge.http4sdemo.services.LibraryService
 import wow.doge.http4sdemo.services.LibraryServiceImpl

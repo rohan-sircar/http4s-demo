@@ -10,12 +10,13 @@ import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
 import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.implicits._
-import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
 import wow.doge.http4sdemo.models.NewBook
 import wow.doge.http4sdemo.models.NewExtra
-import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.models.pagination._
+import wow.doge.http4sdemo.refinements.Refinements._
+import wow.doge.http4sdemo.refinements._
+import wow.doge.http4sdemo.server.implicits._
 import wow.doge.http4sdemo.server.utils.enrichLogger
 import wow.doge.http4sdemo.services.LibraryService
 
@@ -31,7 +32,7 @@ final class LibraryRoutes(libraryService: LibraryService)(
     HttpRoutes.of[Task] {
 
       case req @ GET -> Root / "api" / "books" / "search" :?
-          BookSearchMode.Matcher(mode) +& BookSearchQuery(query) =>
+          BookSearchModeMatcher(mode) +& BookSearchQuery(query) =>
         import wow.doge.http4sdemo.utils.observableArrayJsonEncoder
         import io.circe.syntax._
         implicit val clogger =
@@ -45,7 +46,7 @@ final class LibraryRoutes(libraryService: LibraryService)(
         )
 
       case req @ GET -> Root / "api" / "books" :?
-          PaginationLimit.matcher(limit) +& PaginationPage.matcher(page) =>
+          PaginationLimitMatcher(limit) +& PaginationPageMatcher(page) =>
         import wow.doge.http4sdemo.utils.observableArrayJsonEncoder
         import io.circe.syntax._
         implicit val clogger =

@@ -7,11 +7,9 @@ import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.TransformerF
-import org.http4s.QueryParamDecoder
-import org.http4s.dsl.impl.QueryParamDecoderMatcher
 import wow.doge.http4sdemo.implicits._
-import wow.doge.http4sdemo.models.Refinements.PaginationRefinement
-import wow.doge.http4sdemo.utils.RefinementValidation
+import wow.doge.http4sdemo.refinements.PaginationRefinement
+import wow.doge.http4sdemo.refinements.RefinementValidation
 
 package object pagination {
 
@@ -21,9 +19,7 @@ package object pagination {
       s.toIntOption
         .flatMap(PaginationRefinement.unapply)
         .map(PaginationPage.apply)
-    implicit val qpd: QueryParamDecoder[PaginationPage] =
-      QueryParamDecoder[PaginationRefinement].coerce
-    object matcher extends QueryParamDecoderMatcher[PaginationPage]("page")
+
     implicit val encoder: Encoder[PaginationPage] =
       Encoder[PaginationRefinement].coerce
     implicit val decoder: Decoder[PaginationPage] =
@@ -41,9 +37,7 @@ package object pagination {
       s.toIntOption
         .flatMap(PaginationRefinement.unapply)
         .map(PaginationLimit.apply)
-    implicit val qpd: QueryParamDecoder[PaginationLimit] =
-      QueryParamDecoder[PaginationRefinement].coerce
-    object matcher extends QueryParamDecoderMatcher[PaginationLimit]("limit")
+
     implicit val encoder: Encoder[PaginationLimit] =
       Encoder[PaginationRefinement].coerce
     implicit val decoder: Decoder[PaginationLimit] =

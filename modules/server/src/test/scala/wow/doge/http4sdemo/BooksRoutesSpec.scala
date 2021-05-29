@@ -2,6 +2,7 @@ package wow.doge.http4sdemo
 
 import cats.syntax.all._
 import eu.timepit.refined.auto._
+import io.odin.Logger
 import monix.bio.IO
 import monix.bio.Task
 import monix.bio.UIO
@@ -14,11 +15,11 @@ import org.http4s.implicits._
 import wow.doge.http4sdemo.models.Book
 import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
-import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.models.pagination.Pagination
+import wow.doge.http4sdemo.refinements.Refinements._
+import wow.doge.http4sdemo.refinements._
 import wow.doge.http4sdemo.routes.LibraryRoutes
 import wow.doge.http4sdemo.services.NoopLibraryService
-import io.odin.Logger
 
 class BooksRoutesSpec extends UnitTestBase {
 

@@ -9,15 +9,12 @@ import cats.effect.IO
 import cats.effect.Timer
 import cats.syntax.eq._
 import io.odin.Logger
-import io.odin.consoleLogger
 import io.odin.slf4j.OdinLoggerBinder
 import monix.execution.Scheduler
 import pureconfig.ConfigSource
 import wow.doge.http4sdemo.AppLogger
 import wow.doge.http4sdemo.schedulers.Schedulers
 import wow.doge.http4sdemo.server.config.AppConfig
-import io.odin.Level
-import io.odin.formatter.Formatter
 import wow.doge.http4sdemo.server.config.LoggerRoutes
 
 //effect type should be specified inbefore

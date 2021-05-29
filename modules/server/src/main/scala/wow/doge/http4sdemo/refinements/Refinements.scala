@@ -1,10 +1,5 @@
-package wow.doge.http4sdemo.models
+package wow.doge.http4sdemo.refinements
 
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.api.RefinedTypeOps
-import eu.timepit.refined.collection._
-import eu.timepit.refined.numeric._
-import eu.timepit.refined.types.string.NonEmptyFiniteString
 import io.circe.Decoder
 import io.circe.Encoder
 import io.circe.refined._
@@ -13,27 +8,9 @@ import io.estatico.newtype.ops._
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.TransformerF
 import wow.doge.http4sdemo.implicits._
-import wow.doge.http4sdemo.profile.ExtendedPgProfile
-import wow.doge.http4sdemo.profile.ExtendedPgProfile.api._
-import wow.doge.http4sdemo.profile.ExtendedPgProfile.mapping._
-import wow.doge.http4sdemo.utils.RefinementValidation
+import wow.doge.http4sdemo.refinements.RefinementValidation
 
 object Refinements {
-
-  type IdRefinement = Int Refined Positive
-  object IdRefinement extends RefinedTypeOps[IdRefinement, Int] {
-    //for use in http router dsl, which takes a string as input
-    def unapply(s: String): Option[IdRefinement] =
-      s.toIntOption.flatMap(unapply)
-  }
-
-  type StringRefinement = String Refined Size[Interval.Closed[5, 50]]
-  object StringRefinement extends RefinedTypeOps[StringRefinement, String]
-
-  type PaginationRefinement = Int Refined Interval.Closed[0, 50]
-  object PaginationRefinement extends RefinedTypeOps[PaginationRefinement, Int]
-
-  type SearchQuery = NonEmptyFiniteString[25]
 
   //in case your're thinking "jeez this is boilerplatey", I'll have you know
   //I have a vscode snippet that takes care of most of this
@@ -49,8 +26,6 @@ object Refinements {
     implicit val fromT =
       implicitly[TransformerF[RefinementValidation, Int, IdRefinement]].coerce
     implicit val toT: Transformer[BookId, Int] = _.id.value
-    implicit val col: ExtendedPgProfile.ColumnType[BookId] =
-      implicitly[ExtendedPgProfile.ColumnType[IdRefinement]].coerce
   }
 
   @newtype final case class AuthorId(id: IdRefinement)
@@ -66,8 +41,6 @@ object Refinements {
     implicit val fromT: TransformerF[RefinementValidation, Int, AuthorId] =
       implicitly[TransformerF[RefinementValidation, Int, IdRefinement]].coerce
     implicit val toT: Transformer[AuthorId, Int] = _.id.value
-    implicit val col: ExtendedPgProfile.ColumnType[AuthorId] =
-      implicitly[ExtendedPgProfile.ColumnType[IdRefinement]].coerce
     // implicit val tt = implicitly[slick.ast.TypedType[IdRefinement]].coerce
   }
 
@@ -82,8 +55,7 @@ object Refinements {
         TransformerF[RefinementValidation, String, StringRefinement]
       ].coerce
     implicit val toT: Transformer[BookTitle, String] = _.title.value
-    implicit val col: ExtendedPgProfile.ColumnType[BookTitle] =
-      implicitly[ExtendedPgProfile.ColumnType[StringRefinement]].coerce
+
   }
 
   @newtype final case class BookIsbn(inner: StringRefinement)
@@ -97,8 +69,7 @@ object Refinements {
         TransformerF[RefinementValidation, String, StringRefinement]
       ].coerce
     implicit val toT: Transformer[BookIsbn, String] = _.inner.value
-    implicit val col: ExtendedPgProfile.ColumnType[BookIsbn] =
-      implicitly[ExtendedPgProfile.ColumnType[StringRefinement]].coerce
+
   }
 
   @newtype final case class AuthorName(name: StringRefinement)
@@ -112,8 +83,7 @@ object Refinements {
         TransformerF[RefinementValidation, String, StringRefinement]
       ].coerce
     implicit val toT: Transformer[AuthorName, String] = _.name.value
-    implicit val col: ExtendedPgProfile.ColumnType[AuthorName] =
-      implicitly[ExtendedPgProfile.ColumnType[StringRefinement]].coerce
+
   }
 
   @newtype final case class NumRows(toInt: Int)

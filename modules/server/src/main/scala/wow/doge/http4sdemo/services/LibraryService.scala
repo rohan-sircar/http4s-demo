@@ -19,10 +19,12 @@ import wow.doge.http4sdemo.models.Extra
 import wow.doge.http4sdemo.models.NewAuthor
 import wow.doge.http4sdemo.models.NewBook
 import wow.doge.http4sdemo.models.NewExtra
-import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.models.common.Color
 import wow.doge.http4sdemo.models.pagination.Pagination
 import wow.doge.http4sdemo.profile.{ExtendedPgProfile => JdbcProfile}
+import wow.doge.http4sdemo.refinements.Refinements._
+import wow.doge.http4sdemo.refinements._
+import wow.doge.http4sdemo.server.implicits._
 import wow.doge.http4sdemo.slickcodegen.Tables
 
 trait LibraryService {

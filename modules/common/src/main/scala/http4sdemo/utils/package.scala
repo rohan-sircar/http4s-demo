@@ -14,10 +14,9 @@ import org.http4s.circe.streamJsonArrayDecoder
 import org.http4s.circe.streamJsonArrayEncoder
 
 package object utils {
-  type RefinementValidation[+A] = ValidatedNec[String, A]
 
   def transformIntoL[A, B](src: A)(implicit
-      T: TransformerF[RefinementValidation, A, B]
+      T: TransformerF[ValidatedNec[String, +*], A, B]
   ) = {
     IO.fromEither(T.transform(src).toEither)
       .mapError(errs => new Exception(s"Failed to convert: $errs"))
