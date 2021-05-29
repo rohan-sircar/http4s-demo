@@ -32,8 +32,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
               service: LibraryService = new LibraryServiceImpl(
                 profile,
                 new LibraryDbio(profile),
-                db,
-                logger
+                db
               )
               id <- service.createAuthor(
                 NewAuthor(AuthorName("author1"))
@@ -67,8 +66,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
               service: LibraryService = new LibraryServiceImpl(
                 profile,
                 new LibraryDbio(profile),
-                db,
-                logger
+                db
               )
               _ <- service
                 .createBook(
@@ -104,8 +102,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
               service: LibraryService = new LibraryServiceImpl(
                 profile,
                 new LibraryDbio(profile),
-                db,
-                logger
+                db
               )
               _ <- service.createBook(
                 NewBook(
@@ -148,8 +145,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
               service: LibraryService = new LibraryServiceImpl(
                 profile,
                 new LibraryDbio(profile),
-                db,
-                logger
+                db
               )
 
               id <- service.createAuthor(
@@ -211,8 +207,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
               service: LibraryService = new LibraryServiceImpl(
                 profile,
                 new LibraryDbio(profile),
-                db,
-                logger
+                db
               )
               id <- service.createAuthor(
                 NewAuthor(AuthorName("barbar2"))
@@ -254,8 +249,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
               service: LibraryService = new LibraryServiceImpl(
                 profile,
                 new LibraryDbio(profile),
-                db,
-                logger
+                db
               )
               id <- service.createAuthor(
                 NewAuthor(AuthorName("barbar3"))
@@ -297,8 +291,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
               service: LibraryService = new LibraryServiceImpl(
                 profile,
                 new LibraryDbio(profile),
-                db,
-                logger
+                db
               )
               id <- service.createAuthor(
                 NewAuthor(AuthorName("barbar4"))
@@ -341,8 +334,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
               service: LibraryService = new LibraryServiceImpl(
                 profile,
                 new LibraryDbio(profile),
-                db,
-                logger
+                db
               )
               id <- service.createAuthor(
                 NewAuthor(AuthorName("barbar4"))
@@ -386,8 +378,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
               service: LibraryService = new LibraryServiceImpl(
                 profile,
                 new LibraryDbio(profile),
-                db,
-                logger
+                db
               )
               id <- service.createAuthor(
                 NewAuthor(AuthorName("barbar4"))
@@ -453,8 +444,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
               service: LibraryService = new LibraryServiceImpl(
                 profile,
                 new LibraryDbio(profile),
-                db,
-                logger
+                db
               )
               id <- service.createAuthor(
                 NewAuthor(AuthorName("barbar4"))
