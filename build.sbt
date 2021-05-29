@@ -1,21 +1,23 @@
-val Http4sVersion = "0.21.23"
-val CirceVersion = "0.13.0"
-val MunitVersion = "0.7.20"
-val LogbackVersion = "1.2.3"
+//format: off
+val Http4sVersion          = "0.21.23"
+val CirceVersion           = "0.13.0"
+val MunitVersion           = "0.7.20"
+val LogbackVersion         = "1.2.3"
 val MunitCatsEffectVersion = "0.13.0"
-val FlywayVersion = "7.5.3"
-val MonixVersion = "3.3.0"
-// val MonixBioVersion = "1.1.0"
-val MonixBioVersion = "0a2ad29275"
-val SttpVersion = "3.3.1"
-val OdinVersion = "0.11.0"
-val TestContainersVersion = "0.39.3"
-val PureconfigVersion = "0.14.0"
-val RefinedVersion = "0.9.19"
-val EnumeratumVersion = "1.6.1"
-val SlickVersion = "3.3.3"
-val SlickPgVersion = "0.19.6"
-val ChimneyVersion = "0.6.1"
+val FlywayVersion          = "7.5.3"
+val MonixVersion           = "3.3.0"
+// val MonixBioVersion     = "1.1.0"
+val MonixBioVersion        = "0a2ad29275"
+val SttpVersion            = "3.3.1"
+val OdinVersion            = "0.11.0"
+val TestContainersVersion  = "0.39.3"
+val PureconfigVersion      = "0.14.0"
+val RefinedVersion         = "0.9.19"
+val EnumeratumVersion      = "1.6.1"
+val SlickVersion           = "3.3.3"
+val SlickPgVersion         = "0.19.6"
+val ChimneyVersion         = "0.6.1"
+//format: on
 
 scalaVersion in ThisBuild := "2.13.6"
 
@@ -65,50 +67,46 @@ lazy val flyway = (project in file("modules/flyway"))
 
 lazy val common = (project in file("modules/common"))
   .settings(
+    //format: off
     libraryDependencies ++= Seq(
-      "org.http4s" %% "http4s-circe" % Http4sVersion,
-      "org.http4s" %% "http4s-dsl" % Http4sVersion,
-      "io.circe" %% "circe-generic" % CirceVersion,
-      "org.typelevel" %% "log4cats-core" % "1.3.1",
-      "co.fs2" %% "fs2-reactive-streams" % "2.5.0",
-      "com.github.monix" % "monix-bio" % MonixBioVersion,
-      "com.github.valskalla" %% "odin-monix" % OdinVersion,
-      "de.lolhens" %% "munit-tagless-final" % "0.0.1",
-      "be.venneborg" %% "slick-refined" % "0.5.0",
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
-      "com.beachape" %% "enumeratum" % EnumeratumVersion,
-      "com.beachape" %% "enumeratum-circe" % EnumeratumVersion,
-      "com.chuusai" %% "shapeless" % "2.3.3",
-      "com.lihaoyi" %% "sourcecode" % "0.2.1",
-      "eu.timepit" %% "refined" % RefinedVersion,
-      "eu.timepit" %% "refined-pureconfig" % RefinedVersion,
-      "com.typesafe.slick" %% "slick" % SlickVersion,
-      "com.github.pureconfig" %% "pureconfig" % PureconfigVersion,
-      "com.github.pureconfig" %% "pureconfig-enumeratum" % PureconfigVersion,
-      "com.github.pureconfig" %% "pureconfig-cats-effect" % PureconfigVersion,
-      "io.scalaland" %% "chimney" % ChimneyVersion,
-      "io.scalaland" %% "chimney-cats" % ChimneyVersion,
-      "com.rms.miu" %% "slick-cats" % "0.10.4",
-      "com.kubukoz" %% "slick-effect" % "0.3.0",
-      "io.circe" %% "circe-fs2" % CirceVersion,
-      "io.circe" %% "circe-refined" % CirceVersion,
-      "io.estatico" %% "newtype" % "0.4.4",
-      "be.venneborg" %% "slick-refined" % "0.5.0",
-      "com.github.tminglei" %% "slick-pg" % SlickPgVersion,
-      "com.github.tminglei" %% "slick-pg_circe-json" % SlickPgVersion
+      "org.http4s"                 %% "http4s-circe"           % Http4sVersion,
+      "org.http4s"                 %% "http4s-dsl"             % Http4sVersion,
+      "io.circe"                   %% "circe-generic"          % CirceVersion,
+      "org.typelevel"              %% "log4cats-core"          % "1.3.1",
+      "co.fs2"                     %% "fs2-reactive-streams"   % "2.5.0",
+      "com.github.monix"            % "monix-bio"              % MonixBioVersion,
+      "com.github.valskalla"       %% "odin-monix"             % OdinVersion,
+      "de.lolhens"                 %% "munit-tagless-final"    % "0.0.1",
+      "be.venneborg"               %% "slick-refined"          % "0.5.0",
+      "com.typesafe.scala-logging" %% "scala-logging"          % "3.9.2",
+      "com.beachape"               %% "enumeratum"             % EnumeratumVersion,
+      "com.beachape"               %% "enumeratum-circe"       % EnumeratumVersion,
+      "com.chuusai"                %% "shapeless"              % "2.3.3",
+      "com.lihaoyi"                %% "sourcecode"             % "0.2.1",
+      "eu.timepit"                 %% "refined"                % RefinedVersion,
+      "eu.timepit"                 %% "refined-pureconfig"     % RefinedVersion,
+      "com.typesafe.slick"         %% "slick"                  % SlickVersion,
+      "com.github.pureconfig"      %% "pureconfig"             % PureconfigVersion,
+      "com.github.pureconfig"      %% "pureconfig-enumeratum"  % PureconfigVersion,
+      "com.github.pureconfig"      %% "pureconfig-cats-effect" % PureconfigVersion,
+      "io.scalaland"               %% "chimney"                % ChimneyVersion,
+      "io.scalaland"               %% "chimney-cats"           % ChimneyVersion,
+      "com.rms.miu"                %% "slick-cats"             % "0.10.4",
+      "com.kubukoz"                %% "slick-effect"           % "0.3.0",
+      "io.circe"                   %% "circe-fs2"              % CirceVersion,
+      "io.circe"                   %% "circe-refined"          % CirceVersion,
+      "io.estatico"                %% "newtype"                % "0.4.4",
+      "be.venneborg"               %% "slick-refined"          % "0.5.0",
+      "com.github.tminglei"        %% "slick-pg"               % SlickPgVersion,
+      "com.github.tminglei"        %% "slick-pg_circe-json"    % SlickPgVersion
+      //format: on
     )
   )
 
 lazy val testCommon = (project in file("modules/test-common"))
   .settings(
     libraryDependencies ++= Seq(
-      "com.github.monix" % "monix-bio" % MonixBioVersion,
-      "com.github.valskalla" %% "odin-monix" % OdinVersion,
-      "de.lolhens" %% "munit-tagless-final" % "0.0.1",
-      "be.venneborg" %% "slick-refined" % "0.5.0",
-      "com.github.tminglei" %% "slick-pg" % "0.19.6",
-      "com.github.tminglei" %% "slick-pg_circe-json" % "0.19.6",
-      "com.beachape" %% "enumeratum" % "1.6.1"
+      "com.github.monix" % "monix-bio" % MonixBioVersion
     )
   )
   .dependsOn(common)
@@ -142,64 +140,61 @@ lazy val server = (project in file("modules/server"))
     envVars in IntegrationTest := Map("PROJECT_ENV" -> "test"),
     fork in Test := true,
     envVars in Test := Map("PROJECT_ENV" -> "test"),
-    //format: off
     libraryDependencies ++= Seq(
-      "org.http4s"      %% "http4s-ember-server"  % Http4sVersion,
-      "org.http4s"      %% "http4s-ember-client"  % Http4sVersion,
-      "org.http4s"      %% "http4s-dropwizard-metrics" % Http4sVersion,
-      "org.http4s"      %% "http4s-circe"         % Http4sVersion,
-      "org.http4s"      %% "http4s-dsl"           % Http4sVersion,
-      "io.circe"        %% "circe-generic"        % CirceVersion,
-      "org.scalameta"   %% "munit"                % MunitVersion           % "it,test",
-      // "ch.qos.logback"  %  "logback-classic"      % LogbackVersion,
-      //format: on
-    ),
-    libraryDependencies ++= Seq(
-      "io.monix" %% "monix" % MonixVersion,
-      // "io.monix" %% "monix-bio" % "1.1.0",
-      "com.github.monix" % "monix-bio" % MonixBioVersion,
-      "com.softwaremill.sttp.client3" %% "core" % SttpVersion,
-      "com.softwaremill.sttp.client3" %% "monix" % SttpVersion,
-      "com.softwaremill.sttp.client3" %% "circe" % SttpVersion,
+      //format: off
+      "org.http4s"                    %% "http4s-ember-server"      % Http4sVersion,
+      "org.http4s"                    %% "http4s-ember-client"      % Http4sVersion,
+      "org.http4s"                    %% "http4s-dropwizard-metrics" % Http4sVersion,
+      "org.http4s"                    %% "http4s-circe"             % Http4sVersion,
+      "org.http4s"                    %% "http4s-dsl"               % Http4sVersion,
+      "io.circe"                      %% "circe-generic"            % CirceVersion,
+      "io.monix"                      %% "monix"                    % MonixVersion,
+      // "io.monix"                   %% "monix-bio"                % "1.1.0",
+      "com.github.monix"               % "monix-bio"                % MonixBioVersion,
+      "com.softwaremill.sttp.client3" %% "core"                     % SttpVersion,
+      "com.softwaremill.sttp.client3" %% "monix"                    % SttpVersion,
+      "com.softwaremill.sttp.client3" %% "circe"                    % SttpVersion,
       "com.softwaremill.sttp.client3" %% "httpclient-backend-monix" % SttpVersion,
-      "com.softwaremill.quicklens" %% "quicklens" % "1.6.1",
-      "com.softwaremill.common" %% "tagging" % "2.2.1",
-      "com.softwaremill.macwire" %% "macros" % "2.3.6" % "provided",
-      "com.github.valskalla" %% "odin-monix" % OdinVersion,
-      "com.github.valskalla" %% "odin-slf4j" % OdinVersion,
-      "com.github.valskalla" %% "odin-json" % OdinVersion,
-      "com.github.valskalla" %% "odin-extras" % OdinVersion,
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
-      "com.lihaoyi" %% "os-lib" % "0.7.1",
-      "com.beachape" %% "enumeratum" % EnumeratumVersion,
-      "com.beachape" %% "enumeratum-circe" % EnumeratumVersion,
-      "com.chuusai" %% "shapeless" % "2.3.3",
-      "com.lihaoyi" %% "sourcecode" % "0.2.1",
-      "eu.timepit" %% "refined" % RefinedVersion,
-      "eu.timepit" %% "refined-pureconfig" % RefinedVersion,
-      "com.zaxxer" % "HikariCP" % "3.4.2",
-      "com.typesafe.slick" %% "slick" % SlickVersion,
-      "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion,
-      "org.postgresql" % "postgresql" % "42.2.18",
-      "com.github.pureconfig" %% "pureconfig" % PureconfigVersion,
-      "com.github.pureconfig" %% "pureconfig-enumeratum" % PureconfigVersion,
-      "com.github.pureconfig" %% "pureconfig-cats-effect" % PureconfigVersion,
-      "io.scalaland" %% "chimney" % "0.6.1",
-      "io.scalaland" %% "chimney-cats" % "0.6.1",
-      "com.rms.miu" %% "slick-cats" % "0.10.4",
-      "com.kubukoz" %% "slick-effect" % "0.3.0",
-      "io.circe" %% "circe-fs2" % CirceVersion,
-      "io.circe" %% "circe-refined" % CirceVersion,
-      "io.estatico" %% "newtype" % "0.4.4",
-      "be.venneborg" %% "slick-refined" % "0.5.0",
-      "com.github.tminglei" %% "slick-pg" % SlickPgVersion,
-      "com.github.tminglei" %% "slick-pg_circe-json" % SlickPgVersion,
-      // "org.scalameta" %% "munit" % "0.7.23" % "it,test",
-      "de.lolhens" %% "munit-tagless-final" % "0.0.1" % "it,test",
-      "org.scalameta" %% "munit-scalacheck" % "0.7.23" % "it,test",
-      "org.scalacheck" %% "scalacheck" % "1.15.3" % "it,test",
-      "com.dimafeng" %% "testcontainers-scala-munit" % TestContainersVersion % IntegrationTest,
-      "com.dimafeng" %% "testcontainers-scala-postgresql" % TestContainersVersion % IntegrationTest
+      "com.softwaremill.quicklens"    %% "quicklens"                % "1.6.1",
+      "com.softwaremill.common"       %% "tagging"                  % "2.2.1",
+      "com.softwaremill.macwire"      %% "macros"                   % "2.3.6"                       % "provided",
+      "com.github.valskalla"          %% "odin-monix"               % OdinVersion,
+      "com.github.valskalla"          %% "odin-slf4j"               % OdinVersion,
+      "com.github.valskalla"          %% "odin-json"                % OdinVersion,
+      "com.github.valskalla"          %% "odin-extras"              % OdinVersion,
+      "com.typesafe.scala-logging"    %% "scala-logging"            % "3.9.2",
+      "com.lihaoyi"                   %% "os-lib"                   % "0.7.1",
+      "com.beachape"                  %% "enumeratum"               % EnumeratumVersion,
+      "com.beachape"                  %% "enumeratum-circe"         % EnumeratumVersion,
+      "com.chuusai"                   %% "shapeless"                % "2.3.3",
+      "com.lihaoyi"                   %% "sourcecode"               % "0.2.1",
+      "eu.timepit"                    %% "refined"                  % RefinedVersion,
+      "eu.timepit"                    %% "refined-pureconfig"       % RefinedVersion,
+      "com.zaxxer"                     % "HikariCP"                 % "3.4.2",
+      "com.typesafe.slick"            %% "slick"                    % SlickVersion,
+      "com.typesafe.slick"            %% "slick-hikaricp"           % SlickVersion,
+      "org.postgresql"                 % "postgresql"               % "42.2.18",
+      "com.github.pureconfig"         %% "pureconfig"               % PureconfigVersion,
+      "com.github.pureconfig"         %% "pureconfig-enumeratum"    % PureconfigVersion,
+      "com.github.pureconfig"         %% "pureconfig-cats-effect"   % PureconfigVersion,
+      "io.scalaland"                  %% "chimney"                  % "0.6.1",
+      "io.scalaland"                  %% "chimney-cats"             % "0.6.1",
+      "com.rms.miu"                   %% "slick-cats"               % "0.10.4",
+      "com.kubukoz"                   %% "slick-effect"             % "0.3.0",
+      "io.circe"                      %% "circe-fs2"                % CirceVersion,
+      "io.circe"                      %% "circe-refined"            % CirceVersion,
+      "io.estatico"                   %% "newtype"                  % "0.4.4",
+      "be.venneborg"                  %% "slick-refined"            % "0.5.0",
+      "com.github.tminglei"           %% "slick-pg"                 % SlickPgVersion,
+      "com.github.tminglei"           %% "slick-pg_circe-json"      % SlickPgVersion,
+      //test deps
+      "org.scalameta"                 %% "munit"                           % MunitVersion          % "it,test",
+      "de.lolhens"                    %% "munit-tagless-final"             % "0.0.1"               % "it,test",
+      "org.scalameta"                 %% "munit-scalacheck"                % "0.7.23"              % "it,test",
+      "org.scalacheck"                %% "scalacheck"                      % "1.15.3"              % "it,test",
+      "com.dimafeng"                  %% "testcontainers-scala-munit"      % TestContainersVersion % IntegrationTest,
+      "com.dimafeng"                  %% "testcontainers-scala-postgresql" % TestContainersVersion % IntegrationTest
+      //format: on
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     buildInfoKeys := Seq[BuildInfoKey](
