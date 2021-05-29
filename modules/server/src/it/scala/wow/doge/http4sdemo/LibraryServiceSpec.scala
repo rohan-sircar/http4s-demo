@@ -23,7 +23,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
   }
 
   test("get book by id should succeed") {
-    withReplayLogger { logger =>
+    withReplayLogger { implicit logger =>
       withContainersIO { case container: PostgreSQLContainer =>
         val io =
           withDb(container.jdbcUrl)(db =>
@@ -58,7 +58,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
   test(
     "create book should fail gracefully when provided author does not exist"
   ) {
-    withReplayLogger { logger =>
+    withReplayLogger { implicit logger =>
       withContainersIO { case container: PostgreSQLContainer =>
         val io =
           withDb(container.jdbcUrl)(db =>
@@ -95,7 +95,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
   test(
     "create book should fail gracefully when book with isbn already exists"
   ) {
-    withReplayLogger { logger =>
+    withReplayLogger { implicit logger =>
       withContainersIO { case container: PostgreSQLContainer =>
         val io =
           withDb(container.jdbcUrl)(db =>
@@ -139,7 +139,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
   }
 
   test("search books by author name should succeed") {
-    withReplayLogger { logger =>
+    withReplayLogger { implicit logger =>
       withContainersIO { case container: PostgreSQLContainer =>
         val io =
           withDb(container.jdbcUrl)(db =>
@@ -202,7 +202,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
   }
 
   test("search books by book title should succeed") {
-    withReplayLogger { logger =>
+    withReplayLogger { implicit logger =>
       withContainersIO { case container: PostgreSQLContainer =>
         val io =
           withDb(container.jdbcUrl)(db =>
@@ -245,7 +245,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
   }
 
   test("update book should succeed") {
-    withReplayLogger { logger =>
+    withReplayLogger { implicit logger =>
       withContainersIO { case container: PostgreSQLContainer =>
         val io =
           withDb(container.jdbcUrl)(db =>
@@ -288,7 +288,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
   test(
     "update book should fail gracefully if book with given id doesn't exist"
   ) {
-    withReplayLogger { logger =>
+    withReplayLogger { implicit logger =>
       withContainersIO { case container: PostgreSQLContainer =>
         val io =
           withDb(container.jdbcUrl)(db =>
@@ -332,7 +332,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
   test(
     "create books should fail gracefully on duplicate isbn's in input"
   ) {
-    withReplayLogger { logger =>
+    withReplayLogger { implicit logger =>
       withContainersIO { case container: PostgreSQLContainer =>
         val io =
           withDb(container.jdbcUrl)(db =>
@@ -377,7 +377,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
   test(
     "create books should fail gracefully if any provided isbns already exist"
   ) {
-    withReplayLogger { logger =>
+    withReplayLogger { implicit logger =>
       withContainersIO { case container: PostgreSQLContainer =>
         val io =
           withDb(container.jdbcUrl)(db =>
@@ -444,7 +444,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
   test(
     "create books should fail gracefully if any provided author id's don't exist"
   ) {
-    withReplayLogger { logger =>
+    withReplayLogger { implicit logger =>
       withContainersIO { case container: PostgreSQLContainer =>
         val io =
           withDb(container.jdbcUrl)(db =>

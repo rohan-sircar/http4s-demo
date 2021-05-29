@@ -1,9 +1,7 @@
 package wow.doge.http4sdemo.routes
 
-import cats.syntax.show._
 import io.circe.Json
 import io.odin.Logger
-import io.odin.syntax._
 import monix.bio.IO
 import monix.bio.Task
 import monix.reactive.Consumer
@@ -19,10 +17,9 @@ import wow.doge.http4sdemo.models.NewExtra
 import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.models.pagination._
 import wow.doge.http4sdemo.server.utils.enrichLogger
-import wow.doge.http4sdemo.server.utils.extractReqId
 import wow.doge.http4sdemo.services.LibraryService
 
-class LibraryRoutes(libraryService: LibraryService)(implicit
+final class LibraryRoutes(libraryService: LibraryService)(
     logger: Logger[Task]
 ) {
 
@@ -37,26 +34,13 @@ class LibraryRoutes(libraryService: LibraryService)(implicit
           BookSearchMode.Matcher(mode) +& BookSearchQuery(query) =>
         import wow.doge.http4sdemo.utils.observableArrayJsonEncoder
         import io.circe.syntax._
+        implicit val clogger =
+          enrichLogger(logger, req, Map("name" -> "Search book"))
         IO.deferAction(implicit s =>
           for {
-            reqId <- IO.pure(extractReqId(req))
-            clogger <- IO.pure(
-              enrichLogger(req, Map("name" -> "Search book"))
-            )
-            // clogger = logger.withConstContext(
-            //   Map(
-            //     "name" -> "Search book",
-            //     "request-id" -> reqId,
-            //     "request-uri" -> req.uri.toString,
-            //     "mode" -> mode.entryName,
-            //     "query" -> query.value
-            //   )
-            // )
             _ <- clogger.debugU("Request to search book")
             books = libraryService.searchBooks(mode, query)
-            res <- Ok(
-              books.map(_.asJson)
-            )
+            res <- Ok(books.map(_.asJson))
           } yield res
         )
 
@@ -64,47 +48,23 @@ class LibraryRoutes(libraryService: LibraryService)(implicit
           PaginationLimit.matcher(limit) +& PaginationPage.matcher(page) =>
         import wow.doge.http4sdemo.utils.observableArrayJsonEncoder
         import io.circe.syntax._
+        implicit val clogger =
+          enrichLogger(logger, req, Map("name" -> "Get books"))
         IO.deferAction(implicit s =>
           for {
-            reqId <- IO.pure(extractReqId(req))
+            _ <- IO.unit
             pagination = Pagination(page, limit)
-            clogger = logger.withConstContext(
-              Map(
-                "name" -> "Get books",
-                "request-id" -> reqId,
-                "request-uri" -> req.uri.toString,
-                "pagination" -> pagination.toString
-              )
-            )
             _ <- clogger.infoU("Request for books")
             books = libraryService.getBooks(pagination)
             res <- Ok(books.map(_.asJson))
           } yield res
         )
 
-      // case GET -> Root / "api" / "books" =>
-      //   import wow.doge.http4sdemo.utils.observableArrayJsonEncoder
-      //   import io.circe.syntax._
-      //   IO.deferAction(implicit s =>
-      //     for {
-      //       _ <- logger.infoU("Got request for books")
-      //       books = libraryService.getBooks
-      //       res <- Ok(books.map(_.asJson))
-      //     } yield res
-      //   )
-
       case req @ GET -> Root / "api" / "books" / BookId(id) =>
         import org.http4s.circe.CirceEntityCodec._
+        implicit val clogger =
+          enrichLogger(logger, req, Map("name" -> "Get book by id"))
         for {
-          reqId <- IO.pure(extractReqId(req))
-          clogger = logger.withConstContext(
-            Map(
-              "name" -> "Get book",
-              "request-id" -> reqId,
-              "request-uri" -> req.uri.toString,
-              "book-id" -> id.toString
-            )
-          )
           _ <- clogger.infoU(s"Retrieving book")
           bookJson <- libraryService.getBookById(id)
           res <- bookJson.fold(
@@ -117,16 +77,10 @@ class LibraryRoutes(libraryService: LibraryService)(implicit
 
       case req @ PUT -> Root / "api" / "books" =>
         import org.http4s.circe.CirceEntityCodec._
+        implicit val clogger =
+          enrichLogger(logger, req, Map("name" -> "Create book"))
         for {
-          reqId <- IO.pure(extractReqId(req))
           newBook <- req.as[NewBook]
-          clogger = logger.withConstContext(
-            Map(
-              "name" -> "Create book",
-              "request-id" -> reqId,
-              "new-book-data" -> newBook.toString
-            )
-          )
           res <- libraryService
             .createBook(newBook)
             .tapError(err => clogger.errorU(err.toString))
@@ -136,17 +90,10 @@ class LibraryRoutes(libraryService: LibraryService)(implicit
 
       case req @ PATCH -> Root / "api" / "books" / BookId(id) =>
         import org.http4s.circe.CirceEntityCodec._
+        implicit val clogger =
+          enrichLogger(logger, req, Map("name" -> "Update book"))
         for {
-          reqId <- IO.pure(extractReqId(req))
           updateData <- req.as[BookUpdate]
-          clogger = logger.withConstContext(
-            Map(
-              "name" -> "Update book",
-              "request-id" -> reqId,
-              "book-id" -> id.toString,
-              "update-data" -> updateData.toString
-            )
-          )
           res <- libraryService
             .updateBook(id, updateData)
             .flatMap(_ => NoContent().hideErrors)
@@ -155,24 +102,19 @@ class LibraryRoutes(libraryService: LibraryService)(implicit
         } yield res
 
       case req @ DELETE -> Root / "api" / "books" / BookId(id) =>
+        implicit val clogger =
+          enrichLogger(logger, req, Map("name" -> "Delete book"))
         for {
-          reqId <- IO.pure(extractReqId(req))
-          clogger = logger.withConstContext(
-            Map(
-              "name" -> "Delete book",
-              "request-id" -> reqId,
-              "book-id" -> id.toString
-            )
-          )
           _ <- clogger.debug("Request to delete book")
           _ <- libraryService.deleteBook(id)
           res <- Ok()
         } yield res
 
-      //TODO: use convenience method for decoding json stream
       case req @ POST -> Root / "api" / "books" =>
         import org.http4s.circe.CirceEntityCodec._
         import wow.doge.http4sdemo.utils.observableArrayJsonDecoder
+        implicit val clogger =
+          enrichLogger(logger, req, Map("name" -> "Search book"))
         IO.deferAction(implicit s =>
           for {
             // newBooks <- req.as[List[Book]]
@@ -195,17 +137,10 @@ class LibraryRoutes(libraryService: LibraryService)(implicit
           StringSearchQuery(q) =>
         import wow.doge.http4sdemo.utils.observableArrayJsonEncoder
         import io.circe.syntax._
+        implicit val clogger =
+          enrichLogger(logger, req, Map("name" -> "Search book"))
         IO.deferAction(implicit s =>
           for {
-            reqId <- IO.pure(extractReqId(req))
-            clogger = logger.withConstContext(
-              Map(
-                "name" -> "Get books",
-                "request-id" -> reqId,
-                "request-uri" -> req.uri.toString,
-                "q" -> q
-              )
-            )
             _ <- clogger.infoU("Request for searching extras")
             extras = libraryService.searchExtras(q)
             res <- Ok(extras.map(_.asJson))
@@ -214,16 +149,10 @@ class LibraryRoutes(libraryService: LibraryService)(implicit
 
       case req @ PUT -> Root / "api" / "extras" =>
         import org.http4s.circe.CirceEntityCodec._
+        implicit val clogger =
+          enrichLogger(logger, req, Map("name" -> "Search book"))
         for {
-          reqId <- IO.pure(extractReqId(req))
           newExtra <- req.as[NewExtra]
-          clogger = logger.withConstContext(
-            Map(
-              "name" -> "Create extra",
-              "request-id" -> reqId,
-              "new-extra-data" -> newExtra.show
-            )
-          )
           _ <- clogger.infoU("Request for creating extras")
           res <- libraryService
             .createExtra(newExtra)

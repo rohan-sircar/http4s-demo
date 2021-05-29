@@ -11,9 +11,10 @@ package object utils {
     req.attributes.lookup(RequestId.requestIdAttrKey).getOrElse("null")
 
   def enrichLogger[S](
+      L: Logger[Task],
       req: Request[Task],
       additionalContext: Map[String, S] = Map.empty[String, String]
-  )(implicit S: Show[S], L: Logger[Task]) = {
+  )(implicit S: Show[S]) = {
     L.withConstContext(
       Map(
         "request-id" -> extractReqId(req),

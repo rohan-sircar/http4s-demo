@@ -18,6 +18,7 @@ import wow.doge.http4sdemo.models.Refinements._
 import wow.doge.http4sdemo.models.pagination.Pagination
 import wow.doge.http4sdemo.routes.LibraryRoutes
 import wow.doge.http4sdemo.services.NoopLibraryService
+import io.odin.Logger
 
 class BooksRoutesSpec extends UnitTestBase {
 
@@ -36,13 +37,15 @@ class BooksRoutesSpec extends UnitTestBase {
         )
       val service = new NoopLibraryService {
 
-        override def getBooks(pagination: Pagination): Observable[Book] =
+        override def getBooks(pagination: Pagination)(implicit
+            L: Logger[Task]
+        ): Observable[Book] =
           Observable.fromIterable(book :: Nil)
 
       }
       for {
         _ <- IO.unit
-        routes = new LibraryRoutes(service).routes
+        routes = new LibraryRoutes(service)(logger).routes
         request = Request[Task](
           Method.GET,
           uri"/api/books" withQueryParams Map(
@@ -63,7 +66,9 @@ class BooksRoutesSpec extends UnitTestBase {
     import org.http4s.circe.CirceEntityCodec._
     withReplayLogger { implicit logger =>
       val service = new NoopLibraryService {
-        override def updateBook(id: BookId, updateData: BookUpdate) =
+        override def updateBook(id: BookId, updateData: BookUpdate)(implicit
+            logger: Logger[Task]
+        ) =
           IO.raiseError(
             AppError.EntityDoesNotExist(
               s"Book with id=$id does not exist"
@@ -74,7 +79,7 @@ class BooksRoutesSpec extends UnitTestBase {
       for {
         _ <- IO.unit
         reqBody = BookUpdate(Some(BookTitle("blahblah")), None)
-        routes = new LibraryRoutes(service).routes
+        routes = new LibraryRoutes(service)(logger).routes
         request = Request[Task](Method.PATCH, Root / "api" / "books" / "1")
           .withEntity(reqBody)
         res <- routes.run(request).value
@@ -104,7 +109,9 @@ class BooksRoutesSpec extends UnitTestBase {
           Book(BookId(2), BookTitle("book1"), value, AuthorId(1), date)
         )
       val service = new NoopLibraryService {
-        override def searchBooks(mode: BookSearchMode, value: SearchQuery) =
+        override def searchBooks(mode: BookSearchMode, value: SearchQuery)(
+            implicit L: Logger[Task]
+        ) =
           mode match {
             case BookSearchMode.BookTitle =>
               Observable.raiseError(new NotImplementedError)
@@ -114,7 +121,7 @@ class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- IO.unit
-        routes = new LibraryRoutes(service).routes
+        routes = new LibraryRoutes(service)(logger).routes
         request = Request[Task](
           Method.GET,
           Root / "api" / "books" / "search"
@@ -142,7 +149,9 @@ class BooksRoutesSpec extends UnitTestBase {
           Book(BookId(2), BookTitle("book1"), value, AuthorId(1), date)
         )
       val service = new NoopLibraryService {
-        override def searchBooks(mode: BookSearchMode, value: SearchQuery) =
+        override def searchBooks(mode: BookSearchMode, value: SearchQuery)(
+            implicit L: Logger[Task]
+        ) =
           mode match {
             case BookSearchMode.BookTitle =>
               Observable.fromIterable(books)
@@ -152,7 +161,7 @@ class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- UIO.unit
-        routes = new LibraryRoutes(service).routes
+        routes = new LibraryRoutes(service)(logger).routes
         request = Request[Task](
           Method.GET,
           Root / "api" / "books" / "search"
@@ -174,11 +183,13 @@ class BooksRoutesSpec extends UnitTestBase {
     import org.http4s.circe.CirceEntityCodec._
     withReplayLogger { implicit logger =>
       val service = new NoopLibraryService {
-        override def getBookById(id: BookId): UIO[Option[Book]] = UIO.none
+        override def getBookById(id: BookId)(implicit
+            L: Logger[Task]
+        ): UIO[Option[Book]] = UIO.none
       }
       for {
         _ <- UIO.unit
-        routes = new LibraryRoutes(service).routes
+        routes = new LibraryRoutes(service)(logger).routes
         request = Request[Task](
           Method.GET,
           Root / "api" / "books" / "12312"

@@ -55,7 +55,7 @@ final class Server(
       )
       metricsRoute = metricsRoutes(registry)
       libraryDbio = new LibraryDbio(p)
-      libraryService = new LibraryServiceImpl(p, libraryDbio, db, logger)
+      libraryService = new LibraryServiceImpl(p, libraryDbio, db)
       httpApp = Metrics(Dropwizard[Task](registry, "server"))(
         new LibraryRoutes(libraryService)(logger).routes
       )
