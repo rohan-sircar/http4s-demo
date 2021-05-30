@@ -21,7 +21,7 @@ import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.jdbc.ResultSetConcurrency
 import slick.jdbc.ResultSetType
 import wow.doge.http4sdemo.models._
-import wow.doge.http4sdemo.profile.{ExtendedPgProfile => JdbcProfile}
+import wow.doge.http4sdemo.server.{ExtendedPgProfile => JdbcProfile}
 import wow.doge.http4sdemo.slickcodegen.Tables
 
 package object implicits

@@ -16,7 +16,7 @@ import wow.doge.http4sdemo.schedulers.Schedulers
 import wow.doge.http4sdemo.server.config.AppConfig
 
 object Main extends BIOApp {
-  val profile = wow.doge.http4sdemo.profile.ExtendedPgProfile
+  val profile = wow.doge.http4sdemo.server.ExtendedPgProfile
   val schedulers = Schedulers.default
 
   override protected def scheduler: Scheduler = schedulers.async.value

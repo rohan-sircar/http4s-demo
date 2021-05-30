@@ -22,11 +22,11 @@ import org.http4s.server.middleware.ResponseTiming
 import org.http4s.server.middleware.Throttle
 import org.http4s.server.middleware.Timeout
 import slick.jdbc.JdbcBackend.DatabaseDef
-import wow.doge.http4sdemo.profile.{ExtendedPgProfile => JdbcProfile}
 import wow.doge.http4sdemo.routes.LibraryRoutes
 import wow.doge.http4sdemo.schedulers.Schedulers
 import wow.doge.http4sdemo.server.config.HttpConfig
 import wow.doge.http4sdemo.server.utils.StructuredOdinLogger
+import wow.doge.http4sdemo.server.{ExtendedPgProfile => JdbcProfile}
 import wow.doge.http4sdemo.services.LibraryDbio
 import wow.doge.http4sdemo.services.LibraryServiceImpl
 

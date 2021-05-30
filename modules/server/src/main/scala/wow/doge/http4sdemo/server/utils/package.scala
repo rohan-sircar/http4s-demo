@@ -1,11 +1,21 @@
 package wow.doge.http4sdemo.server
 import cats.Show
+import cats.effect.ConcurrentEffect
 import cats.syntax.show._
+import fs2.interop.reactivestreams._
+import io.circe.Json
 import io.odin.Logger
 import io.odin.syntax._
 import monix.bio.Task
+import monix.execution.Scheduler
+import monix.reactive.Observable
+import org.http4s.EntityDecoder
+import org.http4s.EntityEncoder
 import org.http4s.Request
+import org.http4s.circe.streamJsonArrayDecoder
+import org.http4s.circe.streamJsonArrayEncoder
 import org.http4s.server.middleware.RequestId
+
 package object utils {
   def extractReqId(req: Request[Task]) =
     req.attributes.lookup(RequestId.requestIdAttrKey).getOrElse("null")
@@ -26,4 +36,16 @@ package object utils {
       }.toMap
     )
   }
+
+  implicit def observableArrayJsonEncoder[F[_]: ConcurrentEffect](implicit
+      S: Scheduler
+  ): EntityEncoder[F, Observable[Json]] =
+    EntityEncoder[F, fs2.Stream[F, Json]]
+      .contramap(_.toReactivePublisher.toStream[F])
+
+  implicit def observableArrayJsonDecoder[F[_]: ConcurrentEffect]
+      : EntityDecoder[F, Observable[Json]] =
+    EntityDecoder[F, fs2.Stream[F, Json]].map(stream =>
+      Observable.fromReactivePublisher(stream.toUnicastPublisher)
+    )
 }

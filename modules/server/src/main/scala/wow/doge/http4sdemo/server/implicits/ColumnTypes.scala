@@ -2,11 +2,11 @@ package wow.doge.http4sdemo.server.implicits
 
 import io.estatico.newtype.ops._
 import wow.doge.http4sdemo.models.common._
-import wow.doge.http4sdemo.profile.ExtendedPgProfile
-import wow.doge.http4sdemo.profile.ExtendedPgProfile.api._
-import wow.doge.http4sdemo.profile.ExtendedPgProfile.mapping._
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.refinements._
+import wow.doge.http4sdemo.server.ExtendedPgProfile
+import wow.doge.http4sdemo.server.ExtendedPgProfile.api._
+import wow.doge.http4sdemo.server.ExtendedPgProfile.mapping._
 
 trait ColumnTypes {
   implicit val bookIdColType: ExtendedPgProfile.ColumnType[BookId] =

@@ -1,4 +1,4 @@
-package wow.doge.http4sdemo.profile
+package wow.doge.http4sdemo.server
 
 import scala.reflect.ClassTag
 

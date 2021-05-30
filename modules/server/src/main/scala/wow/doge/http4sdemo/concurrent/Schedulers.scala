@@ -23,7 +23,8 @@ object Schedulers {
         .withUncaughtExceptionReporter(Schedulers.reporter)
     ),
     AsyncScheduler(
-      Scheduler.global
+      Scheduler
+        .computation()
         .withUncaughtExceptionReporter(Schedulers.reporter)
     )
   )

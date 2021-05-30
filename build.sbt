@@ -5,7 +5,7 @@ val MunitVersion           = "0.7.20"
 val LogbackVersion         = "1.2.3"
 val MunitCatsEffectVersion = "0.13.0"
 val FlywayVersion          = "7.5.3"
-val MonixVersion           = "3.3.0"
+val MonixVersion           = "3.4.0"
 // val MonixBioVersion     = "1.1.0"
 val MonixBioVersion        = "0a2ad29275"
 val SttpVersion            = "3.3.1"
@@ -64,13 +64,14 @@ lazy val flyway = (project in file("modules/flyway"))
     flywayPassword := databasePassword,
     flywayBaselineOnMigrate := true
   )
+  .disablePlugins(RevolverPlugin)
 
 lazy val shared = (project in file("modules/shared"))
   .settings(
     //format: off
     libraryDependencies ++= Seq(
       "io.circe"                   %% "circe-generic"          % CirceVersion,
-      "co.fs2"                     %% "fs2-reactive-streams"   % "2.5.0",
+      // "co.fs2"                     %% "fs2-reactive-streams"   % "2.5.0",
       "com.github.monix"            % "monix-bio"              % MonixBioVersion,
       "com.github.valskalla"       %% "odin-monix"             % OdinVersion,
       // "de.lolhens"                 %% "munit-tagless-final"    % "0.0.1",
@@ -89,55 +90,7 @@ lazy val shared = (project in file("modules/shared"))
   )
   .disablePlugins(RevolverPlugin)
 
-lazy val common = (project in file("modules/common"))
-  .settings(
-    //format: off
-    libraryDependencies ++= Seq(
-      "org.http4s"                 %% "http4s-circe"           % Http4sVersion,
-      "org.http4s"                 %% "http4s-dsl"             % Http4sVersion,
-      "io.circe"                   %% "circe-generic"          % CirceVersion,
-      "org.typelevel"              %% "log4cats-core"          % "1.3.1",
-      "co.fs2"                     %% "fs2-reactive-streams"   % "2.5.0",
-      "com.github.monix"            % "monix-bio"              % MonixBioVersion,
-      "com.github.valskalla"       %% "odin-monix"             % OdinVersion,
-      "de.lolhens"                 %% "munit-tagless-final"    % "0.0.1",
-      "be.venneborg"               %% "slick-refined"          % "0.5.0",
-      "com.typesafe.scala-logging" %% "scala-logging"          % "3.9.2",
-      "com.beachape"               %% "enumeratum"             % EnumeratumVersion,
-      "com.beachape"               %% "enumeratum-circe"       % EnumeratumVersion,
-      "com.chuusai"                %% "shapeless"              % "2.3.3",
-      "com.lihaoyi"                %% "sourcecode"             % "0.2.1",
-      "eu.timepit"                 %% "refined"                % RefinedVersion,
-      "eu.timepit"                 %% "refined-pureconfig"     % RefinedVersion,
-      "com.typesafe.slick"         %% "slick"                  % SlickVersion,
-      "com.github.pureconfig"      %% "pureconfig"             % PureconfigVersion,
-      "com.github.pureconfig"      %% "pureconfig-enumeratum"  % PureconfigVersion,
-      "com.github.pureconfig"      %% "pureconfig-cats-effect" % PureconfigVersion,
-      "io.scalaland"               %% "chimney"                % ChimneyVersion,
-      "io.scalaland"               %% "chimney-cats"           % ChimneyVersion,
-      "com.rms.miu"                %% "slick-cats"             % "0.10.4",
-      "com.kubukoz"                %% "slick-effect"           % "0.3.0",
-      "io.circe"                   %% "circe-fs2"              % CirceVersion,
-      "io.circe"                   %% "circe-refined"          % CirceVersion,
-      "io.estatico"                %% "newtype"                % "0.4.4",
-      "be.venneborg"               %% "slick-refined"          % "0.5.0",
-      "com.github.tminglei"        %% "slick-pg"               % SlickPgVersion,
-      "com.github.tminglei"        %% "slick-pg_circe-json"    % SlickPgVersion
-      //format: on
-    )
-  )
-  .disablePlugins(RevolverPlugin)
-  .dependsOn(shared)
-
-lazy val testCommon = (project in file("modules/test-common"))
-  .settings(
-    libraryDependencies ++= Seq(
-      "com.github.monix" % "monix-bio" % MonixBioVersion
-    )
-  )
-  .disablePlugins(RevolverPlugin)
-  .dependsOn(common)
-  .dependsOn(shared)
+lazy val DeepIntegrationTest = IntegrationTest.extend(Test)
 
 lazy val server = (project in file("modules/server"))
   .enablePlugins(
@@ -148,7 +101,7 @@ lazy val server = (project in file("modules/server"))
     BuildInfoPlugin,
     GitBranchPrompt
   )
-  .configs(IntegrationTest)
+  .configs(DeepIntegrationTest)
   .settings(
     organization := "wow.doge",
     name := "http4s-demo",
@@ -161,15 +114,16 @@ lazy val server = (project in file("modules/server"))
     dockerUsername := Some("rohansircar"),
     dockerRepository := Some("docker.io"),
     Defaults.itSettings,
-    inConfig(IntegrationTest)(scalafixConfigSettings(IntegrationTest)),
+    inConfig(DeepIntegrationTest)(scalafixConfigSettings(DeepIntegrationTest)),
     buildInfoOptions ++= Seq(BuildInfoOption.ToJson, BuildInfoOption.BuildTime),
     buildInfoPackage := "wow.doge.http4sdemo",
-    fork in IntegrationTest := true,
-    envVars in IntegrationTest := Map("PROJECT_ENV" -> "test"),
+    fork in DeepIntegrationTest := true,
+    envVars in DeepIntegrationTest := Map("PROJECT_ENV" -> "test"),
     fork in Test := true,
     envVars in Test := Map("PROJECT_ENV" -> "test"),
     libraryDependencies ++= Seq(
       //format: off
+      "co.fs2"                        %% "fs2-reactive-streams"     % "2.5.0",
       "org.http4s"                    %% "http4s-ember-server"      % Http4sVersion,
       "org.http4s"                    %% "http4s-ember-client"      % Http4sVersion,
       "org.http4s"                    %% "http4s-dropwizard-metrics" % Http4sVersion,
@@ -177,8 +131,6 @@ lazy val server = (project in file("modules/server"))
       "org.http4s"                    %% "http4s-dsl"               % Http4sVersion,
       "io.circe"                      %% "circe-generic"            % CirceVersion,
       "io.monix"                      %% "monix"                    % MonixVersion,
-      // "io.monix"                   %% "monix-bio"                % "1.1.0",
-      "com.github.monix"               % "monix-bio"                % MonixBioVersion,
       "com.softwaremill.sttp.client3" %% "core"                     % SttpVersion,
       "com.softwaremill.sttp.client3" %% "monix"                    % SttpVersion,
       "com.softwaremill.sttp.client3" %% "circe"                    % SttpVersion,
@@ -192,11 +144,8 @@ lazy val server = (project in file("modules/server"))
       "com.github.valskalla"          %% "odin-extras"              % OdinVersion,
       "com.typesafe.scala-logging"    %% "scala-logging"            % "3.9.2",
       "com.lihaoyi"                   %% "os-lib"                   % "0.7.1",
-      "com.beachape"                  %% "enumeratum"               % EnumeratumVersion,
-      "com.beachape"                  %% "enumeratum-circe"         % EnumeratumVersion,
       "com.chuusai"                   %% "shapeless"                % "2.3.3",
       "com.lihaoyi"                   %% "sourcecode"               % "0.2.1",
-      "eu.timepit"                    %% "refined"                  % RefinedVersion,
       "eu.timepit"                    %% "refined-pureconfig"       % RefinedVersion,
       "com.zaxxer"                     % "HikariCP"                 % "3.4.2",
       "com.typesafe.slick"            %% "slick"                    % SlickVersion,
@@ -209,8 +158,6 @@ lazy val server = (project in file("modules/server"))
       "io.scalaland"                  %% "chimney-cats"             % "0.6.1",
       "com.rms.miu"                   %% "slick-cats"               % "0.10.4",
       "com.kubukoz"                   %% "slick-effect"             % "0.3.0",
-      "io.circe"                      %% "circe-fs2"                % CirceVersion,
-      "io.circe"                      %% "circe-refined"            % CirceVersion,
       "io.estatico"                   %% "newtype"                  % "0.4.4",
       "be.venneborg"                  %% "slick-refined"            % "0.5.0",
       "com.github.tminglei"           %% "slick-pg"                 % SlickPgVersion,
@@ -220,8 +167,8 @@ lazy val server = (project in file("modules/server"))
       "de.lolhens"                    %% "munit-tagless-final"             % "0.0.1"               % "it,test",
       "org.scalameta"                 %% "munit-scalacheck"                % "0.7.23"              % "it,test",
       "org.scalacheck"                %% "scalacheck"                      % "1.15.3"              % "it,test",
-      "com.dimafeng"                  %% "testcontainers-scala-munit"      % TestContainersVersion % IntegrationTest,
-      "com.dimafeng"                  %% "testcontainers-scala-postgresql" % TestContainersVersion % IntegrationTest
+      "com.dimafeng"                  %% "testcontainers-scala-munit"      % TestContainersVersion % DeepIntegrationTest,
+      "com.dimafeng"                  %% "testcontainers-scala-postgresql" % TestContainersVersion % DeepIntegrationTest
       //format: on
     ),
     testFrameworks += new TestFramework("munit.Framework"),
@@ -287,16 +234,17 @@ lazy val server = (project in file("modules/server"))
           //format: off
           s"""
           |package ${pkg}
+          |import wow.doge.http4sdemo.server.ExtendedPgProfile
           |// AUTO-GENERATED Slick data model
           |/** Stand-alone Slick data model for immediate use */
           |object ${container} extends ${container} {
-          |  val profile = wow.doge.http4sdemo.profile.ExtendedPgProfile
+          |  val profile = ExtendedPgProfile
           |}
           |
           |/** Slick data model trait for extension, choice of backend or usage in the cake pattern. 
           |  * (Make sure to initialize this late.) */
           |trait ${container}${parentType.map(t => s" extends $t").getOrElse("")} {
-          |  val profile: wow.doge.http4sdemo.profile.ExtendedPgProfile
+          |  val profile: ExtendedPgProfile
           |  import profile.api._
           |  import profile.mapping._
           |  import wow.doge.http4sdemo.refinements.Refinements._
@@ -314,8 +262,8 @@ lazy val server = (project in file("modules/server"))
     },
     sourceGenerators in Compile += slickCodegen.taskValue
   )
-  .aggregate(common, testCommon, shared)
-  .dependsOn(flyway, common, testCommon)
+  .aggregate(shared)
+  .dependsOn(flyway)
   .dependsOn(shared)
 
 inThisBuild(
