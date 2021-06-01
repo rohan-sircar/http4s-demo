@@ -19,6 +19,7 @@ import wow.doge.http4sdemo.models.pagination.Pagination
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.refinements._
 import wow.doge.http4sdemo.routes.LibraryRoutes
+import wow.doge.http4sdemo.routes.LibraryRoutes2
 import wow.doge.http4sdemo.services.NoopLibraryService
 
 class BooksRoutesSpec extends UnitTestBase {
@@ -46,7 +47,7 @@ class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- IO.unit
-        routes = new LibraryRoutes(service)(logger).routes
+        routes = new LibraryRoutes2(service)(logger).routes
         request = Request[Task](
           Method.GET,
           uri"/api/books" withQueryParams Map(
@@ -190,7 +191,7 @@ class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- UIO.unit
-        routes = new LibraryRoutes(service)(logger).routes
+        routes = new LibraryRoutes2(service)(logger).routes
         request = Request[Task](
           Method.GET,
           Root / "api" / "books" / "12312"

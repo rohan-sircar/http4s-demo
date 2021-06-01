@@ -62,9 +62,23 @@ package object pagination {
 }
 
 package pagination {
-  final case class Pagination(page: PaginationPage, limit: PaginationLimit) {
+  import sttp.tapir._
+  import sttp.tapir.annotations.deriveEndpointInput
+  import sttp.tapir.annotations.{query => _query}
+  import sttp.tapir.codec.newtype._
+  import sttp.tapir.codec.refined._
+
+  final case class Pagination(
+      @_query page: PaginationPage,
+      @_query limit: PaginationLimit
+  ) {
     val offset: PaginationOffset = PaginationOffset(
       page.inner.value * limit.inner.value
     )
   }
+
+  object Pagination {
+    val endpoint = deriveEndpointInput[Pagination]
+  }
+
 }

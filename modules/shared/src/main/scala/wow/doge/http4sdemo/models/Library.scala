@@ -3,15 +3,21 @@ package wow.doge.http4sdemo.models
 import java.time.LocalDateTime
 
 import cats.Show
+import endpoints4s.generic._
 import enumeratum.EnumEntry
 import enumeratum._
 import io.circe.Json
 import io.circe.Printer
 import io.circe.generic.semiauto._
 import io.scalaland.chimney.dsl._
+import sttp.tapir.Schema
+import sttp.tapir.codec.enumeratum._
+import sttp.tapir.codec.newtype._
+import sttp.tapir.codec.refined._
 import wow.doge.http4sdemo.models.common.Color
 import wow.doge.http4sdemo.refinements.Refinements._
 
+@name("BookModel")
 final case class Book(
     bookId: BookId,
     bookTitle: BookTitle,
@@ -22,7 +28,7 @@ final case class Book(
 object Book {
   def tupled = (apply _).tupled
   implicit val codec = deriveCodec[Book]
-
+  implicit val schema = Schema.derived[Book]
 }
 
 final case class NewBook(
@@ -33,7 +39,7 @@ final case class NewBook(
 object NewBook {
   def tupled = (apply _).tupled
   implicit val codec = deriveCodec[NewBook]
-
+  implicit val schema = Schema.derived[NewBook]
 }
 
 final case class BookUpdateRow(
@@ -55,10 +61,14 @@ final case class Author(authorId: AuthorId, authorName: AuthorName)
 object Author {
   def tupled = (apply _).tupled
   implicit val codec = deriveCodec[Author]
-
+  implicit val schema = Schema.derived[Author]
 }
 
 final case class NewAuthor(name: AuthorName)
+object NewAuthor {
+  implicit val codec = deriveCodec[NewAuthor]
+  implicit val schema = Schema.derived[NewAuthor]
+}
 
 final case class BookWithAuthor(
     id: BookId,

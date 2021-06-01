@@ -1,16 +1,21 @@
 package wow.doge.http4sdemo
 
 import cats.data.ValidatedNec
+import cats.effect.ConcurrentEffect
 import cats.syntax.either._
-import eu.timepit.refined.api._
+import eu.timepit.refined.api.RefType
+import eu.timepit.refined.api.Validate
+import fs2.interop.reactivestreams._
 import io.odin.meta.Position
 import io.odin.meta.Render
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.TransformerF
 import monix.bio.IO
 import monix.bio.Task
+import monix.execution.Scheduler
+import monix.reactive.Observable
 
-package object implicits {
+package object implicits extends MyCirceSupportParser {
   // with slickeffect.DBIOInstances
 
   implicit final class MonixEvalTaskExt[T](private val task: monix.eval.Task[T])
@@ -67,6 +72,16 @@ package object implicits {
         .hideErrors
     }
 
+  }
+
+  implicit final class StreamToObs[F[_], T](private val S: fs2.Stream[F, T]) {
+    def toObs(implicit F: ConcurrentEffect[F]) =
+      Observable.fromReactivePublisher(S.toUnicastPublisher)
+  }
+  implicit final class ObsToStream[T](private val O: Observable[T])
+      extends AnyVal {
+    def toStream[F[_]](implicit F: ConcurrentEffect[F], s: Scheduler) =
+      O.toReactivePublisher.toStream[F]
   }
 
 }

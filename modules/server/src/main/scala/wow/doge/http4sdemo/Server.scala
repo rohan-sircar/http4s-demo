@@ -23,6 +23,7 @@ import org.http4s.server.middleware.Throttle
 import org.http4s.server.middleware.Timeout
 import slick.jdbc.JdbcBackend.DatabaseDef
 import wow.doge.http4sdemo.routes.LibraryRoutes
+import wow.doge.http4sdemo.routes.LibraryRoutes2
 import wow.doge.http4sdemo.schedulers.Schedulers
 import wow.doge.http4sdemo.server.config.HttpConfig
 import wow.doge.http4sdemo.server.utils.StructuredOdinLogger
@@ -56,13 +57,15 @@ final class Server(
       metricsRoute = metricsRoutes(registry)
       libraryDbio = new LibraryDbio(p)
       libraryService = new LibraryServiceImpl(p, libraryDbio, db)
-      httpApp = Metrics(Dropwizard[Task](registry, "server"))(
-        new LibraryRoutes(libraryService)(logger).routes
+      httRoutes = Metrics(Dropwizard[Task](registry, "server"))(
+        new LibraryRoutes(libraryService)(logger).routes <+> new LibraryRoutes2(
+          libraryService
+        )(logger).routes
       )
       httpApp2 <- Resource.eval(
         Throttle(config.throttle.amount.value, config.throttle.per)(
           Timeout(config.timeout)(
-            AutoSlash.httpRoutes(metricsRoute <+> httpApp).orNotFound
+            AutoSlash.httpRoutes(metricsRoute <+> httRoutes).orNotFound
           )
         )
       )

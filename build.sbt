@@ -8,7 +8,8 @@ val FlywayVersion          = "7.5.3"
 val MonixVersion           = "3.4.0"
 // val MonixBioVersion     = "1.1.0"
 val MonixBioVersion        = "0a2ad29275"
-val SttpVersion            = "3.3.1"
+// val MonixBioVersion        = "1.1.0+39-73a5fb1c-SNAPSHOT"
+val SttpVersion            = "3.1.7"
 val OdinVersion            = "0.11.0"
 val TestContainersVersion  = "0.39.3"
 val PureconfigVersion      = "0.14.0"
@@ -70,21 +71,34 @@ lazy val shared = (project in file("modules/shared"))
   .settings(
     //format: off
     libraryDependencies ++= Seq(
-      "io.circe"                   %% "circe-generic"          % CirceVersion,
-      // "co.fs2"                     %% "fs2-reactive-streams"   % "2.5.0",
-      "com.github.monix"            % "monix-bio"              % MonixBioVersion,
-      "com.github.valskalla"       %% "odin-monix"             % OdinVersion,
-      // "de.lolhens"                 %% "munit-tagless-final"    % "0.0.1",
-      "com.beachape"               %% "enumeratum"             % EnumeratumVersion,
-      "com.beachape"               %% "enumeratum-circe"       % EnumeratumVersion,
-      "com.chuusai"                %% "shapeless"              % "2.3.3",
-      "com.lihaoyi"                %% "sourcecode"             % "0.2.1",
-      "eu.timepit"                 %% "refined"                % RefinedVersion,
-      "io.scalaland"               %% "chimney"                % ChimneyVersion,
-      "io.scalaland"               %% "chimney-cats"           % ChimneyVersion,
-      "io.circe"                   %% "circe-fs2"              % CirceVersion,
-      "io.circe"                   %% "circe-refined"          % CirceVersion,
-      "io.estatico"                %% "newtype"                % "0.4.4",
+      "io.circe"                      %% "circe-generic"            % CirceVersion,
+      "co.fs2"                        %% "fs2-reactive-streams"     % "2.5.0",
+      // "io.monix"                      %% "monix-bio"                % MonixBioVersion,
+      "com.github.monix"               % "monix-bio"                % MonixBioVersion,
+      "com.github.valskalla"          %% "odin-monix"               % OdinVersion,
+      // "de.lolhens"                    %% "munit-tagless-final"      % "0.0.1",
+      "com.beachape"                  %% "enumeratum"               % EnumeratumVersion,
+      "com.beachape"                  %% "enumeratum-circe"         % EnumeratumVersion,
+      "com.chuusai"                   %% "shapeless"                % "2.3.3",
+      "com.lihaoyi"                   %% "sourcecode"               % "0.2.1",
+      "eu.timepit"                    %% "refined"                  % RefinedVersion,
+      "io.scalaland"                  %% "chimney"                  % ChimneyVersion,
+      "io.scalaland"                  %% "chimney-cats"             % ChimneyVersion,
+      "io.circe"                      %% "circe-fs2"                % CirceVersion,
+      "io.circe"                      %% "circe-refined"            % CirceVersion,
+      "io.estatico"                   %% "newtype"                  % "0.4.4",
+      "org.endpoints4s"               %% "algebra"                  % "1.3.0",
+      "org.endpoints4s"               %% "json-schema-generic"      % "1.3.0",
+      "org.endpoints4s"               %% "algebra-json-schema"      % "1.3.0",
+      "com.softwaremill.sttp.client3" %% "core"                     % SttpVersion,
+      "com.softwaremill.sttp.client3" %% "monix"                    % SttpVersion,
+      "com.softwaremill.sttp.client3" %% "fs2"                   % SttpVersion,
+      "com.softwaremill.sttp.client3" %% "circe"                    % SttpVersion,
+      "com.softwaremill.sttp.tapir"   %% "tapir-cats"               % "0.17.19",
+      "com.softwaremill.sttp.tapir"   %% "tapir-enumeratum"         % "0.17.19",
+      "com.softwaremill.sttp.tapir"   %% "tapir-json-circe"         % "0.17.19",
+      "com.softwaremill.sttp.tapir"   %% "tapir-refined"            % "0.17.19",
+      "com.softwaremill.sttp.tapir"   %% "tapir-newtype"            % "0.17.19",
       //format: on
     )
   )
@@ -131,10 +145,6 @@ lazy val server = (project in file("modules/server"))
       "org.http4s"                    %% "http4s-dsl"               % Http4sVersion,
       "io.circe"                      %% "circe-generic"            % CirceVersion,
       "io.monix"                      %% "monix"                    % MonixVersion,
-      "com.softwaremill.sttp.client3" %% "core"                     % SttpVersion,
-      "com.softwaremill.sttp.client3" %% "monix"                    % SttpVersion,
-      "com.softwaremill.sttp.client3" %% "circe"                    % SttpVersion,
-      "com.softwaremill.sttp.client3" %% "httpclient-backend-monix" % SttpVersion,
       "com.softwaremill.quicklens"    %% "quicklens"                % "1.6.1",
       "com.softwaremill.common"       %% "tagging"                  % "2.2.1",
       "com.softwaremill.macwire"      %% "macros"                   % "2.3.6"                       % "provided",
@@ -162,6 +172,11 @@ lazy val server = (project in file("modules/server"))
       "be.venneborg"                  %% "slick-refined"            % "0.5.0",
       "com.github.tminglei"           %% "slick-pg"                 % SlickPgVersion,
       "com.github.tminglei"           %% "slick-pg_circe-json"      % SlickPgVersion,
+      "org.endpoints4s"               %% "http4s-server"            % "5.0.0",
+      "com.softwaremill.sttp.client3" %% "httpclient-backend-monix" % SttpVersion,
+      "com.softwaremill.sttp.client3" %% "httpclient-backend-fs2" % SttpVersion,
+      "com.softwaremill.sttp.tapir"   %% "tapir-http4s-server"      % "0.17.19",
+      "com.softwaremill.sttp.tapir"   %% "tapir-sttp-client"        % "0.17.19",
       //test deps
       "org.scalameta"                 %% "munit"                           % MunitVersion          % "it,test",
       "de.lolhens"                    %% "munit-tagless-final"             % "0.0.1"               % "it,test",

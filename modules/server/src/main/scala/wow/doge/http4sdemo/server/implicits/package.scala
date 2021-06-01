@@ -9,6 +9,7 @@ import eu.timepit.refined.api._
 import io.circe.generic.semiauto._
 import monix.bio.IO
 import monix.bio.Task
+import monix.execution.Scheduler
 import monix.reactive.Observable
 import org.http4s.ParseFailure
 import org.http4s.QueryParamDecoder
@@ -20,7 +21,11 @@ import slick.dbio.Streaming
 import slick.jdbc.JdbcBackend.DatabaseDef
 import slick.jdbc.ResultSetConcurrency
 import slick.jdbc.ResultSetType
+import sttp.capabilities.WebSockets
+import sttp.capabilities.monix.MonixStreams
+import sttp.tapir.client.sttp.WebSocketToPipe
 import wow.doge.http4sdemo.models._
+import wow.doge.http4sdemo.server.utils.WebSocketToMonixPipe
 import wow.doge.http4sdemo.server.{ExtendedPgProfile => JdbcProfile}
 import wow.doge.http4sdemo.slickcodegen.Tables
 
@@ -122,6 +127,13 @@ package object implicits
           )
         )
     }
+
+  implicit def webSocketsSupportedForMonixStream(implicit
+      s: Scheduler
+  ): WebSocketToPipe[MonixStreams with WebSockets] =
+    new WebSocketToMonixPipe[Task, MonixStreams with WebSockets]
+  // implicit def webSocketsSupportedForMonixStreamAndEffect[F[_]: ConcurrentEffect]: WebSocketToPipe[Effect[F] with MonixStreams with WebSockets] =
+  //   new WebSocketToMonixPipe[F, Effect[F] with MonixStreams with WebSockets]
 
   // implicit val qpdPaginationPage: QueryParamDecoder[PaginationPage] =
   //   QueryParamDecoder[PaginationRefinement]

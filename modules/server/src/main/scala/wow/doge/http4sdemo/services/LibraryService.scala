@@ -257,9 +257,7 @@ final class LibraryServiceImpl(
   ) =
     db.streamO(dbio.getBooksForAuthor(authorId))
 
-  def extrasRow(implicit
-      logger: Logger[Task]
-  ) = db.streamO(dbio.extrasRows)
+  def extrasRow(implicit logger: Logger[Task]) = db.streamO(dbio.extrasRows)
 
   def createExtra(ne: NewExtra)(implicit
       logger: Logger[Task]

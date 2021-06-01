@@ -8,12 +8,10 @@ import monix.reactive.Consumer
 import monix.reactive.Observable
 import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
-import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.BookUpdate
 import wow.doge.http4sdemo.models.NewBook
 import wow.doge.http4sdemo.models.NewExtra
-import wow.doge.http4sdemo.models.pagination._
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.refinements._
 import wow.doge.http4sdemo.server.implicits._
@@ -44,37 +42,6 @@ final class LibraryRoutes(libraryService: LibraryService)(
             res <- Ok(books.map(_.asJson))
           } yield res
         )
-
-      case req @ GET -> Root / "api" / "books" :?
-          PaginationLimitMatcher(limit) +& PaginationPageMatcher(page) =>
-        import wow.doge.http4sdemo.server.utils.observableArrayJsonEncoder
-        import io.circe.syntax._
-        implicit val clogger =
-          enrichLogger(logger, req, Map("name" -> "Get books"))
-        IO.deferAction(implicit s =>
-          for {
-            _ <- IO.unit
-            pagination = Pagination(page, limit)
-            _ <- clogger.infoU("Request for books")
-            books = libraryService.getBooks(pagination)
-            res <- Ok(books.map(_.asJson))
-          } yield res
-        )
-
-      case req @ GET -> Root / "api" / "books" / BookId(id) =>
-        import org.http4s.circe.CirceEntityCodec._
-        implicit val clogger =
-          enrichLogger(logger, req, Map("name" -> "Get book by id"))
-        for {
-          _ <- clogger.infoU(s"Retrieving book")
-          bookJson <- libraryService.getBookById(id)
-          res <- bookJson.fold(
-            clogger.warnU(s"Request for non-existent book") >>
-              AppError
-                .EntityDoesNotExist(s"Book with id $id does not exist")
-                .toResponse
-          )(b => Ok(b).hideErrors)
-        } yield res
 
       case req @ PUT -> Root / "api" / "books" =>
         import org.http4s.circe.CirceEntityCodec._

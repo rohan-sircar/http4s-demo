@@ -15,6 +15,11 @@ import org.http4s.Request
 import org.http4s.circe.streamJsonArrayDecoder
 import org.http4s.circe.streamJsonArrayEncoder
 import org.http4s.server.middleware.RequestId
+import io.circe.Encoder
+import io.circe.syntax._
+import monix.bio.UIO
+import wow.doge.http4sdemo.implicits._
+import io.circe.Decoder
 
 package object utils {
   def extractReqId(req: Request[Task]) =
@@ -48,4 +53,12 @@ package object utils {
     EntityDecoder[F, fs2.Stream[F, Json]].map(stream =>
       Observable.fromReactivePublisher(stream.toUnicastPublisher)
     )
+
+  def observableToJsonStreamA[A: Encoder](obs: Observable[A]) =
+    UIO.deferAction { implicit s =>
+      UIO.pure(
+        observableArrayJsonEncoder[Task].toEntity(obs.map(_.asJson)).body
+      )
+    }
+
 }
