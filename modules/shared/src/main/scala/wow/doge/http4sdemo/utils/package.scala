@@ -25,13 +25,6 @@ package utils {
       reqParams: String
   )
   object ReqContext {
-    // implicit val tapirMapping = Mapping.from[(String), ReqContext] {
-    //   case reqId => ReqContext(reqId)
-    // } { _.requestId }
-
-    // implicit val tapirMapping2 = Mapping.fromDecode[(String), ReqContext] {
-    //   case reqId => sttp.tapir.DecodeResult.Value(ReqContext(reqId))
-    // } { _.requestId }
 
     val empty = ReqContext("null", "null", "null")
 

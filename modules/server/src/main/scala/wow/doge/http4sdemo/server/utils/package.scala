@@ -3,10 +3,13 @@ import cats.Show
 import cats.effect.ConcurrentEffect
 import cats.syntax.show._
 import fs2.interop.reactivestreams._
+import io.circe.Encoder
 import io.circe.Json
+import io.circe.syntax._
 import io.odin.Logger
 import io.odin.syntax._
 import monix.bio.Task
+import monix.bio.UIO
 import monix.execution.Scheduler
 import monix.reactive.Observable
 import org.http4s.EntityDecoder
@@ -15,11 +18,6 @@ import org.http4s.Request
 import org.http4s.circe.streamJsonArrayDecoder
 import org.http4s.circe.streamJsonArrayEncoder
 import org.http4s.server.middleware.RequestId
-import io.circe.Encoder
-import io.circe.syntax._
-import monix.bio.UIO
-import wow.doge.http4sdemo.implicits._
-import io.circe.Decoder
 
 package object utils {
   def extractReqId(req: Request[Task]) =

@@ -3,7 +3,6 @@ package wow.doge.http4sdemo.models
 import java.time.LocalDateTime
 
 import cats.Show
-import endpoints4s.generic._
 import enumeratum.EnumEntry
 import enumeratum._
 import io.circe.Json
@@ -17,7 +16,6 @@ import sttp.tapir.codec.refined._
 import wow.doge.http4sdemo.models.common.Color
 import wow.doge.http4sdemo.refinements.Refinements._
 
-@name("BookModel")
 final case class Book(
     bookId: BookId,
     bookTitle: BookTitle,
