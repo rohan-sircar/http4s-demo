@@ -9,6 +9,7 @@ import monix.execution.Scheduler
 import monix.reactive.Observable
 import slick.jdbc.JdbcBackend
 import wow.doge.http4sdemo.AppError
+import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.Author
 import wow.doge.http4sdemo.models.Book
@@ -48,11 +49,11 @@ trait LibraryService {
 
   def createBook(newBook: NewBook)(implicit
       logger: Logger[Task]
-  ): IO[AppError, Book]
+  ): IO[AppError2, Book]
 
   def createBooks(newBooks: List[NewBook])(implicit
       logger: Logger[Task]
-  ): IO[AppError, Option[NumRows]]
+  ): IO[AppError2, Option[NumRows]]
 
   def createAuthor(a: NewAuthor)(implicit logger: Logger[Task]): Task[AuthorId]
 
@@ -72,7 +73,6 @@ final class LibraryServiceImpl(
     profile: JdbcProfile,
     dbio: LibraryDbio,
     db: JdbcBackend.DatabaseDef
-    // logger: Logger[Task]
 ) extends LibraryService {
   import profile.api._
 
@@ -158,7 +158,7 @@ final class LibraryServiceImpl(
 
   def createBook(newBook: NewBook)(implicit
       logger: Logger[Task]
-  ): IO[AppError, Book] =
+  ): IO[AppError2, Book] =
     IO.deferAction { implicit s =>
       for {
         action <- UIO(for {
@@ -168,7 +168,7 @@ final class LibraryServiceImpl(
         } yield book)
         book <- db
           .runTryL(action.transactionally.asTry)
-          .mapErrorPartial { case e: AppError =>
+          .mapErrorPartial { case e: AppError2 =>
             e
           }
       } yield book
@@ -176,7 +176,7 @@ final class LibraryServiceImpl(
 
   def createBooks(newBooks: List[NewBook])(implicit
       logger: Logger[Task]
-  ): IO[AppError, Option[NumRows]] =
+  ): IO[AppError2, Option[NumRows]] =
     for {
       l <- IO.pure(LazyList.from(newBooks))
       _ <-
@@ -184,7 +184,7 @@ final class LibraryServiceImpl(
           IO.unit
         else
           IO.raiseError(
-            new AppError.BadInput(s"Duplicate isbns provided")
+            new AppError2.BadInput(s"Duplicate isbns provided")
           )
       verifyIsbns =
         for {
@@ -209,7 +209,7 @@ final class LibraryServiceImpl(
             if (l2.isEmpty) IO.unit
             else
               IO.raiseError(
-                new AppError.EntityAlreadyExists(
+                new AppError2.EntityAlreadyExists(
                   s"Books with these isbns already exist: $l2"
                 )
               )
@@ -232,13 +232,13 @@ final class LibraryServiceImpl(
                 })
                 .transactionally
                 .asTry
-            ).mapErrorPartial { case e: AppError => e }
+            ).mapErrorPartial { case e: AppError2 => e }
           )
         _ <-
           if (l3.isEmpty) IO.unit
           else
             IO.raiseError(
-              new AppError.EntityDoesNotExist(
+              new AppError2.EntityDoesNotExist(
                 s"Authors with these ids do not exist: $l3"
               )
             )
@@ -248,7 +248,7 @@ final class LibraryServiceImpl(
       action = dbio.insertBooks(newBooks)
       res <- db
         .runTryL(action.transactionally.asTry)
-        .mapErrorPartial { case e: AppError => e }
+        .mapErrorPartial { case e: AppError2 => e }
         .map(_.map(NumRows.apply))
     } yield res
 
@@ -362,7 +362,7 @@ final class LibraryDbio(val profile: JdbcProfile) {
         case None => DBIO.unit
         case Some(_) =>
           DBIO.failed(
-            AppError.EntityAlreadyExists(
+            AppError2.EntityAlreadyExists(
               s"Book with isbn=${bookIsbn} already exists"
             )
           )
@@ -373,7 +373,7 @@ final class LibraryDbio(val profile: JdbcProfile) {
     getAuthor(id).flatMap {
       case None =>
         DBIO.failed(
-          AppError.EntityDoesNotExist(
+          AppError2.EntityDoesNotExist(
             s"Author with id=$id does not exist"
           )
         )
@@ -436,12 +436,12 @@ trait NoopLibraryService extends LibraryService {
 
   def createBook(newBook: NewBook)(implicit
       L: Logger[Task]
-  ): IO[AppError, Book] =
+  ): IO[AppError2, Book] =
     IO.terminate(new NotImplementedError)
 
   def createBooks(newBooks: List[NewBook])(implicit
       L: Logger[Task]
-  ): IO[AppError, Option[NumRows]] =
+  ): IO[AppError2, Option[NumRows]] =
     IO.terminate(new NotImplementedError)
 
   def createAuthor(a: NewAuthor)(implicit L: Logger[Task]): Task[AuthorId] =

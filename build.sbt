@@ -110,7 +110,8 @@ lazy val server = (project in file("modules/server"))
     JavaAppPackaging,
     AshScriptPlugin,
     BuildInfoPlugin,
-    GitBranchPrompt
+    GitBranchPrompt,
+    NativeImagePlugin
   )
   .configs(DeepIntegrationTest)
   .settings(
@@ -132,6 +133,13 @@ lazy val server = (project in file("modules/server"))
     envVars in DeepIntegrationTest := Map("PROJECT_ENV" -> "test"),
     fork in Test := true,
     envVars in Test := Map("PROJECT_ENV" -> "test"),
+    nativeImageOptions ++= Seq(
+      "--no-fallback",
+      "--allow-incomplete-classpath",
+      "--initialize-at-run-time=org.jctools",
+      "-H:+TraceClassInitialization"
+      // "--initialize-at-build-time=scala.Symbol$"
+    ),
     libraryDependencies ++= Seq(
       //format: off
       "co.fs2"                        %% "fs2-reactive-streams"     % "2.5.0",
@@ -173,6 +181,7 @@ lazy val server = (project in file("modules/server"))
       "com.softwaremill.sttp.client3" %% "httpclient-backend-fs2"   % SttpVersion,
       "com.softwaremill.sttp.tapir"   %% "tapir-http4s-server"      % "0.17.19",
       "com.softwaremill.sttp.tapir"   %% "tapir-sttp-client"        % "0.17.19",
+      // "org.scalameta"                 %% "svm-subs"                 % "20.2.0",
       //test deps
       "org.scalameta"                 %% "munit"                           % MunitVersion          % "it,test",
       "de.lolhens"                    %% "munit-tagless-final"             % "0.0.1"               % "it,test",
@@ -316,6 +325,10 @@ inThisBuild(
     javacOptions ++= Seq("-source", "11", "-target", "11"),
     scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.4.3"
   )
+)
+
+libraryDependencies ++= Seq(
+  "org.scalameta" %% "svm-subs" % "20.2.0" % "compile-internal"
 )
 
 addCommandAlias("lint-check", "scalafmtCheckAll; scalafixAll --check")

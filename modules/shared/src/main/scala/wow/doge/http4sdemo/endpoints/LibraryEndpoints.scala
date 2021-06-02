@@ -29,4 +29,22 @@ object LibraryEndpoints {
         )
       )
 
+  val createBook = baseEndpoint.put
+    .in(jsonBody[NewBook])
+    .out(jsonBody[Book])
+
+  val createBooks = baseEndpoint.post.out(jsonBody[Int])
+
+  val createBooksWithIterable =
+    createBooks.in(jsonBody[Iterable[NewBook]])
+
+  val createBooksWithStream =
+    createBooks
+      .in(
+        streamBody(Fs2Streams[Task])(
+          Schema(Schema.derived[List[NewBook]].schemaType),
+          CodecFormat.Json()
+        )
+      )
+
 }

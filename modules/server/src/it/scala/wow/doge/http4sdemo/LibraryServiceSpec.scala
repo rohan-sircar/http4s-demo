@@ -79,7 +79,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    AppError
+                    AppError2
                       .EntityDoesNotExist("Author with id=23 does not exist")
                   )
                 )
@@ -122,7 +122,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    AppError
+                    AppError2
                       .EntityAlreadyExists(
                         "Book with isbn=agege already exists"
                       )
@@ -356,7 +356,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    AppError.BadInput("Duplicate isbns provided")
+                    AppError2.BadInput("Duplicate isbns provided")
                   )
                 )
             } yield ()
@@ -419,7 +419,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    AppError
+                    AppError2
                       .EntityAlreadyExists(
                         "Books with these isbns already exist: List(safasfa, asdasfa)"
                       )
@@ -471,7 +471,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    AppError
+                    AppError2
                       .EntityDoesNotExist(
                         "Authors with these ids do not exist: List(2123, 2134)"
                       )
