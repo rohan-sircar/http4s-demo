@@ -186,66 +186,57 @@ final class LibraryServiceImpl(
           IO.raiseError(
             new AppError2.BadInput(s"Duplicate isbns provided")
           )
-      verifyIsbns =
-        for {
-          //try fetching books with given isbns
-          l2 <- IO.deferAction(implicit s =>
-            db.runL(
-              l
-                .traverse(nb =>
+      action <- IO.deferAction(implicit s =>
+        UIO(
+          for {
+            //try fetching books with given isbns
+            _ <- for {
+              l2 <- DBIO
+                .traverse(l)(nb =>
                   dbio
                     .selectBookByIsbn(nb.bookIsbn)
                     .map(_.bookIsbn)
                     .result
-                    .headOption: DBIO[Option[BookIsbn]]
+                    .headOption
                 )
-                //collect all found isbns into a list
                 .map(_.mapFilter(identity).toList)
-            ).hideErrors
-          )
-          //if the list of isbns from above is not empty, return an error
-          //since it means that these isbns already exist
-          _ <-
-            if (l2.isEmpty) IO.unit
-            else
-              IO.raiseError(
-                new AppError2.EntityAlreadyExists(
-                  s"Books with these isbns already exist: $l2"
-                )
-              )
-        } yield ()
-      verifyAuthorIds = for {
-        l3 <-
-          IO.deferAction(implicit s =>
-            db.runTryL(
-              l
-                .traverse(nb =>
-                  dbio
-                    .getAuthor(nb.authorId)
-                    .map(o => nb.authorId -> o.map(_.authorId)): DBIO[
-                    (AuthorId, Option[AuthorId])
-                  ]
-                )
-                .map(_.foldLeft(List.empty[AuthorId]) {
-                  case (acc, (_, Some(_))) => acc
-                  case (acc, (id, None))   => id :: acc
-                })
-                .transactionally
-                .asTry
-            ).mapErrorPartial { case e: AppError2 => e }
-          )
-        _ <-
-          if (l3.isEmpty) IO.unit
-          else
-            IO.raiseError(
-              new AppError2.EntityDoesNotExist(
-                s"Authors with these ids do not exist: $l3"
-              )
-            )
-      } yield ()
-      //run the verifications in parallel
-      _ <- IO.parSequenceUnordered(List(verifyIsbns, verifyAuthorIds))
-      action = dbio.insertBooks(newBooks)
+              //if the list of isbns from above is not empty, return an error
+              //since it means that these isbns already exist
+              _ <-
+                if (l2.isEmpty) DBIO.unit
+                else
+                  DBIO.failed(
+                    AppError2.EntityAlreadyExists(
+                      s"Books with these isbns already exist: $l2"
+                    )
+                  )
+            } yield ()
+            _ <- for {
+              l3 <-
+                DBIO
+                  .traverse(l)(nb =>
+                    dbio
+                      .getAuthor(nb.authorId)
+                      .map(o => nb.authorId -> o.map(_.authorId))
+                  )
+                  .map(_.foldLeft(List.empty[AuthorId]) {
+                    case (acc, (_, Some(_))) => acc
+                    case (acc, (id, None))   => id :: acc
+                  })
+
+              _ <-
+                if (l3.isEmpty) DBIO.unit
+                else
+                  DBIO.failed(
+                    AppError2.EntityDoesNotExist(
+                      s"Authors with these ids do not exist: $l3"
+                    )
+                  )
+            } yield ()
+            rows <- dbio.insertBooks(newBooks)
+          } yield rows
+        )
+      )
       res <- db
         .runTryL(action.transactionally.asTry)
         .mapErrorPartial { case e: AppError2 => e }

@@ -22,10 +22,15 @@ import org.http4s.server.middleware.ResponseTiming
 import org.http4s.server.middleware.Throttle
 import org.http4s.server.middleware.Timeout
 import slick.jdbc.JdbcBackend.DatabaseDef
+import tsec.mac.jca.HMACSHA256
 import wow.doge.http4sdemo.routes.LibraryRoutes
 import wow.doge.http4sdemo.routes.LibraryRoutes2
+import wow.doge.http4sdemo.routes.LoginRoutes
 import wow.doge.http4sdemo.schedulers.Schedulers
+import wow.doge.http4sdemo.server.auth.AuthService
+import wow.doge.http4sdemo.server.auth.JwtSigningKey
 import wow.doge.http4sdemo.server.config.HttpConfig
+import wow.doge.http4sdemo.server.repos.InMemoryCredentialsRepo
 import wow.doge.http4sdemo.server.utils.StructuredOdinLogger
 import wow.doge.http4sdemo.server.{ExtendedPgProfile => JdbcProfile}
 import wow.doge.http4sdemo.services.LibraryDbio
@@ -57,15 +62,20 @@ final class Server(
       metricsRoute = metricsRoutes(registry)
       libraryDbio = new LibraryDbio(p)
       libraryService = new LibraryServiceImpl(p, libraryDbio, db)
-      httRoutes = Metrics(Dropwizard[Task](registry, "server"))(
+      credentialsRepo <- Resource.eval(InMemoryCredentialsRepo())
+      _key <- Resource.eval(HMACSHA256.generateKey[Task])
+      key = JwtSigningKey(_key)
+      authService = new AuthService(credentialsRepo)(key)
+      httpRoutes = Metrics(Dropwizard[Task](registry, "server"))(
         new LibraryRoutes(libraryService)(logger).routes <+> new LibraryRoutes2(
-          libraryService
-        )(logger).routes
+          libraryService,
+          authService
+        )(logger).routes <+> new LoginRoutes(authService)(logger).routes
       )
       httpApp2 <- Resource.eval(
         Throttle(config.throttle.amount.value, config.throttle.per)(
           Timeout(config.timeout)(
-            AutoSlash.httpRoutes(metricsRoute <+> httRoutes).orNotFound
+            AutoSlash.httpRoutes(metricsRoute <+> httpRoutes).orNotFound
           )
         )
       )

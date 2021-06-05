@@ -1,5 +1,7 @@
 package wow.doge.http4sdemo.refinements
 
+import cats.kernel.Eq
+import eu.timepit.refined.cats._
 import io.circe.Decoder
 import io.circe.Encoder
 import io.circe.refined._
@@ -97,6 +99,45 @@ object Refinements {
     // implicit val from =
     //   implicitly[TransformerF[RefinementValidation, Int, Int]].coerce
     // implicit val to: Transformer[NumRows, Int] = _.inner.value
+  }
+
+  @newtype final case class UserId(inner: IdRefinement)
+  object UserId {
+    implicit val encoder: Encoder[UserId] =
+      Encoder[IdRefinement].coerce
+    implicit val decoder: Decoder[UserId] =
+      Decoder[IdRefinement].coerce
+    implicit val fromT =
+      implicitly[TransformerF[RefinementValidation, Int, IdRefinement]].coerce
+    implicit val toT: Transformer[UserId, Int] = _.inner.value
+
+    implicit val eq: Eq[UserId] = Eq[IdRefinement].coerce
+  }
+
+  @newtype final case class Username(inner: UsernameRefinement)
+  object Username {
+    implicit val encoder: Encoder[Username] =
+      Encoder[UsernameRefinement].coerce
+    implicit val decoder: Decoder[Username] =
+      Decoder[UsernameRefinement].coerce
+    implicit val fromT =
+      implicitly[
+        TransformerF[RefinementValidation, String, UsernameRefinement]
+      ].coerce
+    implicit val toT: Transformer[Username, String] = _.inner.value
+  }
+
+  @newtype final case class UserPassword(inner: StringRefinement)
+  object UserPassword {
+    implicit val encoder: Encoder[UserPassword] =
+      Encoder[StringRefinement].coerce
+    implicit val decoder: Decoder[UserPassword] =
+      Decoder[StringRefinement].coerce
+    implicit val fromT =
+      implicitly[
+        TransformerF[RefinementValidation, String, StringRefinement]
+      ].coerce
+    implicit val toT: Transformer[UserPassword, String] = _.inner.value
   }
 
 }

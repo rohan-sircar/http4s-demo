@@ -1,5 +1,6 @@
 package wow.doge.http4sdemo
 
+import io.circe.generic.semiauto._
 import sttp.model.StatusCode
 import sttp.tapir._
 import sttp.tapir.codec.newtype._
@@ -15,7 +16,7 @@ package object endpoints {
       .map(ReqContext.tapirMapping)
   )
 
-  val errorEndpoint = reqCtxEndpoint.errorOut(
+  val baseEndpoint = reqCtxEndpoint.errorOut(
     oneOf[AppError2](
       statusMappingValueMatcher(
         StatusCode.NotFound,
@@ -43,4 +44,27 @@ package object endpoints {
       statusDefaultMapping(jsonBody[AppError2].description("unknown"))
     )
   )
+
+  val basePublicEndpoint = baseEndpoint.in("api" / "public")
+
+  val basePrivateEndpoint =
+    baseEndpoint.in("api" / "private").in(AuthDetails.endpointIn)
+}
+
+package endpoints {
+  // import sttp.tapir.annotations.{header => _header}
+  import sttp.tapir.annotations.{bearer => _bearer}
+  import sttp.tapir.annotations.deriveEndpointInput
+
+  final case class AuthDetails(@_bearer bearerToken: String)
+  object AuthDetails {
+    implicit val codec = deriveCodec[AuthDetails]
+    implicit val endpointIn = deriveEndpointInput[AuthDetails]
+  }
+
+  final case class LoginResponse(token: String)
+  object LoginResponse {
+    implicit val codec = deriveCodec[LoginResponse]
+    implicit val schema = Schema.derived[LoginResponse]
+  }
 }

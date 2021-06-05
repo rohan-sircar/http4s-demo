@@ -12,6 +12,7 @@ import org.http4s.Request
 import org.http4s.Status
 import org.http4s.Uri
 import org.http4s.implicits._
+import tsec.mac.jca.HMACSHA256
 import wow.doge.http4sdemo.models.Book
 import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
@@ -20,6 +21,9 @@ import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.refinements._
 import wow.doge.http4sdemo.routes.LibraryRoutes
 import wow.doge.http4sdemo.routes.LibraryRoutes2
+import wow.doge.http4sdemo.server.auth.AuthService
+import wow.doge.http4sdemo.server.auth.JwtSigningKey
+import wow.doge.http4sdemo.server.repos.InMemoryCredentialsRepo
 import wow.doge.http4sdemo.services.NoopLibraryService
 
 class BooksRoutesSpec extends UnitTestBase {
@@ -47,7 +51,11 @@ class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- IO.unit
-        routes = new LibraryRoutes2(service)(logger).routes
+        repo <- InMemoryCredentialsRepo()
+        _key <- HMACSHA256.generateKey[Task]
+        key = JwtSigningKey(_key)
+        authService = new AuthService(repo)(key)
+        routes = new LibraryRoutes2(service, authService)(logger).routes
         request = Request[Task](
           Method.GET,
           uri"/api/books" withQueryParams Map(
@@ -191,7 +199,11 @@ class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- UIO.unit
-        routes = new LibraryRoutes2(service)(logger).routes
+        repo <- InMemoryCredentialsRepo()
+        _key <- HMACSHA256.generateKey[Task]
+        key = JwtSigningKey(_key)
+        authService = new AuthService(repo)(key)
+        routes = new LibraryRoutes2(service, authService)(logger).routes
         request = Request[Task](
           Method.GET,
           Root / "api" / "books" / "12312"

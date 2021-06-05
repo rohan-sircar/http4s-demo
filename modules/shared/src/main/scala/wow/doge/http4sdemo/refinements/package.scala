@@ -7,6 +7,7 @@ import eu.timepit.refined.collection._
 import eu.timepit.refined.numeric._
 import eu.timepit.refined.types.string.NonEmptyFiniteString
 
+//TODO add regex to these refinements
 package object refinements {
   type RefinementValidation[+A] = ValidatedNec[String, A]
   type IdRefinement = Int Refined Positive
@@ -23,4 +24,7 @@ package object refinements {
   object PaginationRefinement extends RefinedTypeOps[PaginationRefinement, Int]
 
   type SearchQuery = NonEmptyFiniteString[25]
+
+  type UsernameRefinement = String Refined Size[Interval.Closed[5, 50]]
+  object UsernameRefinement extends RefinedTypeOps[UsernameRefinement, String]
 }

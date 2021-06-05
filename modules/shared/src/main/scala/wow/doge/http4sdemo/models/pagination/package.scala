@@ -62,11 +62,9 @@ package object pagination {
 }
 
 package pagination {
-  import sttp.tapir._
+  import wow.doge.http4sdemo.utils.mytapir._
   import sttp.tapir.annotations.deriveEndpointInput
   import sttp.tapir.annotations.{query => _query}
-  import sttp.tapir.codec.newtype._
-  import sttp.tapir.codec.refined._
 
   final case class Pagination(
       @_query page: PaginationPage,

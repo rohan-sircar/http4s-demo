@@ -36,6 +36,7 @@ class StaticLoggerBinder extends OdinLoggerBinder[IO] {
 
   ArraySeq(release1).foreach(r => sys.addShutdownHook(r.unsafeRunSync()))
 
+  @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
   def routing(routes: LoggerRoutes) = new PartialFunction[String, Logger[IO]] {
     val r = routes.value
     override def apply(packageName: String): Logger[IO] = {

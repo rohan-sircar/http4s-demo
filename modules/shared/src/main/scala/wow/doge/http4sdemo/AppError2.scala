@@ -13,6 +13,7 @@ object AppError2 {
   final case class EntityDoesNotExist(message: String) extends AppError2
   final case class EntityAlreadyExists(message: String) extends AppError2
   final case class BadInput(message: String) extends AppError2
+  final case class AuthError(message: String) extends AppError2
 
   implicit val schema = Schema.derived[AppError2]
 }

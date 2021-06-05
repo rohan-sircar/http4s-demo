@@ -2,7 +2,8 @@ package wow.doge.http4sdemo.server
 
 import scala.util.Try
 
-import cats.syntax.either._
+import cats.kernel.Eq
+import cats.syntax.all._
 import com.github.tminglei.slickpg.TsVector
 import com.rms.miu.slickcats.DBIOInstances
 import eu.timepit.refined.api._
@@ -24,6 +25,10 @@ import slick.jdbc.ResultSetType
 import sttp.capabilities.WebSockets
 import sttp.capabilities.monix.MonixStreams
 import sttp.tapir.client.sttp.WebSocketToPipe
+import sttp.tapir.server.ServerEndpoint
+import sttp.tapir.server.ServerEndpointInParts
+import tsec.jws.mac.JWTMac
+import tsec.mac.jca.HMACSHA256
 import wow.doge.http4sdemo.models._
 import wow.doge.http4sdemo.server.utils.WebSocketToMonixPipe
 import wow.doge.http4sdemo.server.{ExtendedPgProfile => JdbcProfile}
@@ -105,6 +110,10 @@ package object implicits
     def unit: DBIO[Unit] = D.successful(())
     def fromIO[T](io: IO[Throwable, T])(implicit s: monix.execution.Scheduler) =
       D.from(io.runToFuture)
+
+    def traverse[R, B](in: Seq[R])(f: R => DBIO[B])(implicit
+        s: monix.execution.Scheduler
+    ) = in.traverse(f)
   }
 
   implicit val tsVectorDecoder = deriveDecoder[TsVector]
@@ -140,4 +149,16 @@ package object implicits
   //   QueryParamDecoder[PaginationRefinement]
   //     .coerce[QueryParamDecoder[PaginationPage]]
   // object matcher extends QueryParamDecoderMatcher[PaginationPage]("page")
+
+  implicit val eqForJwtMac: Eq[JWTMac[HMACSHA256]] = Eq.instance {
+    case (self, that) => self.toEncodedString === that.toEncodedString
+  }
+
+  implicit class ServerEndpointInPartsExt[U, IR, I, E, O, -R, F[_]](
+      private val E: ServerEndpointInParts[U, IR, I, E, O, R, F]
+  ) {
+    def andThen2(
+        remainingLogic: ((U, IR)) => F[Either[E, O]]
+    ): ServerEndpoint[I, E, O, R, F] = E.andThen(remainingLogic)
+  }
 }

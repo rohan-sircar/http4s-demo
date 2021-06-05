@@ -12,15 +12,20 @@ import wow.doge.http4sdemo.refinements.Refinements._
 
 object LibraryEndpoints {
 
-  val baseEndpoint = errorEndpoint.in("api" / "books")
+  val baseBookEndpoint = baseEndpoint.in("api" / "books")
 
   val getBookById =
-    baseEndpoint.get
+    baseBookEndpoint.get
       .in(path[BookId])
       .out(jsonBody[Book])
 
+  val authedGetBookById = basePrivateEndpoint.get
+    .in("books")
+    .in(path[BookId])
+    .out(jsonBody[Book])
+
   val getBooks =
-    baseEndpoint.get
+    baseBookEndpoint.get
       .in(Pagination.endpoint)
       .out(
         streamBody(Fs2Streams[Task])(
@@ -29,11 +34,11 @@ object LibraryEndpoints {
         )
       )
 
-  val createBook = baseEndpoint.put
+  val createBook = baseBookEndpoint.put
     .in(jsonBody[NewBook])
     .out(jsonBody[Book])
 
-  val createBooks = baseEndpoint.post.out(jsonBody[Int])
+  val createBooks = baseBookEndpoint.post.out(jsonBody[Int])
 
   val createBooksWithIterable =
     createBooks.in(jsonBody[Iterable[NewBook]])
