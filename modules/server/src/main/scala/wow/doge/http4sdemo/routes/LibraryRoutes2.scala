@@ -142,6 +142,6 @@ final class LibraryRoutes2(L: LibraryService, A: AuthService)(
     )
 
   val routes: HttpRoutes[Task] =
-    authedGetBookByIdRoute <+> getBooksRoute <+> createBookRoute <+> createBooksRoute
+    authedGetBookByIdRoute <+> getBookByIdRoute <+> getBooksRoute <+> createBookRoute <+> createBooksRoute
 
 }

@@ -4,8 +4,8 @@ import cats.data.Chain
 import cats.effect.concurrent.Ref
 import io.odin.Level
 import io.odin.Logger
-import io.odin.formatter.Formatter
 import monix.bio.Task
+import wow.doge.http4sdemo.server.utils.PaddedFormatter
 import wow.doge.http4sdemo.utils.TracingStubLogger
 
 trait ReplayLogger {
@@ -16,7 +16,11 @@ trait ReplayLogger {
     */
   def withReplayLogger(f: Logger[Task] => Task[Unit]) = for {
     chain <- Ref[Task].of(Chain.empty[String])
-    testLogger = new TracingStubLogger(chain, Formatter.colorful, Level.Debug)
+    testLogger = new TracingStubLogger(
+      chain,
+      PaddedFormatter.default,
+      Level.Debug
+    )
     _ <- f(testLogger).tapError(err =>
       Task(println("Replaying intercepted logs: ")) >> testLogger.logs.flatMap(
         c => Task(c.iterator.foreach(println))

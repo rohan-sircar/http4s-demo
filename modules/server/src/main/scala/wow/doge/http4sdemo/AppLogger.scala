@@ -9,19 +9,20 @@ import cats.effect.Timer
 import io.odin.Logger
 import io.odin.config.enclosureRouting
 import io.odin.consoleLogger
-import io.odin.formatter.Formatter
 import io.odin.json.{Formatter => JFormatter}
 import io.odin.syntax._
 import io.odin.{Level => OLevel}
 import wow.doge.http4sdemo.server.config.Level
 import wow.doge.http4sdemo.server.config.LoggerConfig
 import wow.doge.http4sdemo.server.config.LoggerFormat
+import wow.doge.http4sdemo.server.utils.PaddedFormatter
 
 object AppLogger {
   def formatter(config: LoggerConfig) =
     config.format match {
       case LoggerFormat.Json   => JFormatter.json
-      case LoggerFormat.Pretty => Formatter.colorful
+      case LoggerFormat.Pretty => PaddedFormatter.default
+      // Formatter.colorful
     }
   def apply[F[_]: ContextShift: Concurrent: Timer](
       config: LoggerConfig

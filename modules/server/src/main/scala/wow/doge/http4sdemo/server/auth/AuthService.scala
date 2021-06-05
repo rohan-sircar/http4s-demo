@@ -29,16 +29,14 @@ final class AuthService(C: CredentialsRepo)(implicit key: JwtSigningKey) {
             logger.debugU("Auth successful") >>
               IO.unit
           else
-            logger.debugU(
+            logger.warnU(
               "Invalid auth token: token did not match with session token"
             ) >>
               IO.raiseError(AppError2.AuthError("Invalid token"))
         case None =>
-          logger.debugU(
+          logger.warnU(
             "Invalid auth token: user does not have an existing token"
-          ) >>
-            logger.debugU(s"${parsedDetails.jwt.toEncodedString}") >>
-            IO.raiseError(AppError2.AuthError("Invalid token"))
+          ) >> IO.raiseError(AppError2.AuthError("Invalid token"))
       }
     } yield parsedDetails
   }
