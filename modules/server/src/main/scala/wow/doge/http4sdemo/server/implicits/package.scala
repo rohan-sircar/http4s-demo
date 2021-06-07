@@ -25,10 +25,9 @@ import slick.jdbc.ResultSetType
 import sttp.capabilities.WebSockets
 import sttp.capabilities.monix.MonixStreams
 import sttp.tapir.client.sttp.WebSocketToPipe
-import sttp.tapir.server.ServerEndpoint
-import sttp.tapir.server.ServerEndpointInParts
 import tsec.jws.mac.JWTMac
 import tsec.mac.jca.HMACSHA256
+import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.models._
 import wow.doge.http4sdemo.server.utils.WebSocketToMonixPipe
 import wow.doge.http4sdemo.server.{ExtendedPgProfile => JdbcProfile}
@@ -52,6 +51,30 @@ package object implicits
     def fromBooksTableFn(implicit profile: JdbcProfile) = {
       import profile.api._
       (b: Tables.Books) => (b.bookTitle, b.bookIsbn, b.authorId).mapTo[NewBook]
+    }
+  }
+
+  implicit final class NewUserExt(private val B: NewUser.type) extends AnyVal {
+    def fromUsersTableFn(implicit profile: JdbcProfile) = {
+      import profile.api._
+      (u: Tables.Users) =>
+        (u.userName, u.userPassword, u.userRole).mapTo[NewUser]
+    }
+  }
+
+  implicit final class UserExt(private val B: User.type) extends AnyVal {
+    def fromUsersTableFn(implicit profile: JdbcProfile) = {
+      import profile.api._
+      (u: Tables.Users) =>
+        (u.userId, u.userName, u.userPassword, u.userRole).mapTo[User]
+    }
+  }
+
+  implicit final class UserLoginExt(private val B: UserLogin.type)
+      extends AnyVal {
+    def fromUsersTableFn(implicit profile: JdbcProfile) = {
+      import profile.api._
+      (u: Tables.Users) => (u.userName, u.userPassword).mapTo[UserLogin]
     }
   }
 
@@ -83,6 +106,9 @@ package object implicits
       extends AnyVal {
     def runL[R](a: DBIOAction[R, NoStream, Nothing]) =
       Task.deferFuture(db.run(a))
+
+    def runIO[R](a: DBIOAction[R, NoStream, Nothing]) =
+      runL(a).mapErrorPartial { case e: AppError2 => e }
 
     def runTryL[R, A](a: DBIOAction[R, NoStream, Nothing])(implicit
         ev: R <:< Try[A]
@@ -154,11 +180,15 @@ package object implicits
     case (self, that) => self.toEncodedString === that.toEncodedString
   }
 
-  implicit class ServerEndpointInPartsExt[U, IR, I, E, O, -R, F[_]](
-      private val E: ServerEndpointInParts[U, IR, I, E, O, R, F]
-  ) {
-    def andThen2(
-        remainingLogic: ((U, IR)) => F[Either[E, O]]
-    ): ServerEndpoint[I, E, O, R, F] = E.andThen(remainingLogic)
-  }
+  // implicit class ServerEndpointInPartsExt[U, IR, I, E, O, -R, F[_]](
+  //     private val E: ServerEndpointInParts[U, IR, I, E, O, R, F]
+  // ) {
+  //   def andThen2(
+  //       remainingLogic: ((U, IR)) => F[Either[E, O]]
+  //   ): ServerEndpoint[I, E, O, R, F] = E.andThen(remainingLogic)
+
+  //   def andThenAuth(
+  //       remainingLogic: ((U, IR)) => F[Either[E, O]]
+  //   ): ServerEndpoint[I, E, O, R, F] = E.andThen(remainingLogic)
+  // }
 }

@@ -2,6 +2,10 @@ package wow.doge.http4sdemo.models
 
 import enumeratum.EnumEntry
 import enumeratum._
+import enumeratum.values.CatsValueEnum
+import enumeratum.values.IntCirceEnum
+import enumeratum.values.IntEnum
+import enumeratum.values.IntEnumEntry
 
 package object common {}
 
@@ -20,6 +24,21 @@ package common {
     val blue: Color  = Blue
     //format: on
 
+  }
+
+  //make the constructor private to prevent creating
+//arbitrary values
+  sealed abstract class UserRole private (val value: Int)
+      extends IntEnumEntry
+      with EnumEntry.UpperSnakecase
+  object UserRole
+      extends IntEnum[UserRole]
+      with CatsValueEnum[Int, UserRole]
+      with IntCirceEnum[UserRole] {
+    val values = findValues
+    case object SuperUser extends UserRole(0)
+    case object Admin extends UserRole(1)
+    case object User extends UserRole(2)
   }
 
 }

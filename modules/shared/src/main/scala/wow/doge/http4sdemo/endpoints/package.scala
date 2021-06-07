@@ -33,6 +33,13 @@ package object endpoints {
         case e: AppError2.BadInput            => true
         case _                                => false
       },
+      statusMappingValueMatcher(
+        StatusCode.Unauthorized,
+        jsonBody[AppError2].description("forbidden")
+      ) {
+        case e: AppError2.AuthError => true
+        case _                      => false
+      },
       // statusMapping(
       //   StatusCode.Unauthorized,
       //   jsonBody[Unauthorized].description("unauthorized")
@@ -41,7 +48,12 @@ package object endpoints {
       //   StatusCode.NoContent,
       //   emptyOutput.map(_ => NoContent)(_ => ())
       // ),
-      statusDefaultMapping(jsonBody[AppError2].description("unknown"))
+      statusDefaultMapping(
+        jsonBody[AppError2]
+          .description(
+            "Internal Error case implying some error case was uncaught"
+          )
+      )
     )
   )
 
@@ -66,5 +78,11 @@ package endpoints {
   object LoginResponse {
     implicit val codec = deriveCodec[LoginResponse]
     implicit val schema = Schema.derived[LoginResponse]
+  }
+
+  final case class RegistrationResponse(message: String)
+  object RegistrationResponse {
+    implicit val codec = deriveCodec[RegistrationResponse]
+    implicit val schema = Schema.derived[RegistrationResponse]
   }
 }

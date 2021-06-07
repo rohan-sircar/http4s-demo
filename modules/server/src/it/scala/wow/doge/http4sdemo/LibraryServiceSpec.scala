@@ -30,8 +30,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
             for {
               _ <- UIO.unit
               service: LibraryService = new LibraryServiceImpl(
-                profile,
-                new LibraryDbio(profile),
+                new LibraryDbio,
                 db
               )
               id <- service.createAuthor(
@@ -64,8 +63,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
             for {
               _ <- UIO.unit
               service: LibraryService = new LibraryServiceImpl(
-                profile,
-                new LibraryDbio(profile),
+                new LibraryDbio,
                 db
               )
               _ <- service
@@ -100,8 +98,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
             for {
               _ <- UIO.unit
               service: LibraryService = new LibraryServiceImpl(
-                profile,
-                new LibraryDbio(profile),
+                new LibraryDbio,
                 db
               )
               _ <- service.createBook(
@@ -143,8 +140,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
             for {
               _ <- UIO.unit
               service: LibraryService = new LibraryServiceImpl(
-                profile,
-                new LibraryDbio(profile),
+                new LibraryDbio,
                 db
               )
 
@@ -205,8 +201,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
             for {
               _ <- UIO.unit
               service: LibraryService = new LibraryServiceImpl(
-                profile,
-                new LibraryDbio(profile),
+                new LibraryDbio,
                 db
               )
               id <- service.createAuthor(
@@ -247,8 +242,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
             for {
               _ <- UIO.unit
               service: LibraryService = new LibraryServiceImpl(
-                profile,
-                new LibraryDbio(profile),
+                new LibraryDbio,
                 db
               )
               id <- service.createAuthor(
@@ -289,8 +283,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
             for {
               _ <- UIO.unit
               service: LibraryService = new LibraryServiceImpl(
-                profile,
-                new LibraryDbio(profile),
+                new LibraryDbio,
                 db
               )
               id <- service.createAuthor(
@@ -332,8 +325,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
             for {
               _ <- UIO.unit
               service: LibraryService = new LibraryServiceImpl(
-                profile,
-                new LibraryDbio(profile),
+                new LibraryDbio,
                 db
               )
               id <- service.createAuthor(
@@ -376,8 +368,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
             for {
               _ <- UIO.unit
               service: LibraryService = new LibraryServiceImpl(
-                profile,
-                new LibraryDbio(profile),
+                new LibraryDbio,
                 db
               )
               id <- service.createAuthor(
@@ -442,8 +433,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
             for {
               _ <- UIO.unit
               service: LibraryService = new LibraryServiceImpl(
-                profile,
-                new LibraryDbio(profile),
+                new LibraryDbio,
                 db
               )
               id <- service.createAuthor(

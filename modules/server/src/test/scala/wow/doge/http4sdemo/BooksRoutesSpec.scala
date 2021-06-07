@@ -1,8 +1,11 @@
 package wow.doge.http4sdemo
 
+import java.time.LocalDateTime
+
 import cats.syntax.all._
 import eu.timepit.refined.auto._
 import io.odin.Logger
+import io.scalaland.chimney.dsl._
 import monix.bio.IO
 import monix.bio.Task
 import monix.bio.UIO
@@ -12,18 +15,16 @@ import org.http4s.Request
 import org.http4s.Status
 import org.http4s.Uri
 import org.http4s.implicits._
-import tsec.mac.jca.HMACSHA256
 import wow.doge.http4sdemo.models.Book
 import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
+import wow.doge.http4sdemo.models.NewBook
 import wow.doge.http4sdemo.models.pagination.Pagination
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.refinements._
 import wow.doge.http4sdemo.routes.LibraryRoutes
 import wow.doge.http4sdemo.routes.LibraryRoutes2
-import wow.doge.http4sdemo.server.auth.AuthService
-import wow.doge.http4sdemo.server.auth.JwtSigningKey
-import wow.doge.http4sdemo.server.repos.InMemoryCredentialsRepo
+import wow.doge.http4sdemo.server.services.NoOpAuthService
 import wow.doge.http4sdemo.services.NoopLibraryService
 
 class BooksRoutesSpec extends UnitTestBase {
@@ -51,10 +52,7 @@ class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- IO.unit
-        repo <- InMemoryCredentialsRepo()
-        _key <- HMACSHA256.generateKey[Task]
-        key = JwtSigningKey(_key)
-        authService = new AuthService(repo)(key)
+        authService = new NoOpAuthService
         routes = new LibraryRoutes2(service, authService)(logger).routes
         request = Request[Task](
           Method.GET,
@@ -80,16 +78,15 @@ class BooksRoutesSpec extends UnitTestBase {
             logger: Logger[Task]
         ) =
           IO.raiseError(
-            AppError.EntityDoesNotExist(
-              s"Book with id=$id does not exist"
-            )
+            AppError.EntityDoesNotExist(s"Book with id=$id does not exist")
           )
       }
 
       for {
         _ <- IO.unit
+        authService = new NoOpAuthService
         reqBody = BookUpdate(Some(BookTitle("blahblah")), None)
-        routes = new LibraryRoutes(service)(logger).routes
+        routes = new LibraryRoutes(service, authService)(logger).routes
         request = Request[Task](Method.PATCH, Root / "api" / "books" / "1")
           .withEntity(reqBody)
         res <- routes.run(request).value
@@ -131,7 +128,8 @@ class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- IO.unit
-        routes = new LibraryRoutes(service)(logger).routes
+        authService = new NoOpAuthService
+        routes = new LibraryRoutes(service, authService)(logger).routes
         request = Request[Task](
           Method.GET,
           Root / "api" / "books" / "search"
@@ -171,7 +169,8 @@ class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- UIO.unit
-        routes = new LibraryRoutes(service)(logger).routes
+        authService = new NoOpAuthService
+        routes = new LibraryRoutes(service, authService)(logger).routes
         request = Request[Task](
           Method.GET,
           Root / "api" / "books" / "search"
@@ -199,10 +198,7 @@ class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- UIO.unit
-        repo <- InMemoryCredentialsRepo()
-        _key <- HMACSHA256.generateKey[Task]
-        key = JwtSigningKey(_key)
-        authService = new AuthService(repo)(key)
+        authService = new NoOpAuthService
         routes = new LibraryRoutes2(service, authService)(logger).routes
         request = Request[Task](
           Method.GET,
@@ -220,6 +216,37 @@ class BooksRoutesSpec extends UnitTestBase {
                 .EntityDoesNotExist("Book with id 12312 does not exist")
             )
           )
+      } yield ()
+    }
+  }
+
+  test("create book should succeed") {
+    import org.http4s.circe.CirceEntityCodec._
+    withReplayLogger { implicit logger =>
+      val nb = NewBook(BookTitle("somebook"), BookIsbn("adgqegqq"), AuthorId(1))
+      val book = nb
+        .into[Book]
+        .withFieldConst(_.bookId, BookId(1))
+        .withFieldConst(_.createdAt, LocalDateTime.now)
+        .transform
+      val service = new NoopLibraryService {
+        override def createBook(nb: NewBook)(implicit
+            L: Logger[Task]
+        ): IO[AppError2, Book] = UIO(book)
+      }
+      for {
+        _ <- UIO.unit
+        authService = new NoOpAuthService
+        routes = new LibraryRoutes2(service, authService)(logger).routes
+        request = Request[Task](
+          Method.PUT,
+          Root / "api" / "books"
+        ).withEntity(nb)
+        res <- routes.run(request).value
+        body <- res.traverse(_.as[Book])
+        _ <- logger.debug(s"Request: $request, Response: $res, Body: $body")
+        _ <- IO(assertEquals(res.map(_.status), Some(Status.Created)))
+        _ <- IO.pure(body).assertEquals(Some(book))
       } yield ()
     }
   }

@@ -2,6 +2,7 @@ package wow.doge.http4sdemo.endpoints
 
 import monix.bio.Task
 import sttp.capabilities.fs2.Fs2Streams
+import sttp.model.StatusCode
 import sttp.tapir._
 import sttp.tapir.codec.newtype._
 import sttp.tapir.codec.refined._
@@ -36,9 +37,10 @@ object LibraryEndpoints {
 
   val createBook = baseBookEndpoint.put
     .in(jsonBody[NewBook])
-    .out(jsonBody[Book])
+    .out(jsonBody[Book].and(statusCode(StatusCode.Created)))
 
-  val createBooks = baseBookEndpoint.post.out(jsonBody[Int])
+  val createBooks =
+    baseBookEndpoint.post.out(jsonBody[Int].and(statusCode(StatusCode.Created)))
 
   val createBooksWithIterable =
     createBooks.in(jsonBody[Iterable[NewBook]])

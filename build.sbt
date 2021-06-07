@@ -100,6 +100,9 @@ lazy val shared = (project in file("modules/shared"))
       "com.softwaremill.sttp.tapir"   %% "tapir-json-circe"         % TapirVersion,
       "com.softwaremill.sttp.tapir"   %% "tapir-refined"            % TapirVersion,
       "com.softwaremill.sttp.tapir"   %% "tapir-newtype"            % TapirVersion,
+      "com.softwaremill.sttp.tapir"   %% "tapir-sttp-client"        % TapirVersion,
+      "com.softwaremill.sttp.tapir"   %% "tapir-openapi-circe-yaml" % TapirVersion,
+      "com.softwaremill.sttp.tapir"   %% "tapir-openapi-docs"       % TapirVersion,
       "com.lihaoyi"                   %% "pprint"                   % "0.6.6"
       //format: on
     ),
@@ -186,8 +189,9 @@ lazy val server = (project in file("modules/server"))
       "com.softwaremill.sttp.client3" %% "httpclient-backend-monix"  % SttpVersion,
       "com.softwaremill.sttp.client3" %% "httpclient-backend-fs2"    % SttpVersion,
       "com.softwaremill.sttp.tapir"   %% "tapir-http4s-server"       % TapirVersion,
-      "com.softwaremill.sttp.tapir"   %% "tapir-sttp-client"         % TapirVersion,
+      "com.softwaremill.sttp.tapir"   %% "tapir-swagger-ui-http4s"   % TapirVersion,
       "io.github.jmcardon"            %% "tsec-jwt-mac"              % "0.2.1",
+      // "ch.qos.logback" % "logback-classic" % LogbackVersion,
       // "org.scalameta"                 %% "svm-subs"                 % "20.2.0",
       //test deps
       "org.scalameta"                 %% "munit"                           % MunitVersion          % "it,test",
@@ -244,6 +248,11 @@ lazy val server = (project in file("modules/server"))
                   //authors fields
                   case "author_id"   => "AuthorId"
                   case "author_name" => "AuthorName"
+                  //users field
+                  case s if s.endsWith("user_id") => "UserId"
+                  case "user_name"                => "Username"
+                  case "user_password"            => "UserPassword"
+                  case "user_role"                => "UserRole"
                   //others
                   case "color"                    => "Color"
                   case s if s.endsWith("_json")   => "Json"
@@ -315,6 +324,7 @@ inThisBuild(
       "-Xlint",
       "-Ywarn-numeric-widen",
       "-Ymacro-annotations",
+      // "-Wconf:cat=lint-byname-implicit:s",
       //silence warnings for by-name implicits
       "-Wconf:cat=lint-byname-implicit:s",
       //give errors on non exhaustive matches

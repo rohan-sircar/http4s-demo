@@ -1,6 +1,7 @@
 package wow.doge.http4sdemo.server.implicits
 
 import io.estatico.newtype.ops._
+import wow.doge.http4sdemo.models.common.UserRole
 import wow.doge.http4sdemo.models.common._
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.refinements._
@@ -31,6 +32,21 @@ trait ColumnTypes {
 
   implicit val colorColType =
     ExtendedPgProfile.mappedColumnTypeForEnum("Color", Color)
+
+  implicit val UserIdColType: ExtendedPgProfile.ColumnType[UserId] =
+    implicitly[ExtendedPgProfile.ColumnType[IdRefinement]]
+      .coerce[ExtendedPgProfile.ColumnType[UserId]]
+
+  implicit val userRoleColType =
+    ExtendedPgProfile.mappedColumnTypeForValueEnumForInt("UserRole", UserRole)
+
+  implicit val UsernameColType: ExtendedPgProfile.ColumnType[Username] =
+    implicitly[ExtendedPgProfile.ColumnType[UsernameRefinement]]
+      .coerce[ExtendedPgProfile.ColumnType[Username]]
+
+  implicit val UserPasswordColType: ExtendedPgProfile.ColumnType[UserPassword] =
+    implicitly[ExtendedPgProfile.ColumnType[StringRefinement]]
+      .coerce[ExtendedPgProfile.ColumnType[UserPassword]]
 
 }
 

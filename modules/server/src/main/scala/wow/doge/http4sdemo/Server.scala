@@ -1,9 +1,8 @@
 package wow.doge.http4sdemo
 
 import cats.effect.Resource
-import cats.implicits._
+import cats.syntax.all._
 import com.codahale.metrics.MetricRegistry
-import com.codahale.metrics.SharedMetricRegistries
 import io.odin.meta.Position
 import io.odin.meta.Render
 import monix.bio.Task
@@ -11,44 +10,44 @@ import org.http4s.HttpRoutes
 import org.http4s.Method
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits._
-import org.http4s.metrics.dropwizard.Dropwizard
 import org.http4s.metrics.dropwizard.metricsResponse
 import org.http4s.server.middleware.AutoSlash
-import org.http4s.server.middleware.Metrics
 import org.http4s.server.middleware.RequestId
 import org.http4s.server.middleware.RequestLogger
 import org.http4s.server.middleware.ResponseLogger
 import org.http4s.server.middleware.ResponseTiming
 import org.http4s.server.middleware.Throttle
 import org.http4s.server.middleware.Timeout
-import slick.jdbc.JdbcBackend.DatabaseDef
-import tsec.mac.jca.HMACSHA256
-import wow.doge.http4sdemo.routes.LibraryRoutes
-import wow.doge.http4sdemo.routes.LibraryRoutes2
-import wow.doge.http4sdemo.routes.LoginRoutes
+import wow.doge.http4sdemo.AppRoutes
 import wow.doge.http4sdemo.schedulers.Schedulers
-import wow.doge.http4sdemo.server.auth.AuthService
-import wow.doge.http4sdemo.server.auth.JwtSigningKey
 import wow.doge.http4sdemo.server.config.HttpConfig
-import wow.doge.http4sdemo.server.repos.InMemoryCredentialsRepo
+import wow.doge.http4sdemo.server.utils.GlobalErrorHandler
 import wow.doge.http4sdemo.server.utils.StructuredOdinLogger
-import wow.doge.http4sdemo.server.{ExtendedPgProfile => JdbcProfile}
-import wow.doge.http4sdemo.services.LibraryDbio
-import wow.doge.http4sdemo.services.LibraryServiceImpl
 
 final class Server(
-    db: DatabaseDef,
-    p: JdbcProfile,
     schedulers: Schedulers,
+    appRoutes: AppRoutes,
+    registry: MetricRegistry,
     config: HttpConfig
 )(implicit logger: io.odin.Logger[Task]) {
-  private val log: String => Task[Unit] = str =>
+  private val requestLog: String => Task[Unit] = str =>
     logger.info(str)(
       Render[String],
       Position(
-        fileName = "httpLogger",
-        enclosureName = "httpLogger",
-        packageName = "httpLogger",
+        fileName = "httpRequestLogger",
+        enclosureName = "httpRequestLogger",
+        packageName = "httpRequestLogger",
+        line = -1
+      )
+    )
+
+  private val responseLog: String => Task[Unit] = str =>
+    logger.info(str)(
+      Render[String],
+      Position(
+        fileName = "httpResponseLogger",
+        enclosureName = "httpResponseLogger",
+        packageName = "httpResponseLogger",
         line = -1
       )
     )
@@ -56,35 +55,27 @@ final class Server(
   val resource =
     for {
       _ <- Resource.eval(Task.unit)
-      registry <- Resource.eval(
-        Task(SharedMetricRegistries.getOrCreate("default"))
-      )
       metricsRoute = metricsRoutes(registry)
-      libraryDbio = new LibraryDbio(p)
-      libraryService = new LibraryServiceImpl(p, libraryDbio, db)
-      credentialsRepo <- Resource.eval(InMemoryCredentialsRepo())
-      _key <- Resource.eval(HMACSHA256.generateKey[Task])
-      key = JwtSigningKey(_key)
-      authService = new AuthService(credentialsRepo)(key)
-      httpRoutes = Metrics(Dropwizard[Task](registry, "server"))(
-        new LibraryRoutes(libraryService)(logger).routes <+> new LibraryRoutes2(
-          libraryService,
-          authService
-        )(logger).routes <+> new LoginRoutes(authService)(logger).routes
-      )
-      httpApp2 <- Resource.eval(
+      appRoutes <- Resource.eval(appRoutes.routes)
+      httpApp <- Resource.eval(
         Throttle(config.throttle.amount.value, config.throttle.per)(
           Timeout(config.timeout)(
-            AutoSlash.httpRoutes(metricsRoute <+> httpRoutes).orNotFound
+            AutoSlash.httpRoutes(metricsRoute <+> appRoutes).orNotFound
           )
         )
       )
       finalHttpApp =
-        ResponseLogger.httpApp(true, false, logAction = log.pure[Option])(
+        ResponseLogger.httpApp(
+          true,
+          false,
+          logAction = responseLog.pure[Option]
+        )(
           RequestId(
-            RequestLogger.httpApp(true, false, logAction = log.pure[Option])(
-              ResponseTiming(httpApp2)
-            )
+            RequestLogger.httpApp(
+              true,
+              false,
+              logAction = requestLog.pure[Option]
+            )(ResponseTiming(GlobalErrorHandler(httpApp)(logger)))
           )
         )
       server <- EmberServerBuilder

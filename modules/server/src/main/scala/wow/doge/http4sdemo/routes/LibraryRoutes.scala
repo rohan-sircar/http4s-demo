@@ -11,12 +11,14 @@ import wow.doge.http4sdemo.models.NewExtra
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.refinements._
 import wow.doge.http4sdemo.server.implicits._
+import wow.doge.http4sdemo.server.services.AuthService
 import wow.doge.http4sdemo.server.utils.enrichLogger
 import wow.doge.http4sdemo.services.LibraryService
 
-final class LibraryRoutes(libraryService: LibraryService)(
-    logger: Logger[Task]
-) {
+final class LibraryRoutes(
+    libraryService: LibraryService,
+    authService: AuthService
+)(logger: Logger[Task]) {
 
   val routes: HttpRoutes[Task] = {
     val dsl = Http4sDsl[Task]
@@ -87,6 +89,17 @@ final class LibraryRoutes(libraryService: LibraryService)(
             .flatMap(id => Created(id).hideErrors)
           // .onErrorHandleWith(_.toResponse)
         } yield res
+
+      // case req @ POST -> Root / "api" / "register" =>
+      //   import org.http4s.circe.CirceEntityCodec._
+      //   implicit val clogger =
+      //     enrichLogger(logger, req)
+      //   for {
+      //     registration <- req.as[UserRegistration]
+      //     _ <- logger.debugU(s"Registering ${registration.username}")
+      //     _ <- authService.register(registration)
+      //     res <- Ok("done")
+      //   } yield res
     }
   }
 

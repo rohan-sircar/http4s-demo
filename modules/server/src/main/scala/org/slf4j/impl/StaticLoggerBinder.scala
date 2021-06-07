@@ -53,12 +53,9 @@ class StaticLoggerBinder extends OdinLoggerBinder[IO] {
     }
 
     override def isDefinedAt(packageName: String): Boolean = {
-      r
-        .filter { case route -> _ =>
-          packageName.startsWith(route)
-        }
-        .toList
-        .length > 0
+      r.filter { case route -> _ =>
+        packageName.startsWith(route)
+      }.size > 0
     }
 
   }

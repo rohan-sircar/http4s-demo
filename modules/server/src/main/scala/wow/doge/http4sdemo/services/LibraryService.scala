@@ -24,8 +24,9 @@ import wow.doge.http4sdemo.models.common.Color
 import wow.doge.http4sdemo.models.pagination.Pagination
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.refinements._
+import wow.doge.http4sdemo.server.ExtendedPgProfile.api._
+import wow.doge.http4sdemo.server.ExtendedPgProfile.mapping._
 import wow.doge.http4sdemo.server.implicits._
-import wow.doge.http4sdemo.server.{ExtendedPgProfile => JdbcProfile}
 import wow.doge.http4sdemo.slickcodegen.Tables
 
 trait LibraryService {
@@ -70,11 +71,9 @@ trait LibraryService {
 }
 
 final class LibraryServiceImpl(
-    profile: JdbcProfile,
     dbio: LibraryDbio,
     db: JdbcBackend.DatabaseDef
 ) extends LibraryService {
-  import profile.api._
 
   def getBooks(pagination: Pagination)(implicit
       logger: Logger[Task]
@@ -120,8 +119,7 @@ final class LibraryServiceImpl(
 
   def createAuthor(a: NewAuthor)(implicit
       logger: Logger[Task]
-  ): Task[AuthorId] =
-    db.runL(dbio.insertAuthor(a))
+  ): Task[AuthorId] = db.runL(dbio.insertAuthor(a))
 
   def updateBook(id: BookId, updateData: BookUpdate)(implicit
       logger: Logger[Task]
@@ -167,10 +165,11 @@ final class LibraryServiceImpl(
           book <- dbio.insertBookAndGetBook(newBook)
         } yield book)
         book <- db
-          .runTryL(action.transactionally.asTry)
-          .mapErrorPartial { case e: AppError2 =>
-            e
-          }
+          // .runTryL(action.transactionally.asTry)
+          // .mapErrorPartial { case e: AppError2 =>
+          //   e
+          // }
+          .runIO(action.transactionally)
       } yield book
     }
 
@@ -248,7 +247,7 @@ final class LibraryServiceImpl(
   ) =
     db.streamO(dbio.getBooksForAuthor(authorId))
 
-  def extrasRow(implicit logger: Logger[Task]) = db.streamO(dbio.extrasRows)
+  def extrasRow = db.streamO(dbio.extrasRows)
 
   def createExtra(ne: NewExtra)(implicit
       logger: Logger[Task]
@@ -262,8 +261,7 @@ final class LibraryServiceImpl(
 
 }
 
-final class LibraryDbio(val profile: JdbcProfile) {
-  import profile.api._
+final class LibraryDbio {
 
   def insertBookAndGetId(newBook: NewBook): DBIO[BookId] =
     Query.insertBookGetId += newBook

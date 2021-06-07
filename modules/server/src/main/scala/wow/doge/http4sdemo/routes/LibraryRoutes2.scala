@@ -2,7 +2,6 @@ package wow.doge.http4sdemo.routes
 
 import cats.syntax.all._
 import io.odin.Logger
-import io.odin.syntax._
 import monix.bio.IO
 import monix.bio.Task
 import monix.bio.UIO
@@ -15,15 +14,17 @@ import wow.doge.http4sdemo.endpoints.LibraryEndpoints
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.Book
 import wow.doge.http4sdemo.models.NewBook
+import wow.doge.http4sdemo.models.common.UserRole
 import wow.doge.http4sdemo.models.pagination._
 import wow.doge.http4sdemo.refinements.Refinements._
-import wow.doge.http4sdemo.server.auth.AuthService
+import wow.doge.http4sdemo.server.services.AuthService
 import wow.doge.http4sdemo.server.utils.observableToJsonStreamA
 import wow.doge.http4sdemo.services.LibraryService
 import wow.doge.http4sdemo.utils.observableFromByteStreamA
-final class LibraryRoutes2(L: LibraryService, A: AuthService)(
+
+final class LibraryRoutes2(L: LibraryService, val authService: AuthService)(
     val logger: Logger[Task]
-) extends ServerInterpreter {
+) extends AuthedServerInterpreter {
 
   def getBookById(
       id: BookId
@@ -42,29 +43,23 @@ final class LibraryRoutes2(L: LibraryService, A: AuthService)(
   } yield res
 
   val getBookByIdRoute: HttpRoutes[Task] =
-    toRoutes(LibraryEndpoints.getBookById) { case (ctx, id) =>
-      getBookById(id)(
-        logger.withConstContext(Map("reqCtx" -> ctx.toString))
-      ).attempt
-    }
+    toRoutes(
+      LibraryEndpoints.getBookById
+        .serverLogicPart(enrichLogger)
+        .andThenRecoverErrors { case (logger, id) =>
+          getBookById(id)(logger)
+        }
+    )
 
-  // val x = LibraryEndpoints.authedGetBookById
-  //   .serverLogicPart(enrichLogger)
-  // .andThen { case (logger, (auth, id)) =>
-  //   getBookById(id)(logger).attempt
-  // }
-  // .andThenPart((D: AuthDetails) => A.parseDetails(D)(logger).attempt)
-
-  val authedGetBookByIdRoute = toRoutes(
-    LibraryEndpoints.authedGetBookById
-      .serverLogicPart(enrichLogger)
-      .andThen { case (logger, (auth, id)) =>
-        val io = A
-          .parseDetails(auth)(logger)
-          .flatMap(_ => getBookById(id)(logger))
-        io.attempt
-      }
-  )
+  val authedGetBookByIdRoute =
+    toRoutes(
+      LibraryEndpoints.authedGetBookById
+        .serverLogicRecoverErrors { case (ctx, details, id) =>
+          authorize(ctx, details)(UserRole.SuperUser) {
+            case (logger, authDetails) => getBookById(id)(logger)
+          }.leftWiden[Throwable]
+        }
+    )
 
   def getBooks(
       pagination: Pagination
@@ -76,13 +71,14 @@ final class LibraryRoutes2(L: LibraryService, A: AuthService)(
   }
 
   val getBooksRoute: HttpRoutes[Task] =
-    toRoutes(LibraryEndpoints.getBooks) { case (ctx, pagination) =>
-      getBooks(pagination)(
-        logger.withConstContext(Map("reqCtx" -> ctx.toString))
-      )
-        .flatMap(o => observableToJsonStreamA(o))
-        .attempt
-    }
+    toRoutes(
+      LibraryEndpoints.getBooks
+        .serverLogicPart(enrichLogger)
+        .andThenRecoverErrors { case (logger, pagination) =>
+          getBooks(pagination)(logger)
+            .flatMap(o => observableToJsonStreamA(o))
+        }
+    )
 
   def createBook(
       nb: NewBook
@@ -97,8 +93,8 @@ final class LibraryRoutes2(L: LibraryService, A: AuthService)(
     toRoutes(
       LibraryEndpoints.createBook
         .serverLogicPart(enrichLogger)
-        .andThen { case (logger, nb) =>
-          createBook(nb)(logger).attempt
+        .andThenRecoverErrors { case (logger, nb) =>
+          createBook(nb)(logger)
         }
     )
 
@@ -127,7 +123,6 @@ final class LibraryRoutes2(L: LibraryService, A: AuthService)(
         )
         .toIO
         .mapErrorPartial { case e: AppError2 => e }
-        .tapError(e => logger.errorU(s"Error occured: $e"))
     } yield numRows.toInt
     // )
   }
@@ -136,12 +131,13 @@ final class LibraryRoutes2(L: LibraryService, A: AuthService)(
     toRoutes(
       LibraryEndpoints.createBooksWithStream
         .serverLogicPart(enrichLogger)
-        .andThen { case (logger, nb) =>
-          createBooks(nb)(logger).attempt
+        .andThenRecoverErrors { case (logger, nb) =>
+          createBooks(nb)(logger)
         }
     )
 
   val routes: HttpRoutes[Task] =
-    authedGetBookByIdRoute <+> getBookByIdRoute <+> getBooksRoute <+> createBookRoute <+> createBooksRoute
+    getBookByIdRoute <+> authedGetBookByIdRoute <+> getBookByIdRoute <+>
+      getBooksRoute <+> createBookRoute <+> createBooksRoute
 
 }

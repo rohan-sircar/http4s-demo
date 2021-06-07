@@ -4,6 +4,7 @@ import scala.concurrent.duration.MILLISECONDS
 
 import cats.effect.ExitCode
 import cats.effect.Resource
+import com.codahale.metrics.SharedMetricRegistries
 import com.typesafe.config.ConfigFactory
 import monix.bio.BIOApp
 import monix.bio.IO
@@ -52,7 +53,13 @@ object Main extends BIOApp {
       _ <- DBMigrations.migrate(config)
     } yield ()).executeOn(schedulers.io.value))
     _ <- Resource.eval(logger.debug(s"Value = ${appConfig.logger.routes}"))
-    _ <- new Server(db, profile, schedulers, appConfig.http)(logger).resource
+    registry <- Resource.eval(
+      Task(SharedMetricRegistries.getOrCreate("default"))
+    )
+    appRoutes <- Resource.eval(IO.pure(new AppRoutes(db, registry)(logger)))
+    _ <- new Server(schedulers, appRoutes, registry, appConfig.http)(
+      logger
+    ).resource
   } yield ()
 
   def run(args: List[String]) = {

@@ -27,13 +27,9 @@ object AppLogger {
   def apply[F[_]: ContextShift: Concurrent: Timer](
       config: LoggerConfig
   ): Resource[F, Logger[F]] = {
-    consoleLogger[F](
-      formatter = formatter(config),
-      minLevel = OLevel.Debug
-    ).withAsync(
-      timeWindow = config.timeWindow,
-      maxBufferSize = Some(config.bufferSize.value)
-    )
+    consoleLogger[F](formatter(config), OLevel.Debug)
+      .withSecretContext("password", "userPassword", "user_password")
+      .withAsync(config.timeWindow, Some(config.bufferSize.value))
   }
 
   def routed[F[_]: ContextShift: Concurrent: Timer](

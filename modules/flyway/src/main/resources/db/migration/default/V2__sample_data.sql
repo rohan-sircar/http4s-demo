@@ -59,14 +59,14 @@ values
     (3, false);
 
 insert into
-    users (user_name)
+    users (user_name, user_password, user_role)
 values
-    ('user1');
+    ('user1', 'password1', '0');
 
 insert into
-    users (user_name)
+    users (user_name, user_password, user_role)
 values
-    ('user2');
+    ('user2', 'password2', '1');
 
 insert into
     extras (

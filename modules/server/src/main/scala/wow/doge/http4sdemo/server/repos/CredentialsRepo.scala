@@ -17,30 +17,31 @@ trait CredentialsRepo {
   def remove(userId: UserId): IO[AppError2, Unit]
 }
 
-final class InMemoryCredentialsRepo(
+final class InMemoryCredentialsRepo private (
     lock: MLock,
     store: Ref[Task, Map[UserId, JWTMac[HMACSHA256]]]
 ) extends CredentialsRepo {
 
-  def put(userId: UserId, jwt: JWTMac[HMACSHA256]): IO[AppError2, Unit] = {
-    val io = for {
-      s <- store.get.hideErrors
-      next <- s.get(userId) match {
-        case Some(_) =>
-          IO.raiseError(
-            AppError2.EntityAlreadyExists(
-              s"token for uid: $userId already exists"
+  def put(userId: UserId, jwt: JWTMac[HMACSHA256]): IO[AppError2, Unit] =
+    lock.greenLight {
+      for {
+        s <- store.get.hideErrors
+        next <- s.get(userId) match {
+          case Some(_) =>
+            IO.raiseError(
+              AppError2.EntityAlreadyExists(
+                s"token for uid: $userId already exists"
+              )
             )
-          )
-        case None => IO.pure(s + (userId -> jwt))
-      }
-      _ <- store.set(next).hideErrors
-    } yield ()
-    lock.greenLight(io)
-  }
+          case None => IO.pure(s + (userId -> jwt))
+        }
+        _ <- store.set(next).hideErrors
+      } yield ()
 
-  def remove(userId: UserId): IO[AppError2, Unit] = {
-    val io = for {
+    }
+
+  def remove(userId: UserId): IO[AppError2, Unit] = lock.greenLight {
+    for {
       s <- store.get.hideErrors
       _ <- s.get(userId) match {
         case Some(_) =>
@@ -54,11 +55,10 @@ final class InMemoryCredentialsRepo(
       next = s.filter { case (id, _) => id === userId }
       _ <- store.set(next).hideErrors
     } yield ()
-    lock.greenLight(io)
   }
 
   def get(userId: UserId): IO[AppError2, Option[JWTMac[HMACSHA256]]] =
-    store.get.map(_.get(userId)).hideErrors
+    lock.greenLight { store.get.map(_.get(userId)).hideErrors }
 
 }
 

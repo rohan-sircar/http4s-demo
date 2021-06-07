@@ -14,6 +14,8 @@ import monix.bio.IO
 import monix.bio.Task
 import monix.execution.Scheduler
 import monix.reactive.Observable
+import shapeless.ops.product
+import shapeless.syntax.std.product._
 
 package object implicits extends MyCirceSupportParser {
   // with slickeffect.DBIOInstances
@@ -82,6 +84,15 @@ package object implicits extends MyCirceSupportParser {
       extends AnyVal {
     def toStream[F[_]](implicit F: ConcurrentEffect[F], s: Scheduler) =
       O.toReactivePublisher.toStream[F]
+  }
+
+  implicit final class ProductExt[T <: Product](private val P: T)
+      extends AnyVal {
+    def toStringMap(implicit
+        toMap: product.ToMap.Aux[T, Symbol, Any]
+    ): Map[String, String] = P.toMap[Symbol, Any].map { case k -> v =>
+      k.name -> v.toString
+    }
   }
 
 }

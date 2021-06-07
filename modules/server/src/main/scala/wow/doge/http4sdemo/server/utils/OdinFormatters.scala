@@ -31,11 +31,12 @@ object PaddedFormatter {
       if (printCtx) fansi.Color.Magenta(formatCtx(msg.context))
       else fansi.Str("")
     val timestamp = f"${formatTimestamp(msg.timestamp)}%-23s"
-    val threadName = fansi.Str.join(
-      fansi.Str("["),
-      fansi.Color.LightGreen(f"${msg.threadName}%-20s"),
-      fansi.Str("]")
-    )
+    val threadName =
+      // fansi.Str.join(
+      //   fansi.Str("["),
+      fansi.Color.LightGreen(f"${"[" + msg.threadName + "]"}%-25s")
+    //   fansi.Str("]")
+    // )
     val m = f"${msg.level.show}%-5s"
     val level = msg.level match {
       case Debug       => fansi.Color.DarkGray(m)
@@ -45,7 +46,9 @@ object PaddedFormatter {
       case Trace       => fansi.Color.True(255, 215, 0)(m)
     }
     val position =
-      fansi.Color.LightBlue(formatPosition(msg.position, positionFormat))
+      fansi.Color.LightBlue(
+        f"${formatPosition(msg.position, positionFormat)}%-35s"
+      )
 
     val throwable = msg.exception match {
       case Some(t) =>

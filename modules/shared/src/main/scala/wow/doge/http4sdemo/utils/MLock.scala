@@ -5,6 +5,10 @@ import monix.bio.Task
 import monix.bio.UIO
 import monix.catnap.MVar
 
+/** An Async Mutex
+  *
+  * Copied from monix documentation for MVar
+  */
 final class MLock(mvar: MVar[Task, Unit]) {
   def acquire[E]: IO[E, Unit] =
     mvar.take.hideErrors

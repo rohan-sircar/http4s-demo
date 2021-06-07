@@ -30,9 +30,13 @@ create table book_expiry (
     discontinued BOOLEAN NOT NULL
 );
 
+create type UserRole as ENUM ('0', '1', '2');
+
 create table users (
     user_id SERIAL PRIMARY KEY NOT NULL,
-    user_name VARCHAR(30) NOT NULL
+    user_name VARCHAR(30) NOT NULL,
+    user_password VARCHAR(200) NOT NULL,
+    user_role UserRole NOT NULL default '2'
 );
 
 create table checkouts (

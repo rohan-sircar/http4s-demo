@@ -9,6 +9,8 @@ import com.github.tminglei.slickpg.PgDate2Support
 import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.str.PgStringSupport
 import enumeratum._
+import enumeratum.values.ValueEnum
+import enumeratum.values.ValueEnumEntry
 import slick.basic.Capability
 import slick.jdbc
 import slick.jdbc.PostgresProfile
@@ -64,13 +66,34 @@ trait ExtendedPgProfile
   def mappedColumnTypeForEnum[E <: EnumEntry: ClassTag](
       sqlEnumTypeName: String,
       E: Enum[E]
-  ): profile.BaseColumnType[E] =
+  ): BaseColumnType[E] =
     createEnumJdbcType[E](
       sqlEnumTypeName,
       _.entryName,
       s => E.withName(s),
       false
     )
+
+  def mappedColumnTypeForValueEnum2[V, E <: ValueEnumEntry[V]: ClassTag](
+      sqlEnumTypeName: String,
+      E: ValueEnum[V, E]
+  )(implicit valueColumnType: BaseColumnType[V]) =
+    MappedColumnType.base[E, V](
+      { _.value },
+      { E.withValue(_) }
+    )
+
+  def mappedColumnTypeForValueEnumForInt[V, E <: ValueEnumEntry[V]: ClassTag](
+      sqlEnumTypeName: String,
+      E: ValueEnum[V, E]
+  )(implicit I: V =:= Int): BaseColumnType[E] =
+    createEnumJdbcType[E](
+      sqlEnumTypeName,
+      _.value.toString,
+      s => E.withValue(I.flip(s.toInt)),
+      false
+    )
+
 }
 
 object ExtendedPgProfile extends ExtendedPgProfile
