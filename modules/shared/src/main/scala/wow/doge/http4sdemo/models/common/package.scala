@@ -19,15 +19,15 @@ package common {
     case object Blue  extends Color
 
     //for use with slick DSL
-    val red: Color   = Red
+    val red  : Color = Red
     val green: Color = Green
-    val blue: Color  = Blue
+    val blue : Color = Blue
     //format: on
 
   }
 
   //make the constructor private to prevent creating
-//arbitrary values
+  //arbitrary values
   sealed abstract class UserRole private (val value: Int)
       extends IntEnumEntry
       with EnumEntry.UpperSnakecase
@@ -36,9 +36,15 @@ package common {
       with CatsValueEnum[Int, UserRole]
       with IntCirceEnum[UserRole] {
     val values = findValues
+    //format: off
     case object SuperUser extends UserRole(0)
-    case object Admin extends UserRole(1)
-    case object User extends UserRole(2)
+    case object Admin     extends UserRole(1)
+    case object User      extends UserRole(2)
+    
+    val superuser: UserRole = SuperUser
+    val admin    : UserRole = Admin    
+    val user     : UserRole = User     
+    //format: on
   }
 
 }
