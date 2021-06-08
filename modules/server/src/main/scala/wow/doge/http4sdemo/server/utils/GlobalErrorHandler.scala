@@ -17,7 +17,15 @@ object GlobalErrorHandler {
       {
         case Cause.Error(err) =>
           logger
-            .error("Unhandled error:", err)
+            .error(
+              "Unhandled error:",
+              Map(
+                "reqMethod" -> req.method.name,
+                "reqUri" -> req.uri.path,
+                "reqId" -> extractReqId(req)
+              ),
+              err
+            )
             .hideErrors >> IO.pure(
             Response(
               Status.InternalServerError,
@@ -28,7 +36,15 @@ object GlobalErrorHandler {
           )
         case Cause.Termination(err) =>
           logger
-            .error("Terminal error:", err)
+            .error(
+              "Terminal error:",
+              Map(
+                "reqMethod" -> req.method.name,
+                "reqUri" -> req.uri.path,
+                "reqId" -> extractReqId(req)
+              ),
+              err
+            )
             .hideErrors >> IO.pure(
             Response(
               Status.InternalServerError,
