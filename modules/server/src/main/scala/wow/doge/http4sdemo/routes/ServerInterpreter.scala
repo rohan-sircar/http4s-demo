@@ -6,17 +6,17 @@ import io.odin.Logger
 import io.odin.syntax._
 import monix.bio.IO
 import monix.bio.Task
-import shapeless.syntax.std.product._
 import sttp.tapir.server.LogRequestHandling
 import sttp.tapir.server.http4s.Http4sServerInterpreter
 import sttp.tapir.server.http4s.Http4sServerOptions
 import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.endpoints.AuthDetails
+import wow.doge.http4sdemo.endpoints.ReqContext
+import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.common.UserRole
 import wow.doge.http4sdemo.schedulers.Schedulers
 import wow.doge.http4sdemo.server.auth.VerifiedAuthDetails
 import wow.doge.http4sdemo.server.services.AuthService
-import wow.doge.http4sdemo.utils.ReqContext
 
 trait ServerInterpreter extends Http4sServerInterpreter {
   def logger: Logger[Task]
@@ -45,11 +45,15 @@ trait ServerInterpreter extends Http4sServerInterpreter {
       logRequestHandling = logRequestHandler
     )
 
+  @SuppressWarnings(
+    Array(
+      "org.wartremover.warts.Serializable",
+      "org.wartremover.warts.JavaSerializable"
+    )
+  )
   def enrichLogger(ctx: ReqContext) = Task(
     logger
-      .withConstContext(ctx.toMap.map { case k -> v =>
-        k.name -> v.toString
-      })
+      .withConstContext(ctx.toStringMap)
       .asRight[AppError2]
   )
 }

@@ -6,11 +6,11 @@ import sttp.tapir._
 import sttp.tapir.codec.newtype._
 import sttp.tapir.json.circe._
 import wow.doge.http4sdemo.AppError2
-import wow.doge.http4sdemo.utils.ReqContext
 
 package object endpoints {
   val reqCtxEndpoint = endpoint.in(
     extractFromRequest(_.header("X-request-id"))
+      .and(extractFromRequest(r => r.method))
       .and(extractFromRequest(r => Option(r.uri.getPath())))
       .and(extractFromRequest(r => Option(r.uri.getQuery())))
       .map(ReqContext.tapirMapping)
@@ -67,6 +67,39 @@ package endpoints {
   // import sttp.tapir.annotations.{header => _header}
   import sttp.tapir.annotations.{bearer => _bearer}
   import sttp.tapir.annotations.deriveEndpointInput
+  import sttp.tapir.Mapping
+  import sttp.model.Method
+  final case class ReqContext(
+      reqId: String,
+      reqMethod: Method,
+      reqUri: String,
+      reqParams: String
+  )
+  object ReqContext {
+
+    val empty = ReqContext("null", Method("null"), "null", "null")
+
+    implicit val tapirMapping = Mapping.fromDecode[
+      (Option[String], Method, Option[String], Option[String]),
+      ReqContext
+    ] { case (reqId, reqMethod, reqUri, reqParams) =>
+      sttp.tapir.DecodeResult.Value(
+        ReqContext(
+          reqId.getOrElse("null"),
+          reqMethod,
+          reqUri.getOrElse("null"),
+          reqParams.getOrElse("null")
+        )
+      )
+    } { ctx =>
+      (
+        Some(ctx.reqId),
+        ctx.reqMethod,
+        Some(ctx.reqUri),
+        Some(ctx.reqParams)
+      )
+    }
+  }
 
   final case class AuthDetails(@_bearer bearerToken: String)
   object AuthDetails {

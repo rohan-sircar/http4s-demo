@@ -8,6 +8,7 @@ import sttp.client3.httpclient.fs2.HttpClientFs2Backend
 import sttp.tapir.client.sttp.SttpClientInterpreter
 import sttp.tapir.client.sttp.ws.fs2._
 import wow.doge.http4sdemo.endpoints.LibraryEndpoints
+import wow.doge.http4sdemo.endpoints.ReqContext
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.Book
 import wow.doge.http4sdemo.models.NewBook
@@ -15,7 +16,6 @@ import wow.doge.http4sdemo.models.pagination.Pagination
 import wow.doge.http4sdemo.models.pagination.PaginationLimit
 import wow.doge.http4sdemo.models.pagination.PaginationPage
 import wow.doge.http4sdemo.refinements.Refinements._
-import wow.doge.http4sdemo.utils.ReqContext
 import wow.doge.http4sdemo.utils.observableFromByteStreamA
 
 @munit.IgnoreSuite

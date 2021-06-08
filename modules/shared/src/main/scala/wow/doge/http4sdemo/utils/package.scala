@@ -16,29 +16,3 @@ package object utils {
       )
     }
 }
-package utils {
-
-  import sttp.tapir.Mapping
-  final case class ReqContext(
-      reqId: String,
-      reqUri: String,
-      reqParams: String
-  )
-  object ReqContext {
-
-    val empty = ReqContext("null", "null", "null")
-
-    implicit val tapirMapping = Mapping.fromDecode[
-      (Option[String], Option[String], Option[String]),
-      ReqContext
-    ] { case (reqId, reqUri, reqParams) =>
-      sttp.tapir.DecodeResult.Value(
-        ReqContext(
-          reqId.getOrElse("null"),
-          reqUri.getOrElse("null"),
-          reqParams.getOrElse("null")
-        )
-      )
-    } { ctx => (Some(ctx.reqId), Some(ctx.reqUri), Some(ctx.reqParams)) }
-  }
-}
