@@ -21,6 +21,10 @@ import wow.doge.http4sdemo.server.auth._
 import wow.doge.http4sdemo.server.implicits._
 import wow.doge.http4sdemo.server.repos.CredentialsRepo
 import wow.doge.http4sdemo.server.repos.UsersRepo
+import tsec.passwordhashers.PasswordHash
+import tsec.passwordhashers.jca.BCrypt
+import tsec.common.VerificationFailed
+import tsec.common.Verified
 
 trait AuthService {
   def verify(authDetails: AuthDetails)(implicit
@@ -39,6 +43,9 @@ trait AuthService {
 final class AuthServiceImpl(C: CredentialsRepo, U: UsersRepo)(implicit
     key: JwtSigningKey
 ) extends AuthService {
+
+  val bcryptHash: Task[PasswordHash[BCrypt]] = BCrypt.hashpw[Task]("hiThere")
+
   def verify(authDetails: AuthDetails)(implicit logger: Logger[Task]) = {
     for {
       decoded <- decode[Task](authDetails.bearerToken)
@@ -73,11 +80,12 @@ final class AuthServiceImpl(C: CredentialsRepo, U: UsersRepo)(implicit
       _ <- logger.infoU("Performing login")
       mbUser <- U.getByName(userLogin.username)
       user <- IO.fromOption(mbUser, AppError2.AuthError("Invalid password"))
-      jwt <-
-        if (userLogin.password.inner.value === user.password.inner.value)
-          encode[Task](user).hideErrors
-        else
+      status <- checkPasswordIO(userLogin, user)
+      jwt <- status match {
+        case VerificationFailed =>
           IO.raiseError(AppError2.AuthError("Invalid password"))
+        case Verified => encode[Task](user).hideErrors
+      }
       _ <- C.put(user.id, jwt)
     } yield jwt
   }
@@ -87,10 +95,13 @@ final class AuthServiceImpl(C: CredentialsRepo, U: UsersRepo)(implicit
   )(implicit logger: Logger[Task]): IO[AppError2, Unit] = {
     for {
       _ <- logger.infoU("Registering user")
-      _ <- U
-        .put(
-          user.into[NewUser].withFieldConst(_.role, UserRole.User).transform
-        )
+      hashed <- hashPasswordIO(user.password)
+      nu = user
+        .into[NewUser]
+        .withFieldConst(_.password, hashed)
+        .withFieldConst(_.role, UserRole.User)
+        .transform
+      _ <- U.put(nu)
     } yield ()
   }
 }

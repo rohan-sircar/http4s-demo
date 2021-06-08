@@ -20,6 +20,14 @@ package object refinements {
   type StringRefinement = String Refined Size[Interval.Closed[5, 50]]
   object StringRefinement extends RefinedTypeOps[StringRefinement, String]
 
+  type UnhashedPasswordRefinement = String Refined Size[Interval.Closed[5, 200]]
+  object UnhashedPasswordRefinement
+      extends RefinedTypeOps[UnhashedPasswordRefinement, String]
+
+  type HashedPasswordRefinement = NonEmptyFiniteString[1000]
+  object HashedPasswordRefinement
+      extends RefinedTypeOps[HashedPasswordRefinement, String]
+
   type PaginationRefinement = Int Refined Interval.Closed[0, 50]
   object PaginationRefinement extends RefinedTypeOps[PaginationRefinement, Int]
 

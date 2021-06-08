@@ -37,7 +37,7 @@ trait DatabaseIntegrationTestBase
                                |
                                |    numThreads = 1
                                |
-                               |    queueSize = 25
+                               |    queueSize = -1
                                |
                                |    maxThreads = 1
                                |

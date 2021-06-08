@@ -8,7 +8,6 @@ import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.NewUser
 import wow.doge.http4sdemo.models.User
-import wow.doge.http4sdemo.models.UserLogin
 import wow.doge.http4sdemo.refinements.Refinements
 import wow.doge.http4sdemo.server.ExtendedPgProfile.api._
 import wow.doge.http4sdemo.server.ExtendedPgProfile.mapping._
@@ -21,8 +20,7 @@ final class UsersRepo(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio) {
     for {
       _ <- logger.infoU("Putting user")
       res <- db
-        .runTryL(usersDbio.insertUser(nu).transactionally.asTry)
-        .mapErrorPartial { case e: AppError2 => e }
+        .runIO(usersDbio.insertUser(nu).transactionally)
     } yield res
 
   def getById(
@@ -31,8 +29,7 @@ final class UsersRepo(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio) {
     for {
       _ <- logger.infoU("Getting user")
       res <- db
-        .runTryL(usersDbio.getUserById(userId).transactionally.asTry)
-        .mapErrorPartial { case e: AppError2 => e }
+        .runIO(usersDbio.getUserById(userId).transactionally)
     } yield res
   }
 
@@ -42,21 +39,10 @@ final class UsersRepo(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio) {
     for {
       _ <- logger.infoU("Getting user")
       res <- db
-        .runTryL(usersDbio.getUserByName(userName).transactionally.asTry)
-        .mapErrorPartial { case e: AppError2 => e }
+        .runIO(usersDbio.getUserByName(userName).transactionally)
     } yield res
   }
 
-  def getLoginDetails(
-      userName: Refinements.Username
-  )(implicit logger: Logger[Task]): IO[AppError2, Option[UserLogin]] = {
-    for {
-      _ <- logger.infoU("Getting user")
-      res <- db
-        .runTryL(usersDbio.getUserLoginDetails(userName).transactionally.asTry)
-        .mapErrorPartial { case e: AppError2 => e }
-    } yield res
-  }
 //   def remove(userId: UserId): IO[AppError2, Unit]
 }
 
@@ -78,10 +64,4 @@ final class UsersDbio {
       .result
       .headOption
 
-  def getUserLoginDetails(userName: Refinements.Username) =
-    Tables.Users
-      .filter(_.userName === userName)
-      .map(UserLogin.fromUsersTableFn)
-      .result
-      .headOption
 }

@@ -19,6 +19,7 @@ val SlickVersion           = "3.3.3"
 val SlickPgVersion         = "0.19.6"
 val ChimneyVersion         = "0.6.1"
 val TapirVersion           = "0.17.19"
+val TsecVersion            = "0.2.1"
 //format: on
 
 scalaVersion in ThisBuild := "2.13.6"
@@ -190,7 +191,8 @@ lazy val server = (project in file("modules/server"))
       "com.softwaremill.sttp.client3" %% "httpclient-backend-fs2"    % SttpVersion,
       "com.softwaremill.sttp.tapir"   %% "tapir-http4s-server"       % TapirVersion,
       "com.softwaremill.sttp.tapir"   %% "tapir-swagger-ui-http4s"   % TapirVersion,
-      "io.github.jmcardon"            %% "tsec-jwt-mac"              % "0.2.1",
+      "io.github.jmcardon"            %% "tsec-jwt-mac"              % TsecVersion,
+      "io.github.jmcardon"            %% "tsec-password"             % TsecVersion,
       // "ch.qos.logback" % "logback-classic" % LogbackVersion,
       // "org.scalameta"                 %% "svm-subs"                 % "20.2.0",
       //test deps
@@ -248,7 +250,7 @@ lazy val server = (project in file("modules/server"))
                   //users field
                   case s if s.endsWith("user_id") => "UserId"
                   case "user_name"                => "Username"
-                  case "user_password"            => "UserPassword"
+                  case "user_password"            => "HashedUserPassword"
                   case "user_role"                => "UserRole"
                   //others
                   case "color"                    => "Color"

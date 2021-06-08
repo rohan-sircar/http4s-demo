@@ -10,7 +10,7 @@ import wow.doge.http4sdemo.utils.mytapir._
 
 final case class NewUser(
     username: Username,
-    password: UserPassword,
+    password: HashedUserPassword,
     role: UserRole
 )
 object NewUser {
@@ -22,7 +22,7 @@ object NewUser {
 final case class User(
     id: UserId,
     username: Username,
-    password: UserPassword,
+    password: HashedUserPassword,
     role: UserRole
 )
 object User {
@@ -39,9 +39,28 @@ object User {
   val Claim = "userDetails"
 }
 
+final case class UserIdentity(
+    id: UserId,
+    username: Username,
+    role: UserRole
+)
+object UserIdentity {
+  val tupled = (this.apply _).tupled
+  // implicit val codec: Codec[User] = deriveCodec
+  implicit val Decoder: Decoder[UserIdentity] = deriveDecoder
+  implicit val encoder: Encoder[UserIdentity] =
+    Encoder.forProduct4("id", "username", "password", "role")(u =>
+      (u.id, u.username, "[REDACTED]", u.role)
+    )
+
+  implicit val schema = Schema.derived[UserIdentity]
+
+  val Claim = "userDetails"
+}
+
 final case class UserLogin(
     username: Username,
-    password: UserPassword
+    password: UnhashedUserPassword
 )
 object UserLogin {
   val tupled = (this.apply _).tupled
@@ -55,7 +74,7 @@ object UserLogin {
 
 final case class UserRegistration(
     username: Username,
-    password: UserPassword
+    password: UnhashedUserPassword
 )
 object UserRegistration {
   implicit val Decoder: Decoder[UserRegistration] = deriveDecoder

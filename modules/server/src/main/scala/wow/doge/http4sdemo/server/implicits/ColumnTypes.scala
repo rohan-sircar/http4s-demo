@@ -44,9 +44,10 @@ trait ColumnTypes {
     implicitly[ExtendedPgProfile.ColumnType[UsernameRefinement]]
       .coerce[ExtendedPgProfile.ColumnType[Username]]
 
-  implicit val UserPasswordColType: ExtendedPgProfile.ColumnType[UserPassword] =
-    implicitly[ExtendedPgProfile.ColumnType[StringRefinement]]
-      .coerce[ExtendedPgProfile.ColumnType[UserPassword]]
+  implicit val HashedUserPasswordColType
+      : ExtendedPgProfile.ColumnType[HashedUserPassword] =
+    implicitly[ExtendedPgProfile.ColumnType[HashedPasswordRefinement]]
+      .coerce[ExtendedPgProfile.ColumnType[HashedUserPassword]]
 
 }
 

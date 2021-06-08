@@ -127,17 +127,32 @@ object Refinements {
     implicit val toT: Transformer[Username, String] = _.inner.value
   }
 
-  @newtype final case class UserPassword(inner: StringRefinement)
-  object UserPassword {
-    implicit val encoder: Encoder[UserPassword] =
-      Encoder[StringRefinement].coerce
-    implicit val decoder: Decoder[UserPassword] =
-      Decoder[StringRefinement].coerce
+  @newtype final case class UnhashedUserPassword(
+      inner: UnhashedPasswordRefinement
+  )
+  object UnhashedUserPassword {
+    implicit val encoder: Encoder[UnhashedUserPassword] =
+      Encoder[UnhashedPasswordRefinement].coerce
+    implicit val decoder: Decoder[UnhashedUserPassword] =
+      Decoder[UnhashedPasswordRefinement].coerce
     implicit val fromT =
       implicitly[
-        TransformerF[RefinementValidation, String, StringRefinement]
+        TransformerF[RefinementValidation, String, UnhashedPasswordRefinement]
       ].coerce
-    implicit val toT: Transformer[UserPassword, String] = _.inner.value
+    implicit val toT: Transformer[UnhashedUserPassword, String] = _.inner.value
+  }
+
+  @newtype final case class HashedUserPassword(inner: HashedPasswordRefinement)
+  object HashedUserPassword {
+    implicit val encoder: Encoder[HashedUserPassword] =
+      Encoder[HashedPasswordRefinement].coerce
+    implicit val decoder: Decoder[HashedUserPassword] =
+      Decoder[HashedPasswordRefinement].coerce
+    implicit val fromT =
+      implicitly[
+        TransformerF[RefinementValidation, String, HashedPasswordRefinement]
+      ].coerce
+    implicit val toT: Transformer[HashedUserPassword, String] = _.inner.value
   }
 
 }
