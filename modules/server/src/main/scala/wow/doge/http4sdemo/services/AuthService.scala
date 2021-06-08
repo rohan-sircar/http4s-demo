@@ -8,12 +8,17 @@ import io.scalaland.chimney.dsl._
 import monix.bio.IO
 import monix.bio.Task
 import tsec.common.TSecError
+import tsec.common.VerificationFailed
+import tsec.common.Verified
 import tsec.jws.mac.JWTMac
 import tsec.mac.jca.HMACSHA256
+import tsec.passwordhashers.PasswordHash
+import tsec.passwordhashers.jca.BCrypt
 import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.endpoints.AuthDetails
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.NewUser
+import wow.doge.http4sdemo.models.UserIdentity
 import wow.doge.http4sdemo.models.UserLogin
 import wow.doge.http4sdemo.models.UserRegistration
 import wow.doge.http4sdemo.models.common.UserRole
@@ -21,10 +26,6 @@ import wow.doge.http4sdemo.server.auth._
 import wow.doge.http4sdemo.server.implicits._
 import wow.doge.http4sdemo.server.repos.CredentialsRepo
 import wow.doge.http4sdemo.server.repos.UsersRepo
-import tsec.passwordhashers.PasswordHash
-import tsec.passwordhashers.jca.BCrypt
-import tsec.common.VerificationFailed
-import tsec.common.Verified
 
 trait AuthService {
   def verify(authDetails: AuthDetails)(implicit
@@ -80,11 +81,12 @@ final class AuthServiceImpl(C: CredentialsRepo, U: UsersRepo)(implicit
       _ <- logger.infoU("Performing login")
       mbUser <- U.getByName(userLogin.username)
       user <- IO.fromOption(mbUser, AppError2.AuthError("Invalid password"))
+      identity = user.transformInto[UserIdentity]
       status <- checkPasswordIO(userLogin, user)
       jwt <- status match {
         case VerificationFailed =>
           IO.raiseError(AppError2.AuthError("Invalid password"))
-        case Verified => encode[Task](user).hideErrors
+        case Verified => encode[Task](identity).hideErrors
       }
       _ <- C.put(user.id, jwt)
     } yield jwt
