@@ -226,9 +226,6 @@ lazy val server = (project in file("modules/server"))
     slickCodegenExcludedTables := Seq("flyway_schema_history"),
     slickCodegenCodeGenerator := { (model: m.Model) =>
       new SourceCodeGenerator(model) {
-        // override def code = """
-        // """.stripMargin + "\n" + super.code
-
         override def Table = new Table(_) {
           // override def EntityType = new EntityType {
           //   override def caseClassFinal = true
@@ -273,16 +270,11 @@ lazy val server = (project in file("modules/server"))
           s"""
           |package ${pkg}
           |import wow.doge.http4sdemo.server.ExtendedPgProfile
-          |// AUTO-GENERATED Slick data model
-          |/** Stand-alone Slick data model for immediate use */
-          |object ${container} extends ${container} {
-          |  val profile = ExtendedPgProfile
-          |}
           |
-          |/** Slick data model trait for extension, choice of backend or usage in the cake pattern. 
-          |  * (Make sure to initialize this late.) */
-          |trait ${container}${parentType.map(t => s" extends $t").getOrElse("")} {
-          |  val profile: ExtendedPgProfile
+          |object ${container} extends ${container}
+          |
+          |sealed trait ${container}${parentType.map(t => s" extends $t").getOrElse("")} {
+          |  val profile = ExtendedPgProfile
           |  import profile.api._
           |  import profile.mapping._
           |  import wow.doge.http4sdemo.refinements.Refinements._
