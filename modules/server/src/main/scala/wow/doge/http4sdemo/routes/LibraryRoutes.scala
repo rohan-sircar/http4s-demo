@@ -14,6 +14,9 @@ import wow.doge.http4sdemo.server.implicits._
 import wow.doge.http4sdemo.server.services.AuthService
 import wow.doge.http4sdemo.server.utils.enrichLogger
 import wow.doge.http4sdemo.services.LibraryService
+import monix.reactive.Observable
+import io.circe.Json
+import org.http4s.EntityDecoder
 
 final class LibraryRoutes(
     libraryService: LibraryService,
@@ -90,16 +93,25 @@ final class LibraryRoutes(
           // .onErrorHandleWith(_.toResponse)
         } yield res
 
-      // case req @ POST -> Root / "api" / "register" =>
-      //   import org.http4s.circe.CirceEntityCodec._
-      //   implicit val clogger =
-      //     enrichLogger(logger, req)
-      //   for {
-      //     registration <- req.as[UserRegistration]
-      //     _ <- logger.debugU(s"Registering ${registration.username}")
-      //     _ <- authService.register(registration)
-      //     res <- Ok("done")
-      //   } yield res
+      case req @ GET -> Root / "api" / "subscribe" =>
+        import org.http4s.circe.CirceEntityCodec._
+        import io.circe.syntax._
+        import scala.concurrent.duration._
+        Observable
+          .interval(2.seconds)
+          .map(item => Json.obj("foo" := "bar", "counter" := item))
+          .dump("O")
+          .toStreamIO
+          .flatMap(o => Ok(o))
+
+      case req @ POST -> Root / "api" / "publish" =>
+        IO.deferAction(implicit s =>
+          for {
+            stream <- IO.pure(req.body.chunks.through(fs2.text.utf8DecodeC))
+            _ <- stream.toObs.dump("O").completedL.toIO
+            res <- Ok()
+          } yield res
+        )
     }
   }
 

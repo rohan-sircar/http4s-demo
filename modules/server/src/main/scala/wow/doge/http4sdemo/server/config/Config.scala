@@ -107,7 +107,7 @@ object LoggerFormat extends Enum[LoggerFormat] {
 final case class LoggerConfig(
     format: LoggerFormat,
     routes: LoggerRoutes,
-    testRoutes: LoggerRoutes,
+    // testRoutes: LoggerRoutes,
     timeWindow: FiniteDuration,
     bufferSize: PosInt
 )
