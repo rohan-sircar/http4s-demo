@@ -26,14 +26,16 @@ package object auth {
       user <- parsed.body.getCustomF[F, UserIdentity](UserIdentity.Claim)
     } yield VerifiedAuthDetails(parsed, user)
 
-  def encode[F[_]: Sync](user: UserIdentity)(implicit key: JwtSigningKey) =
+  def encode[F[_]: Sync](user: UserIdentity, tokenTimout: FiniteDuration)(
+      implicit key: JwtSigningKey
+  ) =
     for {
       _ <- Sync[F].unit
       claims <- JWTClaims
         .withDuration[F](
           issuedAt = Some(0.minutes),
           //   notBefore = Some(5.seconds),
-          expiration = Some(10.minutes),
+          expiration = Some(tokenTimout),
           customFields = List(UserIdentity.Claim -> user.asJson)
         )
       jwt <- JWTMac.build[F, HMACSHA256](claims, key.inner)

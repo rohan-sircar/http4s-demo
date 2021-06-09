@@ -25,24 +25,31 @@ import wow.doge.http4sdemo.server.routes.LibraryRoutes2
 import wow.doge.http4sdemo.server.services.AuthServiceImpl
 import wow.doge.http4sdemo.server.services.LibraryDbio
 import wow.doge.http4sdemo.server.services.LibraryServiceImpl
+import java.nio.charset.StandardCharsets
+import wow.doge.http4sdemo.server.config.AuthConfig
 
 final class AppRoutes(
     db: DatabaseDef,
     registry: MetricRegistry,
-    config: HttpConfig
+    httpConfig: HttpConfig,
+    authConfig: AuthConfig
 )(implicit logger: Logger[Task]) {
   val routes = for {
     _ <- IO.unit
     libraryDbio = new LibraryDbio
     libraryService = new LibraryServiceImpl(libraryDbio, db)
     credentialsRepo <- InMemoryCredentialsRepo()
-    _key <- HMACSHA256.generateKey[Task].hideErrors
+    keyStr = "ROlJpvBtrqrS7qrUQNXExZUTvTRrnpNm9QjpZrVsXjSJvR5ZGP"
+    _key <- HMACSHA256.buildKey[Task](keyStr.getBytes(StandardCharsets.UTF_8))
+    // _key <- HMACSHA256.generateKey[Task].hideErrors
     key = JwtSigningKey(_key)
     usersDbio = new UsersDbio
     usersRepo = new UsersRepo(db, usersDbio)
-    authService = new AuthServiceImpl(credentialsRepo, usersRepo)(key)
+    authService = new AuthServiceImpl(credentialsRepo, usersRepo, authConfig)(
+      key
+    )
     apiRoutes = Metrics(Dropwizard[Task](registry, "server"))(
-      Timeout(config.timeout)(
+      Timeout(httpConfig.timeout)(
         new LibraryRoutes(libraryService, authService)(logger).routes <+>
           new LibraryRoutes2(libraryService, authService)(logger).routes <+>
           new AccountRoutes(authService)(logger).routes

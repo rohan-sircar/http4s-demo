@@ -12,6 +12,7 @@ import pureconfig.error.CannotConvert
 import pureconfig.error.FailureReason
 import pureconfig.generic.semiauto._
 import pureconfig.module.enumeratum._
+import eu.timepit.refined.types.string
 
 private[config] final case class ListWrapper(list: List[String])
 private[config] object ListWrapper {
@@ -114,9 +115,17 @@ object LoggerConfig {
   implicit val configReader = deriveReader[LoggerConfig]
 }
 
+final case class AuthConfig(
+    secretKey: string.NonEmptyFiniteString[200],
+    tokenTimeout: FiniteDuration
+)
+object AuthConfig {
+  implicit val configReader = deriveReader[AuthConfig]
+}
 final case class AppConfig(
     http: HttpConfig,
-    logger: LoggerConfig
+    logger: LoggerConfig,
+    auth: AuthConfig
 )
 object AppConfig {
   implicit val configReader = deriveReader[AppConfig]

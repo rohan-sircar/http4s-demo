@@ -26,6 +26,7 @@ import wow.doge.http4sdemo.server.auth._
 import wow.doge.http4sdemo.server.implicits._
 import wow.doge.http4sdemo.server.repos.CredentialsRepo
 import wow.doge.http4sdemo.server.repos.UsersRepo
+import wow.doge.http4sdemo.server.config.AuthConfig
 
 trait AuthService {
   def verify(authDetails: AuthDetails)(implicit
@@ -41,7 +42,11 @@ trait AuthService {
   ): IO[AppError2, Unit]
 }
 
-final class AuthServiceImpl(C: CredentialsRepo, U: UsersRepo)(implicit
+final class AuthServiceImpl(
+    C: CredentialsRepo,
+    U: UsersRepo,
+    config: AuthConfig
+)(implicit
     key: JwtSigningKey
 ) extends AuthService {
 
@@ -86,7 +91,7 @@ final class AuthServiceImpl(C: CredentialsRepo, U: UsersRepo)(implicit
       jwt <- status match {
         case VerificationFailed =>
           IO.raiseError(AppError2.AuthError("Invalid password"))
-        case Verified => encode[Task](identity).hideErrors
+        case Verified => encode[Task](identity, config.tokenTimeout).hideErrors
       }
       _ <- C.put(user.id, jwt)
     } yield jwt

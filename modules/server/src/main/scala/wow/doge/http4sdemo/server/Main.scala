@@ -58,7 +58,9 @@ object Main extends BIOApp {
       Task(SharedMetricRegistries.getOrCreate("default"))
     )
     appRoutes <- Resource.eval(
-      IO.pure(new AppRoutes(db, registry, appConfig.http)(logger))
+      IO.pure(
+        new AppRoutes(db, registry, appConfig.http, appConfig.auth)(logger)
+      )
     )
     _ <- new Server(schedulers, appRoutes, appConfig.http)(logger).resource
   } yield ()
