@@ -5,7 +5,11 @@ import com.codahale.metrics.MetricRegistry
 import io.odin.Logger
 import monix.bio.IO
 import monix.bio.Task
+import org.http4s.HttpRoutes
+import org.http4s.Method
+import org.http4s.implicits._
 import org.http4s.metrics.dropwizard.Dropwizard
+import org.http4s.metrics.dropwizard.metricsResponse
 import org.http4s.server.middleware.Metrics
 import slick.jdbc.JdbcBackend.DatabaseDef
 import tsec.mac.jca.HMACSHA256
@@ -19,10 +23,14 @@ import wow.doge.http4sdemo.server.repos.UsersRepo
 import wow.doge.http4sdemo.server.services.AuthServiceImpl
 import wow.doge.http4sdemo.services.LibraryDbio
 import wow.doge.http4sdemo.services.LibraryServiceImpl
+import wow.doge.http4sdemo.server.config.HttpConfig
+import org.http4s.server.middleware.Timeout
 
-final class AppRoutes(db: DatabaseDef, registry: MetricRegistry)(implicit
-    logger: Logger[Task]
-) {
+final class AppRoutes(
+    db: DatabaseDef,
+    registry: MetricRegistry,
+    config: HttpConfig
+)(implicit logger: Logger[Task]) {
   val routes = for {
     _ <- IO.unit
     libraryDbio = new LibraryDbio
@@ -33,11 +41,19 @@ final class AppRoutes(db: DatabaseDef, registry: MetricRegistry)(implicit
     usersDbio = new UsersDbio
     usersRepo = new UsersRepo(db, usersDbio)
     authService = new AuthServiceImpl(credentialsRepo, usersRepo)(key)
-    httpRoutes = Metrics(Dropwizard[Task](registry, "server"))(
-      new LibraryRoutes(libraryService, authService)(logger).routes <+>
-        new LibraryRoutes2(libraryService, authService)(logger).routes <+>
-        new AccountRoutes(authService)(logger).routes
+    apiRoutes = Metrics(Dropwizard[Task](registry, "server"))(
+      Timeout(config.timeout)(
+        new LibraryRoutes(libraryService, authService)(logger).routes <+>
+          new LibraryRoutes2(libraryService, authService)(logger).routes <+>
+          new AccountRoutes(authService)(logger).routes
+      )
     )
+    httpRoutes = apiRoutes <+> metricsRoutes(registry)
   } yield httpRoutes
+
+  def metricsRoutes(registry: MetricRegistry) = HttpRoutes.of[Task] {
+    case req if req.method === Method.GET && req.uri === uri"/api/metrics" =>
+      metricsResponse(registry)
+  }
 
 }

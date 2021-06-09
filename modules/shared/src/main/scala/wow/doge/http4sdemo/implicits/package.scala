@@ -84,6 +84,9 @@ package object implicits extends MyCirceSupportParser {
       extends AnyVal {
     def toStream[F[_]](implicit F: ConcurrentEffect[F], s: Scheduler) =
       O.toReactivePublisher.toStream[F]
+
+    def toStreamIO =
+      IO.deferAction(implicit s => IO(O.toReactivePublisher.toStream[Task]))
   }
 
   implicit final class ProductExt[T <: Product](private val P: T)

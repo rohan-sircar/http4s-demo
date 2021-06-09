@@ -13,17 +13,13 @@ import io.odin.formatter.options.ThrowableFormat
 
 object OdinFormatters {}
 object PaddedFormatter {
-  val default = apply(
-    ThrowableFormat.Default,
-    PositionFormat.Full,
-    colorful = true,
-    printCtx = true
-  )
+  val default =
+    apply(ThrowableFormat.Default, PositionFormat.Full, true)
+
   import Formatter._
   def apply(
       throwableFormat: ThrowableFormat,
       positionFormat: PositionFormat,
-      colorful: Boolean,
       printCtx: Boolean
   ): Formatter = { (msg: LoggerMessage) =>
     //   val ctx = if (printCtx) withColor(MAGENTA, formatCtx(msg.context)) else ""

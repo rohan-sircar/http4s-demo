@@ -56,10 +56,10 @@ object Main extends BIOApp {
     registry <- Resource.eval(
       Task(SharedMetricRegistries.getOrCreate("default"))
     )
-    appRoutes <- Resource.eval(IO.pure(new AppRoutes(db, registry)(logger)))
-    _ <- new Server(schedulers, appRoutes, registry, appConfig.http)(
-      logger
-    ).resource
+    appRoutes <- Resource.eval(
+      IO.pure(new AppRoutes(db, registry, appConfig.http)(logger))
+    )
+    _ <- new Server(schedulers, appRoutes, appConfig.http)(logger).resource
   } yield ()
 
   def run(args: List[String]) = {
