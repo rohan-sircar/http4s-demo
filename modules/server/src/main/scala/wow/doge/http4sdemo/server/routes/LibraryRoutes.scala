@@ -1,8 +1,10 @@
-package wow.doge.http4sdemo.routes
+package wow.doge.http4sdemo.server.routes
 
+import io.circe.Json
 import io.odin.Logger
 import monix.bio.IO
 import monix.bio.Task
+import monix.reactive.Observable
 import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
 import wow.doge.http4sdemo.implicits._
@@ -12,11 +14,8 @@ import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.refinements._
 import wow.doge.http4sdemo.server.implicits._
 import wow.doge.http4sdemo.server.services.AuthService
+import wow.doge.http4sdemo.server.services.LibraryService
 import wow.doge.http4sdemo.server.utils.enrichLogger
-import wow.doge.http4sdemo.services.LibraryService
-import monix.reactive.Observable
-import io.circe.Json
-import org.http4s.EntityDecoder
 
 final class LibraryRoutes(
     libraryService: LibraryService,

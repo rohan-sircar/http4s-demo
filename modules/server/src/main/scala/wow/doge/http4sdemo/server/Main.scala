@@ -1,4 +1,4 @@
-package wow.doge.http4sdemo
+package wow.doge.http4sdemo.server
 
 import scala.concurrent.duration.MILLISECONDS
 
@@ -13,8 +13,9 @@ import monix.bio.UIO
 import monix.execution.Scheduler
 import pureconfig.ConfigSource
 import pureconfig.module.catseffect.syntax._
-import wow.doge.http4sdemo.schedulers.Schedulers
+import wow.doge.http4sdemo.BuildInfo
 import wow.doge.http4sdemo.server.config.AppConfig
+import wow.doge.http4sdemo.server.schedulers.Schedulers
 
 object Main extends BIOApp {
   val profile = wow.doge.http4sdemo.server.ExtendedPgProfile

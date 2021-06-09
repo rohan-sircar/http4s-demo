@@ -1,4 +1,4 @@
-package wow.doge.http4sdemo.routes
+package wow.doge.http4sdemo.server.routes
 
 import cats.syntax.all._
 import io.odin.Logger
@@ -18,8 +18,8 @@ import wow.doge.http4sdemo.models.common.UserRole
 import wow.doge.http4sdemo.models.pagination._
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.server.services.AuthService
+import wow.doge.http4sdemo.server.services.LibraryService
 import wow.doge.http4sdemo.server.utils.observableToJsonStreamA
-import wow.doge.http4sdemo.services.LibraryService
 import wow.doge.http4sdemo.utils.observableFromByteStreamA
 
 final class LibraryRoutes2(L: LibraryService, val authService: AuthService)(

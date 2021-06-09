@@ -1,4 +1,4 @@
-package wow.doge.http4sdemo
+package wow.doge.http4sdemo.server
 
 import cats.effect.Resource
 import cats.syntax.all._
@@ -13,9 +13,9 @@ import org.http4s.server.middleware.RequestLogger
 import org.http4s.server.middleware.ResponseLogger
 import org.http4s.server.middleware.ResponseTiming
 import org.http4s.server.middleware.Throttle
-import wow.doge.http4sdemo.AppRoutes
-import wow.doge.http4sdemo.schedulers.Schedulers
+import wow.doge.http4sdemo.server.AppRoutes
 import wow.doge.http4sdemo.server.config.HttpConfig
+import wow.doge.http4sdemo.server.schedulers.Schedulers
 import wow.doge.http4sdemo.server.utils.GlobalErrorHandler
 import wow.doge.http4sdemo.server.utils.StructuredOdinLogger
 

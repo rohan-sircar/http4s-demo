@@ -1,4 +1,4 @@
-package wow.doge.http4sdemo
+package wow.doge.http4sdemo.server
 
 import cats.Monad
 import cats.effect.Clock

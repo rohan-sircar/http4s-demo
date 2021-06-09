@@ -1,4 +1,4 @@
-package wow.doge.http4sdemo.routes
+package wow.doge.http4sdemo.server.routes
 
 import cats.Applicative
 import cats.syntax.all._
@@ -14,8 +14,8 @@ import wow.doge.http4sdemo.endpoints.AuthDetails
 import wow.doge.http4sdemo.endpoints.ReqContext
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.common.UserRole
-import wow.doge.http4sdemo.schedulers.Schedulers
 import wow.doge.http4sdemo.server.auth.VerifiedAuthDetails
+import wow.doge.http4sdemo.server.schedulers.Schedulers
 import wow.doge.http4sdemo.server.services.AuthService
 
 trait ServerInterpreter extends Http4sServerInterpreter {

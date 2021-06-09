@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 import scala.concurrent.Future
 
 import monix.bio.Task
-import wow.doge.http4sdemo.schedulers.Schedulers
+import wow.doge.http4sdemo.server.schedulers.Schedulers
 
 trait MonixBioSuite extends munit.TaglessFinalSuite[Task] with ReplayLogger {
   val schedulers = Schedulers.default

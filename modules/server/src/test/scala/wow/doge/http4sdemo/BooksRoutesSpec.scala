@@ -1,4 +1,4 @@
-package wow.doge.http4sdemo
+package wow.doge.http4sdemo.server
 
 import java.time.LocalDateTime
 
@@ -15,6 +15,7 @@ import org.http4s.Request
 import org.http4s.Status
 import org.http4s.Uri
 import org.http4s.implicits._
+import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.models.Book
 import wow.doge.http4sdemo.models.BookSearchMode
 import wow.doge.http4sdemo.models.BookUpdate
@@ -22,10 +23,11 @@ import wow.doge.http4sdemo.models.NewBook
 import wow.doge.http4sdemo.models.pagination.Pagination
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.refinements._
-import wow.doge.http4sdemo.routes.LibraryRoutes
-import wow.doge.http4sdemo.routes.LibraryRoutes2
+import wow.doge.http4sdemo.server.AppError
+import wow.doge.http4sdemo.server.routes.LibraryRoutes
+import wow.doge.http4sdemo.server.routes.LibraryRoutes2
 import wow.doge.http4sdemo.server.services.NoOpAuthService
-import wow.doge.http4sdemo.services.NoopLibraryService
+import wow.doge.http4sdemo.server.services.NoopLibraryService
 
 class BooksRoutesSpec extends UnitTestBase {
 

@@ -10,7 +10,9 @@ import monix.bio.UIO
 import org.testcontainers.utility.DockerImageName
 import slick.jdbc.JdbcBackend
 import wow.doge.http4sdemo.MonixBioSuite
+import wow.doge.http4sdemo.server.DBMigrations
 import wow.doge.http4sdemo.server.ExtendedPgProfile
+import wow.doge.http4sdemo.server.JdbcDatabaseConfig
 
 trait DatabaseIntegrationTestBase
     extends MonixBioSuite

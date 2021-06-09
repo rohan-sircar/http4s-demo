@@ -1,4 +1,4 @@
-package wow.doge.http4sdemo.routes
+package wow.doge.http4sdemo.server.routes
 
 import cats.syntax.all._
 import io.odin.Logger

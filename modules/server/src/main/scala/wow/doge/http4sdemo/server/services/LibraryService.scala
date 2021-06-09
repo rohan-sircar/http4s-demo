@@ -1,4 +1,4 @@
-package wow.doge.http4sdemo.services
+package wow.doge.http4sdemo.server.services
 
 import cats.syntax.all._
 import io.odin.Logger
@@ -8,7 +8,6 @@ import monix.bio.UIO
 import monix.execution.Scheduler
 import monix.reactive.Observable
 import slick.jdbc.JdbcBackend
-import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.Author
@@ -24,6 +23,7 @@ import wow.doge.http4sdemo.models.common.Color
 import wow.doge.http4sdemo.models.pagination.Pagination
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.refinements._
+import wow.doge.http4sdemo.server.AppError
 import wow.doge.http4sdemo.server.ExtendedPgProfile.api._
 import wow.doge.http4sdemo.server.ExtendedPgProfile.mapping._
 import wow.doge.http4sdemo.server.implicits._

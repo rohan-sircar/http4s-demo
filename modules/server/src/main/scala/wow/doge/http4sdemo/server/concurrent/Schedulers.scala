@@ -1,4 +1,4 @@
-package wow.doge.http4sdemo.schedulers
+package wow.doge.http4sdemo.server.schedulers
 
 import cats.effect.Blocker
 import com.typesafe.scalalogging.Logger

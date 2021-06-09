@@ -12,10 +12,10 @@ import io.odin.Logger
 import io.odin.slf4j.OdinLoggerBinder
 import monix.execution.Scheduler
 import pureconfig.ConfigSource
-import wow.doge.http4sdemo.AppLogger
-import wow.doge.http4sdemo.schedulers.Schedulers
-import wow.doge.http4sdemo.server.config.AppConfig
+import wow.doge.http4sdemo.server.AppLogger
+import wow.doge.http4sdemo.server.config.LoggerConfig
 import wow.doge.http4sdemo.server.config.LoggerRoutes
+import wow.doge.http4sdemo.server.schedulers.Schedulers
 
 //effect type should be specified inbefore
 //log line will be recorded right after the call with no suspension
@@ -27,12 +27,13 @@ class StaticLoggerBinder extends OdinLoggerBinder[IO] {
   implicit val cs: ContextShift[IO] = IO.contextShift(s)
   implicit val F: Effect[IO] = IO.ioEffect
 
-  val config = ConfigSource.default.at("http4s-demo").loadOrThrow[AppConfig]
-
   val isTestEnv = sys.env.get("PROJECT_ENV").map(_ === "test").getOrElse(false)
 
+  val loggerConfig =
+    ConfigSource.default.at("http4s-demo.test.logger").loadOrThrow[LoggerConfig]
+
   val (defaultConsoleLogger, release1) =
-    AppLogger[IO](config.logger).allocated.unsafeRunSync()
+    AppLogger[IO](loggerConfig).allocated.unsafeRunSync()
 
   ArraySeq(release1).foreach(r => sys.addShutdownHook(r.unsafeRunSync()))
 
@@ -60,11 +61,7 @@ class StaticLoggerBinder extends OdinLoggerBinder[IO] {
 
   }
 
-  val pf =
-    if (isTestEnv) routing(config.logger.testRoutes)
-    else routing(config.logger.routes)
-
-  val loggers = pf
+  val loggers = routing(loggerConfig.routes)
 
 }
 

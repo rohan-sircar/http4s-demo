@@ -1,4 +1,4 @@
-package wow.doge.http4sdemo
+package wow.doge.http4sdemo.server
 
 import cats.syntax.all._
 import com.codahale.metrics.MetricRegistry
@@ -11,20 +11,20 @@ import org.http4s.implicits._
 import org.http4s.metrics.dropwizard.Dropwizard
 import org.http4s.metrics.dropwizard.metricsResponse
 import org.http4s.server.middleware.Metrics
+import org.http4s.server.middleware.Timeout
 import slick.jdbc.JdbcBackend.DatabaseDef
 import tsec.mac.jca.HMACSHA256
-import wow.doge.http4sdemo.routes.AccountRoutes
-import wow.doge.http4sdemo.routes.LibraryRoutes
-import wow.doge.http4sdemo.routes.LibraryRoutes2
 import wow.doge.http4sdemo.server.auth.JwtSigningKey
+import wow.doge.http4sdemo.server.config.HttpConfig
 import wow.doge.http4sdemo.server.repos.InMemoryCredentialsRepo
 import wow.doge.http4sdemo.server.repos.UsersDbio
 import wow.doge.http4sdemo.server.repos.UsersRepo
+import wow.doge.http4sdemo.server.routes.AccountRoutes
+import wow.doge.http4sdemo.server.routes.LibraryRoutes
+import wow.doge.http4sdemo.server.routes.LibraryRoutes2
 import wow.doge.http4sdemo.server.services.AuthServiceImpl
-import wow.doge.http4sdemo.services.LibraryDbio
-import wow.doge.http4sdemo.services.LibraryServiceImpl
-import wow.doge.http4sdemo.server.config.HttpConfig
-import org.http4s.server.middleware.Timeout
+import wow.doge.http4sdemo.server.services.LibraryDbio
+import wow.doge.http4sdemo.server.services.LibraryServiceImpl
 
 final class AppRoutes(
     db: DatabaseDef,
