@@ -30,7 +30,14 @@ class StaticLoggerBinder extends OdinLoggerBinder[IO] {
   val isTestEnv = sys.env.get("PROJECT_ENV").map(_ === "test").getOrElse(false)
 
   val loggerConfig =
-    ConfigSource.default.at("http4s-demo.test.logger").loadOrThrow[LoggerConfig]
+    if (isTestEnv)
+      ConfigSource.default
+        .at("http4s-demo.test.logger")
+        .loadOrThrow[LoggerConfig]
+    else
+      ConfigSource.default
+        .at("http4s-demo.logger")
+        .loadOrThrow[LoggerConfig]
 
   val (defaultConsoleLogger, release1) =
     AppLogger[IO](loggerConfig).allocated.unsafeRunSync()
