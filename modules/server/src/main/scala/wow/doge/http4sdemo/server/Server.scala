@@ -15,7 +15,7 @@ import org.http4s.server.middleware.ResponseTiming
 import org.http4s.server.middleware.Throttle
 import wow.doge.http4sdemo.server.AppRoutes
 import wow.doge.http4sdemo.server.config.HttpConfig
-import wow.doge.http4sdemo.server.schedulers.Schedulers
+import wow.doge.http4sdemo.server.concurrent.Schedulers
 import wow.doge.http4sdemo.server.utils.GlobalErrorHandler
 import wow.doge.http4sdemo.server.utils.StructuredOdinLogger
 

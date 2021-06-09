@@ -22,7 +22,6 @@ object PaddedFormatter {
       positionFormat: PositionFormat,
       printCtx: Boolean
   ): Formatter = { (msg: LoggerMessage) =>
-    //   val ctx = if (printCtx) withColor(MAGENTA, formatCtx(msg.context)) else ""
     val ctx =
       if (printCtx) fansi.Color.Magenta(formatCtx(msg.context))
       else fansi.Str("")

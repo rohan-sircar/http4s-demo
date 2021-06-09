@@ -15,7 +15,7 @@ import pureconfig.ConfigSource
 import pureconfig.module.catseffect.syntax._
 import wow.doge.http4sdemo.BuildInfo
 import wow.doge.http4sdemo.server.config.AppConfig
-import wow.doge.http4sdemo.server.schedulers.Schedulers
+import wow.doge.http4sdemo.server.concurrent.Schedulers
 
 object Main extends BIOApp {
   val profile = wow.doge.http4sdemo.server.ExtendedPgProfile

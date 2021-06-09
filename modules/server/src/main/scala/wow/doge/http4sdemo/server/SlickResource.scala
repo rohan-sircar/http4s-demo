@@ -4,7 +4,7 @@ import cats.effect.Resource
 import com.typesafe.config.Config
 import monix.bio.Task
 import slick.jdbc.JdbcBackend.Database
-import wow.doge.http4sdemo.server.schedulers.Schedulers
+import wow.doge.http4sdemo.server.concurrent.Schedulers
 
 @SuppressWarnings(Array("org.wartremover.warts.Null"))
 object SlickResource {

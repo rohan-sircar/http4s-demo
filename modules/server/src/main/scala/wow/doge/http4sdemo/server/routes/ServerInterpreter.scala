@@ -15,7 +15,7 @@ import wow.doge.http4sdemo.endpoints.ReqContext
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.common.UserRole
 import wow.doge.http4sdemo.server.auth.VerifiedAuthDetails
-import wow.doge.http4sdemo.server.schedulers.Schedulers
+import wow.doge.http4sdemo.server.concurrent.Schedulers
 import wow.doge.http4sdemo.server.services.AuthService
 
 trait ServerInterpreter extends Http4sServerInterpreter {

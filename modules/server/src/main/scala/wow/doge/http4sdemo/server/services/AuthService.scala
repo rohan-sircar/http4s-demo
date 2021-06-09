@@ -12,8 +12,6 @@ import tsec.common.VerificationFailed
 import tsec.common.Verified
 import tsec.jws.mac.JWTMac
 import tsec.mac.jca.HMACSHA256
-import tsec.passwordhashers.PasswordHash
-import tsec.passwordhashers.jca.BCrypt
 import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.endpoints.AuthDetails
 import wow.doge.http4sdemo.implicits._
@@ -23,10 +21,10 @@ import wow.doge.http4sdemo.models.UserLogin
 import wow.doge.http4sdemo.models.UserRegistration
 import wow.doge.http4sdemo.models.common.UserRole
 import wow.doge.http4sdemo.server.auth._
+import wow.doge.http4sdemo.server.config.AuthConfig
 import wow.doge.http4sdemo.server.implicits._
 import wow.doge.http4sdemo.server.repos.CredentialsRepo
 import wow.doge.http4sdemo.server.repos.UsersRepo
-import wow.doge.http4sdemo.server.config.AuthConfig
 
 trait AuthService {
   def verify(authDetails: AuthDetails)(implicit
@@ -49,8 +47,6 @@ final class AuthServiceImpl(
 )(implicit
     key: JwtSigningKey
 ) extends AuthService {
-
-  val bcryptHash: Task[PasswordHash[BCrypt]] = BCrypt.hashpw[Task]("hiThere")
 
   def verify(authDetails: AuthDetails)(implicit logger: Logger[Task]) = {
     for {
