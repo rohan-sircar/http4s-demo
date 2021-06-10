@@ -13,9 +13,9 @@ import io.odin.slf4j.OdinLoggerBinder
 import monix.execution.Scheduler
 import pureconfig.ConfigSource
 import wow.doge.http4sdemo.server.AppLogger
+import wow.doge.http4sdemo.server.concurrent.Schedulers
 import wow.doge.http4sdemo.server.config.LoggerConfig
 import wow.doge.http4sdemo.server.config.LoggerRoutes
-import wow.doge.http4sdemo.server.concurrent.Schedulers
 
 //effect type should be specified inbefore
 //log line will be recorded right after the call with no suspension

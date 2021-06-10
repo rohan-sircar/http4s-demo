@@ -14,8 +14,8 @@ import org.http4s.server.middleware.ResponseLogger
 import org.http4s.server.middleware.ResponseTiming
 import org.http4s.server.middleware.Throttle
 import wow.doge.http4sdemo.server.AppRoutes
-import wow.doge.http4sdemo.server.config.HttpConfig
 import wow.doge.http4sdemo.server.concurrent.Schedulers
+import wow.doge.http4sdemo.server.config.HttpConfig
 import wow.doge.http4sdemo.server.utils.GlobalErrorHandler
 import wow.doge.http4sdemo.server.utils.StructuredOdinLogger
 
@@ -49,7 +49,7 @@ final class Server(
   val resource =
     for {
       _ <- Resource.eval(Task.unit)
-      appRoutes <- Resource.eval(appRoutes.routes)
+      appRoutes <- appRoutes.routes
       httpApp <- Resource.eval(
         Throttle(config.throttle.amount.value, config.throttle.per)(
           AutoSlash.httpRoutes(appRoutes).orNotFound

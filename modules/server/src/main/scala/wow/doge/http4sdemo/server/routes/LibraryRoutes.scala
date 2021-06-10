@@ -104,13 +104,13 @@ final class LibraryRoutes(
           .flatMap(o => Ok(o))
 
       case req @ POST -> Root / "api" / "publish" =>
-        IO.deferAction(implicit s =>
-          for {
-            stream <- IO.pure(req.body.chunks.through(fs2.text.utf8DecodeC))
-            _ <- stream.toObs.dump("O").completedL.toIO
-            res <- Ok()
-          } yield res
-        )
+        // IO.deferAction(implicit s =>
+        for {
+          stream <- IO.pure(req.body.chunks.through(fs2.text.utf8DecodeC))
+          _ <- stream.toObs.flatMap(_.dump("O").completedL.toIO)
+          res <- Ok()
+        } yield res
+      // )
     }
   }
 

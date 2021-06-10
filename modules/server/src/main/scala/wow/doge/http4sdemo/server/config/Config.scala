@@ -1,18 +1,21 @@
 package wow.doge.http4sdemo.server.config
 
-import scala.concurrent.duration.FiniteDuration
-
 import cats.syntax.all._
 import enumeratum._
 import eu.timepit.refined.pureconfig._
 import eu.timepit.refined.types.numeric.PosInt
+import eu.timepit.refined.types.string
 import io.odin.{Level => OLevel}
 import pureconfig._
 import pureconfig.error.CannotConvert
 import pureconfig.error.FailureReason
 import pureconfig.generic.semiauto._
+import pureconfig.generic.auto._
 import pureconfig.module.enumeratum._
-import eu.timepit.refined.types.string
+
+import scala.concurrent.duration.FiniteDuration
+// import pureconfig.generic.CoproductHint
+// import pureconfig.generic.CoproductReaderOptions._
 
 private[config] final case class ListWrapper(list: List[String])
 private[config] object ListWrapper {
@@ -38,7 +41,7 @@ object Level extends Enum[Level] {
   case object Error extends Level
 }
 
-final case class LoggerRoutes(value: Map[String, Level])
+final case class LoggerRoutes private (value: Map[String, Level])
 object LoggerRoutes {
   implicit val configReader: ConfigReader[LoggerRoutes] =
     ConfigReader[String]
@@ -115,13 +118,43 @@ object LoggerConfig {
   implicit val configReader = deriveReader[LoggerConfig]
 }
 
+final case class RedisUrl private (inner: string.NonEmptyFiniteString[100])
+object RedisUrl {
+  implicit val configReader: ConfigReader[RedisUrl] =
+    ConfigReader[string.NonEmptyFiniteString[100]].emap { s =>
+      if (s.value.startsWith("redis://")) Right(RedisUrl(s))
+      else
+        Left(
+          CannotConvert(
+            s.value,
+            "RedisUrl",
+            s"Failed to parse config value: Invalid format"
+          )
+        )
+    }
+}
+
+sealed trait AuthSessionConfig extends Product with Serializable
+object AuthSessionConfig {
+  final case class RedisSession(url: RedisUrl) extends AuthSessionConfig
+  object RedisSession {
+    implicit val reader = deriveReader[RedisSession]
+  }
+  case object InMemory extends AuthSessionConfig {
+    implicit val reader = deriveReader[InMemory.type]
+  }
+  implicit val configReader = deriveReader[AuthSessionConfig]
+}
+
 final case class AuthConfig(
     secretKey: string.NonEmptyFiniteString[200],
-    tokenTimeout: FiniteDuration
+    tokenTimeout: FiniteDuration,
+    session: AuthSessionConfig
 )
 object AuthConfig {
   implicit val configReader = deriveReader[AuthConfig]
 }
+
 final case class AppConfig(
     http: HttpConfig,
     logger: LoggerConfig,

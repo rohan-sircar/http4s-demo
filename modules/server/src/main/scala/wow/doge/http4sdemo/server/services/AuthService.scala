@@ -22,9 +22,9 @@ import wow.doge.http4sdemo.models.UserRegistration
 import wow.doge.http4sdemo.models.common.UserRole
 import wow.doge.http4sdemo.server.auth._
 import wow.doge.http4sdemo.server.config.AuthConfig
-import wow.doge.http4sdemo.server.implicits._
 import wow.doge.http4sdemo.server.repos.CredentialsRepo
 import wow.doge.http4sdemo.server.repos.UsersRepo
+import wow.doge.http4sdemo.utils.infoSpan
 
 trait AuthService {
   def verify(authDetails: AuthDetails)(implicit
@@ -44,9 +44,8 @@ final class AuthServiceImpl(
     C: CredentialsRepo,
     U: UsersRepo,
     config: AuthConfig
-)(implicit
-    key: JwtSigningKey
-) extends AuthService {
+)(implicit key: JwtSigningKey)
+    extends AuthService {
 
   def verify(authDetails: AuthDetails)(implicit logger: Logger[Task]) = {
     for {
@@ -62,7 +61,7 @@ final class AuthServiceImpl(
       )
       _ <- existingToken match {
         case Some(value) =>
-          if (value === decoded.jwt) logger.infoU("Auth successful")
+          if (value === JwtToken(decoded.jwt)) logger.infoU("Auth successful")
           else
             logger.warnU(
               "Invalid auth token: token did not match with session token"
@@ -77,21 +76,23 @@ final class AuthServiceImpl(
 
   def login(
       userLogin: UserLogin
-  )(implicit logger: Logger[Task]): IO[AppError2, JWTMac[HMACSHA256]] = {
-    for {
-      _ <- logger.infoU("Performing login")
-      mbUser <- U.getByName(userLogin.username)
-      user <- IO.fromOption(mbUser, AppError2.AuthError("Invalid password"))
-      identity = user.transformInto[UserIdentity]
-      status <- checkPasswordIO(userLogin, user)
-      jwt <- status match {
-        case VerificationFailed =>
-          IO.raiseError(AppError2.AuthError("Invalid password"))
-        case Verified => encode[Task](identity, config.tokenTimeout).hideErrors
-      }
-      _ <- C.put(user.id, jwt)
-    } yield jwt
-  }
+  )(implicit logger: Logger[Task]): IO[AppError2, JWTMac[HMACSHA256]] =
+    infoSpan {
+      for {
+        // _ <- logger.infoU("Performing login")
+        mbUser <- U.getByName(userLogin.username)
+        user <- IO.fromOption(mbUser, AppError2.AuthError("Invalid password"))
+        identity = user.transformInto[UserIdentity]
+        status <- checkPasswordIO(userLogin, user)
+        jwt <- status match {
+          case VerificationFailed =>
+            IO.raiseError(AppError2.AuthError("Invalid password"))
+          case Verified =>
+            encode[Task](identity, config.tokenTimeout).hideErrors
+        }
+        _ <- C.put(user.id, jwt)
+      } yield jwt
+    }
 
   def register(
       user: UserRegistration

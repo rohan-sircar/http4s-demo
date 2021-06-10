@@ -3,8 +3,12 @@ package wow.doge.http4sdemo.server
 import scala.concurrent.duration._
 
 import cats.effect.Sync
+import cats.kernel.Eq
 import cats.syntax.all._
+import io.circe
 import io.circe.syntax._
+import io.estatico.newtype.macros.newtype
+import io.estatico.newtype.ops._
 import monix.bio.IO
 import monix.bio.Task
 import monix.bio.UIO
@@ -67,11 +71,33 @@ package object auth {
     )
     .hideErrors
 
+  @newtype final case class JwtToken private (inner: String)
+  object JwtToken {
+    implicit val encoder: circe.Encoder[JwtToken] = circe.Encoder[String].coerce
+    implicit val Decoder: circe.Decoder[JwtToken] = circe.Decoder[String].coerce
+    implicit val eq: Eq[JwtToken] = Eq[String].coerce
+
+    def apply(token: JWTMac[HMACSHA256]): JwtToken =
+      JwtToken(token.toEncodedString)
+
+    def fromTokenStr(
+        tokenStr: String
+    )(implicit key: JwtSigningKey): UIO[JwtToken] =
+      for {
+        t1 <- JWTMac
+          .verifyAndParse[Task, HMACSHA256](tokenStr, key.inner)
+          .hideErrors
+        t2 = JwtToken(t1)
+      } yield t2
+
+  }
+
 }
 
 package auth {
 
   import wow.doge.http4sdemo.models.UserIdentity
+
   final case class JwtSigningKey(inner: MacSigningKey[HMACSHA256])
 
   final case class VerifiedAuthDetails(

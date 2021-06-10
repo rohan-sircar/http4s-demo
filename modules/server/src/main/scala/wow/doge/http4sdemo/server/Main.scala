@@ -1,7 +1,5 @@
 package wow.doge.http4sdemo.server
 
-import scala.concurrent.duration.MILLISECONDS
-
 import cats.effect.ExitCode
 import cats.effect.Resource
 import com.codahale.metrics.SharedMetricRegistries
@@ -14,8 +12,10 @@ import monix.execution.Scheduler
 import pureconfig.ConfigSource
 import pureconfig.module.catseffect.syntax._
 import wow.doge.http4sdemo.BuildInfo
-import wow.doge.http4sdemo.server.config.AppConfig
 import wow.doge.http4sdemo.server.concurrent.Schedulers
+import wow.doge.http4sdemo.server.config.AppConfig
+
+import scala.concurrent.duration.MILLISECONDS
 
 object Main extends BIOApp {
   val profile = wow.doge.http4sdemo.server.ExtendedPgProfile
@@ -58,9 +58,7 @@ object Main extends BIOApp {
       Task(SharedMetricRegistries.getOrCreate("default"))
     )
     appRoutes <- Resource.eval(
-      IO.pure(
-        new AppRoutes(db, registry, appConfig.http, appConfig.auth)(logger)
-      )
+      IO.pure(new AppRoutes(db, registry, appConfig)(logger))
     )
     _ <- new Server(schedulers, appRoutes, appConfig.http)(logger).resource
   } yield ()

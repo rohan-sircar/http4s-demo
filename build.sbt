@@ -196,6 +196,9 @@ lazy val server = (project in file("modules/server"))
       "com.softwaremill.sttp.tapir"   %% "tapir-swagger-ui-http4s"   % TapirVersion,
       "io.github.jmcardon"            %% "tsec-jwt-mac"              % TsecVersion,
       "io.github.jmcardon"            %% "tsec-password"             % TsecVersion,
+      "dev.profunktor"                %% "redis4cats-effects"        % "0.13.1",
+      "dev.profunktor"                %% "redis4cats-streams"        % "0.13.1",
+      "dev.profunktor"                %% "redis4cats-log4cats"       % "0.13.1",
       // "ch.qos.logback" % "logback-classic" % LogbackVersion,
       // "org.scalameta"                 %% "svm-subs"                 % "20.2.0",
       //test deps

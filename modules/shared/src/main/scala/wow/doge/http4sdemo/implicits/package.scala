@@ -12,6 +12,7 @@ import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.TransformerF
 import monix.bio.IO
 import monix.bio.Task
+import monix.bio.UIO
 import monix.execution.Scheduler
 import monix.reactive.Observable
 import shapeless.ops.product
@@ -76,9 +77,13 @@ package object implicits extends MyCirceSupportParser {
 
   }
 
-  implicit final class StreamToObs[F[_], T](private val S: fs2.Stream[F, T]) {
-    def toObs(implicit F: ConcurrentEffect[F]) =
-      Observable.fromReactivePublisher(S.toUnicastPublisher)
+  implicit final class StreamToObs[T](private val S: fs2.Stream[Task, T]) {
+    def toObs = {
+      UIO.deferAction { implicit s =>
+        implicit val C = ConcurrentEffect[Task]
+        UIO(Observable.fromReactivePublisher(S.toUnicastPublisher))
+      }
+    }
   }
   implicit final class ObsToStream[T](private val O: Observable[T])
       extends AnyVal {

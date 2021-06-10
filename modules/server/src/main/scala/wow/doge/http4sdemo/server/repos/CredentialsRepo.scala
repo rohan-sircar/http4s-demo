@@ -4,22 +4,22 @@ import cats.effect.concurrent.Ref
 import cats.syntax.eq._
 import monix.bio.IO
 import monix.bio.Task
-import tsec.jws.mac.JWTMac
-import tsec.mac.jca.HMACSHA256
 import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.refinements.Refinements.UserId
+import wow.doge.http4sdemo.server.auth.JwtToken
 import wow.doge.http4sdemo.utils.MLock
+import tsec.jws.mac.JWTMac
+import tsec.mac.jca.HMACSHA256
 
-//TODO add redis based repo
 trait CredentialsRepo {
   def put(userId: UserId, jwt: JWTMac[HMACSHA256]): IO[AppError2, Unit]
-  def get(userId: UserId): IO[AppError2, Option[JWTMac[HMACSHA256]]]
+  def get(userId: UserId): IO[AppError2, Option[JwtToken]]
   def remove(userId: UserId): IO[AppError2, Unit]
 }
 
 final class InMemoryCredentialsRepo private (
     lock: MLock,
-    store: Ref[Task, Map[UserId, JWTMac[HMACSHA256]]]
+    store: Ref[Task, Map[UserId, JwtToken]]
 ) extends CredentialsRepo {
 
   def put(userId: UserId, jwt: JWTMac[HMACSHA256]): IO[AppError2, Unit] =
@@ -33,7 +33,7 @@ final class InMemoryCredentialsRepo private (
                 s"token for uid: $userId already exists"
               )
             )
-          case None => IO.pure(s + (userId -> jwt))
+          case None => IO.pure(s + (userId -> JwtToken(jwt)))
         }
         _ <- store.set(next).hideErrors
       } yield ()
@@ -52,12 +52,12 @@ final class InMemoryCredentialsRepo private (
           )
         case None => IO.unit
       }
-      next = s.filter { case (id, _) => id === userId }
+      next = s - userId
       _ <- store.set(next).hideErrors
     } yield ()
   }
 
-  def get(userId: UserId): IO[AppError2, Option[JWTMac[HMACSHA256]]] =
+  def get(userId: UserId): IO[AppError2, Option[JwtToken]] =
     lock.greenLight { store.get.map(_.get(userId)).hideErrors }
 
 }
@@ -65,7 +65,7 @@ final class InMemoryCredentialsRepo private (
 object InMemoryCredentialsRepo {
   def apply() = for {
     lock <- MLock()
-    store <- Ref.of[Task, Map[UserId, JWTMac[HMACSHA256]]](Map.empty).hideErrors
+    store <- Ref.of[Task, Map[UserId, JwtToken]](Map.empty).hideErrors
     repo = new InMemoryCredentialsRepo(lock, store)
   } yield repo
 }
