@@ -9,7 +9,7 @@ import sttp.client3._
 import sttp.client3.httpclient.fs2.HttpClientFs2Backend
 import wow.doge.http4sdemo.implicits._
 
-// @munit.IgnoreSuite
+@munit.IgnoreSuite
 class SttpInterpreterTest extends MonixBioSuite {
 //   lazy val fixture = ResourceFixture.apply(
 //     Resource.make(HttpClientMonixBackend()(schedulers.async.value).toIO)(
