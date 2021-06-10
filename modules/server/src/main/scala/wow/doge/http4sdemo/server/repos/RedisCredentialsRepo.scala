@@ -4,12 +4,12 @@ import cats.syntax.all._
 import dev.profunktor.redis4cats.RedisCommands
 import monix.bio.IO
 import monix.bio.Task
+import tsec.jws.mac.JWTMac
+import tsec.mac.jca.HMACSHA256
 import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.refinements.Refinements.UserId
 import wow.doge.http4sdemo.server.auth.JwtSigningKey
 import wow.doge.http4sdemo.server.auth.JwtToken
-import tsec.jws.mac.JWTMac
-import tsec.mac.jca.HMACSHA256
 
 final class RedisCredentialsRepo(redis: RedisCommands[Task, String, String])(
     implicit key: JwtSigningKey

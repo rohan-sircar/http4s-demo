@@ -2,10 +2,10 @@ package wow.doge.http4sdemo.server
 
 import java.nio.charset.StandardCharsets
 
+import cats.effect.Resource
 import cats.syntax.all._
 import com.codahale.metrics.MetricRegistry
 import io.odin.Logger
-import monix.bio.IO
 import monix.bio.Task
 import org.http4s.HttpRoutes
 import org.http4s.Method
@@ -18,7 +18,9 @@ import slick.jdbc.JdbcBackend.DatabaseDef
 import tsec.mac.jca.HMACSHA256
 import wow.doge.http4sdemo.server.auth.JwtSigningKey
 import wow.doge.http4sdemo.server.config.AppConfig
+import wow.doge.http4sdemo.server.config.AuthSessionConfig
 import wow.doge.http4sdemo.server.repos.InMemoryCredentialsRepo
+import wow.doge.http4sdemo.server.repos.RedisCredentialsRepo
 import wow.doge.http4sdemo.server.repos.UsersDbio
 import wow.doge.http4sdemo.server.repos.UsersRepo
 import wow.doge.http4sdemo.server.routes.AccountRoutes
@@ -27,11 +29,7 @@ import wow.doge.http4sdemo.server.routes.LibraryRoutes2
 import wow.doge.http4sdemo.server.services.AuthServiceImpl
 import wow.doge.http4sdemo.server.services.LibraryDbio
 import wow.doge.http4sdemo.server.services.LibraryServiceImpl
-import dev.profunktor.redis4cats.RedisCommands
-import wow.doge.http4sdemo.server.repos.RedisCredentialsRepo
-import cats.effect.Resource
 import wow.doge.http4sdemo.server.utils.RedisResource
-import wow.doge.http4sdemo.server.config.AuthSessionConfig
 
 final class AppRoutes(
     db: DatabaseDef,

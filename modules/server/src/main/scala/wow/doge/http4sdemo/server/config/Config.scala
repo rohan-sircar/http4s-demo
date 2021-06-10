@@ -1,5 +1,7 @@
 package wow.doge.http4sdemo.server.config
 
+import scala.concurrent.duration.FiniteDuration
+
 import cats.syntax.all._
 import enumeratum._
 import eu.timepit.refined.pureconfig._
@@ -9,11 +11,9 @@ import io.odin.{Level => OLevel}
 import pureconfig._
 import pureconfig.error.CannotConvert
 import pureconfig.error.FailureReason
-import pureconfig.generic.semiauto._
 import pureconfig.generic.auto._
+import pureconfig.generic.semiauto._
 import pureconfig.module.enumeratum._
-
-import scala.concurrent.duration.FiniteDuration
 // import pureconfig.generic.CoproductHint
 // import pureconfig.generic.CoproductReaderOptions._
 

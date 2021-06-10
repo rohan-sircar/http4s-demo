@@ -20,6 +20,7 @@ import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.server.services.AuthService
 import wow.doge.http4sdemo.server.services.LibraryService
 import wow.doge.http4sdemo.server.utils.observableToJsonStreamA
+import wow.doge.http4sdemo.utils.infoSpan
 import wow.doge.http4sdemo.utils.observableFromByteStreamA
 
 final class LibraryRoutes2(L: LibraryService, val authService: AuthService)(
@@ -28,19 +29,21 @@ final class LibraryRoutes2(L: LibraryService, val authService: AuthService)(
 
   def getBookById(
       id: BookId
-  )(implicit logger: Logger[Task]): IO[AppError2, Book] = for {
-    _ <- logger.infoU(s"Retrieving book")
-    mbBook <- L.getBookById(id)
-    res <- mbBook match {
-      case Some(value) => IO.pure(value)
-      case None =>
-        logger.warnU(s"Request for non-existent book") >>
-          IO.raiseError(
-            AppError2
-              .EntityDoesNotExist(s"Book with id $id does not exist")
-          )
-    }
-  } yield res
+  )(implicit logger: Logger[Task]): IO[AppError2, Book] = infoSpan {
+    for {
+      _ <- logger.infoU(s"Retrieving book")
+      mbBook <- L.getBookById(id)
+      res <- mbBook match {
+        case Some(value) => IO.pure(value)
+        case None =>
+          logger.warnU(s"Request for non-existent book") >>
+            IO.raiseError(
+              AppError2
+                .EntityDoesNotExist(s"Book with id $id does not exist")
+            )
+      }
+    } yield res
+  }
 
   val getBookByIdRoute: HttpRoutes[Task] =
     toRoutes(
@@ -63,7 +66,7 @@ final class LibraryRoutes2(L: LibraryService, val authService: AuthService)(
 
   def getBooks(
       pagination: Pagination
-  )(implicit logger: Logger[Task]): UIO[Observable[Book]] = {
+  )(implicit logger: Logger[Task]): UIO[Observable[Book]] = infoSpan {
     for {
       _ <- logger.infoU(s"Retrieving books")
       books = L.getBooks(pagination)
@@ -82,7 +85,7 @@ final class LibraryRoutes2(L: LibraryService, val authService: AuthService)(
 
   def createBook(
       nb: NewBook
-  )(implicit logger: Logger[Task]): IO[AppError2, Book] = {
+  )(implicit logger: Logger[Task]): IO[AppError2, Book] = infoSpan {
     for {
       _ <- logger.infoU(s"Creating book")
       book <- L.createBook(nb)
@@ -100,7 +103,7 @@ final class LibraryRoutes2(L: LibraryService, val authService: AuthService)(
 
   def createBooks(
       stream: EntityBody[Task]
-  )(implicit logger: Logger[Task]): IO[AppError2, Int] = {
+  )(implicit logger: Logger[Task]): IO[AppError2, Int] = infoSpan {
     // IO.deferAction(implicit s =>
     for {
       _ <- logger.infoU(s"Creating books")

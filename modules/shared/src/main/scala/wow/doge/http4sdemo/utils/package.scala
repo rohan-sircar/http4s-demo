@@ -1,11 +1,11 @@
 package wow.doge.http4sdemo
 
 import io.circe.Decoder
+import io.odin.Logger
+import io.odin.meta.Position
+import monix.bio.IO
 import monix.bio.Task
 import wow.doge.http4sdemo.implicits._
-import io.odin.Logger
-import monix.bio.IO
-import io.odin.meta.Position
 
 package object utils {
   def observableFromByteStreamA[A: Decoder](stream: fs2.Stream[Task, Byte]) =

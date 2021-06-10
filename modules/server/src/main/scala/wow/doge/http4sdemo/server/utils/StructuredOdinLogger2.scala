@@ -1,12 +1,11 @@
 package wow.doge.http4sdemo.server.utils
 
-import org.typelevel.log4cats.SelfAwareStructuredLogger
-
 import cats.effect.Sync
 import cats.syntax.all._
 import io.odin.Level
 import io.odin.Logger
 import io.odin.meta.Position
+import org.typelevel.log4cats.SelfAwareStructuredLogger
 
 final class StructuredOdinLogger2[F[_]](
     val logger: Logger[F],

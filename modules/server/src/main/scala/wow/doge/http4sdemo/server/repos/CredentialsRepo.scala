@@ -1,15 +1,14 @@
 package wow.doge.http4sdemo.server.repos
 
 import cats.effect.concurrent.Ref
-import cats.syntax.eq._
 import monix.bio.IO
 import monix.bio.Task
+import tsec.jws.mac.JWTMac
+import tsec.mac.jca.HMACSHA256
 import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.refinements.Refinements.UserId
 import wow.doge.http4sdemo.server.auth.JwtToken
 import wow.doge.http4sdemo.utils.MLock
-import tsec.jws.mac.JWTMac
-import tsec.mac.jca.HMACSHA256
 
 trait CredentialsRepo {
   def put(userId: UserId, jwt: JWTMac[HMACSHA256]): IO[AppError2, Unit]

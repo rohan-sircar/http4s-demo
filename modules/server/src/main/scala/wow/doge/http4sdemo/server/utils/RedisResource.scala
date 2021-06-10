@@ -4,7 +4,6 @@ import dev.profunktor.redis4cats.Redis
 import dev.profunktor.redis4cats.connection.RedisClient
 import dev.profunktor.redis4cats.data
 import dev.profunktor.redis4cats.log4cats._
-import eu.timepit.refined.types.string
 import io.odin.Logger
 import monix.bio.Task
 import org.typelevel.log4cats.{Logger => L4sLogger}

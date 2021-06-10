@@ -47,32 +47,35 @@ final class AuthServiceImpl(
 )(implicit key: JwtSigningKey)
     extends AuthService {
 
-  def verify(authDetails: AuthDetails)(implicit logger: Logger[Task]) = {
-    for {
-      decoded <- decode[Task](authDetails.bearerToken)
-        .mapErrorPartialWith { case e: TSecError =>
-          logger.errorU(s"Failed to decode auth token ${e.getMessage}") >>
-            IO.raiseError(AppError2.AuthError("Failed to decode auth token"))
-        }
-      existingToken <- C.get(decoded.user.id)
-      // ctx = Map("userId" -> decoded.user.id.inner.toString)
-      logger <- IO.pure(
-        logger.withConstContext(Map("userId" -> decoded.user.id.inner.toString))
-      )
-      _ <- existingToken match {
-        case Some(value) =>
-          if (value === JwtToken(decoded.jwt)) logger.infoU("Auth successful")
-          else
+  def verify(authDetails: AuthDetails)(implicit logger: Logger[Task]) =
+    infoSpan {
+      for {
+        decoded <- decode[Task](authDetails.bearerToken)
+          .mapErrorPartialWith { case e: TSecError =>
+            logger.errorU(s"Failed to decode auth token ${e.getMessage}") >>
+              IO.raiseError(AppError2.AuthError("Failed to decode auth token"))
+          }
+        existingToken <- C.get(decoded.user.id)
+        // ctx = Map("userId" -> decoded.user.id.inner.toString)
+        logger <- IO.pure(
+          logger.withConstContext(
+            Map("userId" -> decoded.user.id.inner.toString)
+          )
+        )
+        _ <- existingToken match {
+          case Some(value) =>
+            if (value === JwtToken(decoded.jwt)) logger.infoU("Auth successful")
+            else
+              logger.warnU(
+                "Invalid auth token: token did not match with session token"
+              ) >> IO.raiseError(AppError2.AuthError("Invalid token"))
+          case None =>
             logger.warnU(
-              "Invalid auth token: token did not match with session token"
+              "Invalid auth token: user does not have an existing token"
             ) >> IO.raiseError(AppError2.AuthError("Invalid token"))
-        case None =>
-          logger.warnU(
-            "Invalid auth token: user does not have an existing token"
-          ) >> IO.raiseError(AppError2.AuthError("Invalid token"))
-      }
-    } yield decoded
-  }
+        }
+      } yield decoded
+    }
 
   def login(
       userLogin: UserLogin
@@ -96,7 +99,7 @@ final class AuthServiceImpl(
 
   def register(
       user: UserRegistration
-  )(implicit logger: Logger[Task]): IO[AppError2, Unit] = {
+  )(implicit logger: Logger[Task]): IO[AppError2, Unit] = infoSpan {
     for {
       _ <- logger.infoU("Registering user")
       hashed <- hashPasswordIO(user.password)

@@ -28,6 +28,7 @@ import wow.doge.http4sdemo.server.ExtendedPgProfile.api._
 import wow.doge.http4sdemo.server.ExtendedPgProfile.mapping._
 import wow.doge.http4sdemo.server.implicits._
 import wow.doge.http4sdemo.slickcodegen.Tables
+import wow.doge.http4sdemo.utils.infoSpan
 
 trait LibraryService {
 
@@ -83,7 +84,7 @@ final class LibraryServiceImpl(
   def getBookById(id: BookId)(implicit
       logger: Logger[Task]
   ) =
-    db.runL(dbio.getBook(id)).hideErrors
+    infoSpan { db.runL(dbio.getBook(id)).hideErrors }
 
   def searchBooks(
       mode: BookSearchMode,
@@ -124,31 +125,35 @@ final class LibraryServiceImpl(
   def updateBook(id: BookId, updateData: BookUpdate)(implicit
       logger: Logger[Task]
   ): IO[AppError, NumRows] =
-    for {
-      _ <- logger.debugU(s"Request for updating book $id")
-      action <- UIO.deferAction(implicit s =>
-        UIO(for {
-          mbRow <- dbio.getBookUpdateRowById(id).result.headOption
-          updatedRow <- mbRow match {
-            case Some(value) =>
-              DBIO.fromIO(logger.debug(s"Original value -> $value")) >>
-                DBIO.successful(updateData.update(value))
-            case None =>
-              DBIO.failed(
-                AppError.EntityDoesNotExist(s"Book with id=$id does not exist")
-              )
+    infoSpan {
+      for {
+        _ <- logger.debugU(s"Request for updating book $id")
+        action <- UIO.deferAction(implicit s =>
+          UIO(for {
+            mbRow <- dbio.getBookUpdateRowById(id).result.headOption
+            updatedRow <- mbRow match {
+              case Some(value) =>
+                DBIO.fromIO(logger.debug(s"Original value -> $value")) >>
+                  DBIO.successful(updateData.update(value))
+              case None =>
+                DBIO.failed(
+                  AppError.EntityDoesNotExist(
+                    s"Book with id=$id does not exist"
+                  )
+                )
+            }
+            updateAction = dbio.getBookUpdateRowById(id).update(updatedRow)
+            _ <- DBIO.fromIO(logger.trace(s"SQL = ${updateAction.statements}"))
+            res <- updateAction
+          } yield res)
+        )
+        rows <- db
+          .runTryL(action.transactionally.asTry)
+          .mapErrorPartial { case e: AppError =>
+            e
           }
-          updateAction = dbio.getBookUpdateRowById(id).update(updatedRow)
-          _ <- DBIO.fromIO(logger.trace(s"SQL = ${updateAction.statements}"))
-          res <- updateAction
-        } yield res)
-      )
-      rows <- db
-        .runTryL(action.transactionally.asTry)
-        .mapErrorPartial { case e: AppError =>
-          e
-        }
-    } yield NumRows(rows)
+      } yield NumRows(rows)
+    }
 
   def deleteBook(id: BookId)(implicit
       logger: Logger[Task]
@@ -157,20 +162,22 @@ final class LibraryServiceImpl(
   def createBook(newBook: NewBook)(implicit
       logger: Logger[Task]
   ): IO[AppError2, Book] =
-    IO.deferAction { implicit s =>
-      for {
-        action <- UIO(for {
-          _ <- dbio.checkBookIsbnExists(newBook.bookIsbn)
-          _ <- dbio.checkAuthorWithIdExists(newBook.authorId)
-          book <- dbio.insertBookAndGetBook(newBook)
-        } yield book)
-        book <- db
-          // .runTryL(action.transactionally.asTry)
-          // .mapErrorPartial { case e: AppError2 =>
-          //   e
-          // }
-          .runIO(action.transactionally)
-      } yield book
+    infoSpan {
+      IO.deferAction { implicit s =>
+        for {
+          action <- UIO(for {
+            _ <- dbio.checkBookIsbnExists(newBook.bookIsbn)
+            _ <- dbio.checkAuthorWithIdExists(newBook.authorId)
+            book <- dbio.insertBookAndGetBook(newBook)
+          } yield book)
+          book <- db
+            // .runTryL(action.transactionally.asTry)
+            // .mapErrorPartial { case e: AppError2 =>
+            //   e
+            // }
+            .runIO(action.transactionally)
+        } yield book
+      }
     }
 
   def createBooks(newBooks: List[NewBook])(implicit
