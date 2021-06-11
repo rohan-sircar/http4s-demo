@@ -1,8 +1,8 @@
 package wow.doge.http4sdemo.models
 
 import io.circe.generic.semiauto._
-import sttp.tapir.Schema
 import io.scalaland.chimney.dsl._
+import sttp.tapir.Schema
 
 sealed trait StreamInputEvent extends Product with Serializable { self =>
   def toOutputEvent(senderId: Int) = self match {

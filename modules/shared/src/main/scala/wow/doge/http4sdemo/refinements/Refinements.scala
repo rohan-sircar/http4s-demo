@@ -112,6 +112,17 @@ object Refinements {
     implicit val toT: Transformer[UserId, Int] = _.inner.value
 
     implicit val eq: Eq[UserId] = Eq[IdRefinement].coerce
+
+    implicit class UserIdOps(id: UserId) {
+      @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+      /** @throws IllegalArgumentException
+        */
+      def :+(that: UserId) = UserId(
+        IdRefinement
+          .from(id.inner.value + that.inner.value)
+          .getOrElse(throw new IllegalArgumentException("Invalid id"))
+      )
+    }
   }
 
   @newtype final case class Username(inner: UsernameRefinement)
@@ -125,6 +136,8 @@ object Refinements {
         TransformerF[RefinementValidation, String, UsernameRefinement]
       ].coerce
     implicit val toT: Transformer[Username, String] = _.inner.value
+
+    implicit val eq: Eq[Username] = Eq[UsernameRefinement].coerce
   }
 
   @newtype final case class UnhashedUserPassword(

@@ -1,5 +1,7 @@
 package wow.doge.http4sdemo.server.routes
 
+import scala.util.Random
+
 import cats.syntax.all._
 import io.circe.syntax._
 import io.odin.Logger
@@ -15,8 +17,6 @@ import wow.doge.http4sdemo.models.StreamInputEvent
 import wow.doge.http4sdemo.server.RedisSubject
 import wow.doge.http4sdemo.utils.infoSpan
 import wow.doge.http4sdemo.utils.observableFromByteStreamA
-
-import scala.util.Random
 
 final class MessageRoutes(messageSubject: RedisSubject)(
     val logger: Logger[Task]

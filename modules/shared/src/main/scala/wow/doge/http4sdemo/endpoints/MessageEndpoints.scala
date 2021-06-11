@@ -1,10 +1,10 @@
 package wow.doge.http4sdemo.endpoints
 
-import wow.doge.http4sdemo.utils.mytapir._
-import wow.doge.http4sdemo.models._
-import sttp.capabilities.fs2.Fs2Streams
 import monix.bio.Task
+import sttp.capabilities.fs2.Fs2Streams
 import sttp.tapir.CodecFormat
+import wow.doge.http4sdemo.models._
+import wow.doge.http4sdemo.utils.mytapir._
 
 object MessageEndpoints {
   val subscribeEndpoint = baseEndpoint.get

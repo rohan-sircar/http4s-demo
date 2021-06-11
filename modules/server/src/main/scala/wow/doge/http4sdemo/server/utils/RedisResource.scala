@@ -1,21 +1,21 @@
 package wow.doge.http4sdemo.server.utils
 
+import cats.effect.Resource
 import dev.profunktor.redis4cats.Redis
+import dev.profunktor.redis4cats.codecs.Codecs
+import dev.profunktor.redis4cats.codecs.splits.SplitEpi
 import dev.profunktor.redis4cats.connection.RedisClient
 import dev.profunktor.redis4cats.data.RedisCodec
 import dev.profunktor.redis4cats.log4cats._
+import dev.profunktor.redis4cats.pubsub.PubSub
+import io.circe.parser.{decode => jsonDecode}
+import io.circe.syntax._
 import io.odin.Logger
 import monix.bio.Task
 import org.typelevel.log4cats
+import wow.doge.http4sdemo.models.StreamEvent
 import wow.doge.http4sdemo.server.config.RedisUrl
 import wow.doge.http4sdemo.server.utils.StructuredOdinLogger2
-import dev.profunktor.redis4cats.codecs.splits.SplitEpi
-import io.circe.parser.{decode => jsonDecode}
-import io.circe.syntax._
-import dev.profunktor.redis4cats.codecs.Codecs
-import dev.profunktor.redis4cats.pubsub.PubSub
-import cats.effect.Resource
-import wow.doge.http4sdemo.models.StreamEvent
 
 object RedisResource {
 
