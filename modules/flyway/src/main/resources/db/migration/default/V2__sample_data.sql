@@ -61,12 +61,20 @@ values
 insert into
     users (user_name, user_password, user_role)
 values
-    ('user1', 'password1', '0');
+    (
+        'user1',
+        '$2a$10$V2qon2elG0P6/u5J.5xyDOx/.S94Cnt0iod64qAUhbGo6C8UCQOcm',
+        '0'
+    );
 
 insert into
     users (user_name, user_password, user_role)
 values
-    ('user2', 'password2', '1');
+    (
+        'user2',
+        '$2a$10$sjofv/dUmC9Fqe7oS4vxpOlwjU634X/1UaNyBltzFffUhkj3xde8a',
+        '1'
+    );
 
 insert into
     extras (
