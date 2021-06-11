@@ -8,6 +8,8 @@ import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3._
 import sttp.client3.httpclient.fs2.HttpClientFs2Backend
 import wow.doge.http4sdemo.implicits._
+import wow.doge.http4sdemo.models.StreamInputEvent
+import wow.doge.http4sdemo.server.utils.observableToJsonStreamA
 
 @munit.IgnoreSuite
 class SttpInterpreterTest extends MonixBioSuite {
@@ -101,6 +103,26 @@ class SttpInterpreterTest extends MonixBioSuite {
               fs2.Stream.fromIterator[Task](x.toString.getBytes.iterator)
             )
         )
+        .send(backend)
+    } yield ()
+
+  }
+
+  fixture.test("events stream") { implicit backend =>
+    import scala.concurrent.duration._
+    for {
+      _ <- IO.unit
+      steambase <- observableToJsonStreamA(
+        Observable
+          .interval(2.seconds)
+          .map(i =>
+            StreamInputEvent
+              .Message2(i, i.toInt + 1, s"foobar: $i"): StreamInputEvent
+          )
+      )
+      _ <- basicRequest
+        .post(uri"http://localhost:8081/api/publish2")
+        .streamBody(Fs2Streams[Task])(steambase)
         .send(backend)
     } yield ()
 

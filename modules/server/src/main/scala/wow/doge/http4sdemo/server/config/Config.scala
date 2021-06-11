@@ -136,9 +136,8 @@ object RedisUrl {
 
 sealed trait AuthSessionConfig extends Product with Serializable
 object AuthSessionConfig {
-  final case class RedisSession(url: RedisUrl) extends AuthSessionConfig
-  object RedisSession {
-    implicit val reader = deriveReader[RedisSession]
+  case object RedisSession extends AuthSessionConfig {
+    implicit val reader = deriveReader[RedisSession.type]
   }
   case object InMemory extends AuthSessionConfig {
     implicit val reader = deriveReader[InMemory.type]
@@ -155,10 +154,16 @@ object AuthConfig {
   implicit val configReader = deriveReader[AuthConfig]
 }
 
+final case class RedisConfig(url: RedisUrl)
+object RedisConfig {
+  implicit val reader = deriveReader[RedisConfig]
+}
+
 final case class AppConfig(
     http: HttpConfig,
     logger: LoggerConfig,
-    auth: AuthConfig
+    auth: AuthConfig,
+    redis: RedisConfig
 )
 object AppConfig {
   implicit val configReader = deriveReader[AppConfig]

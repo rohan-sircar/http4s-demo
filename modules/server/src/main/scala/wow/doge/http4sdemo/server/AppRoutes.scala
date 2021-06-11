@@ -30,6 +30,12 @@ import wow.doge.http4sdemo.server.services.AuthServiceImpl
 import wow.doge.http4sdemo.server.services.LibraryDbio
 import wow.doge.http4sdemo.server.services.LibraryServiceImpl
 import wow.doge.http4sdemo.server.utils.RedisResource
+import wow.doge.http4sdemo.server.repos.CredentialsRepo
+import wow.doge.http4sdemo.server.routes.MessageRoutes
+import dev.profunktor.redis4cats.data
+import wow.doge.http4sdemo.server.types.RedisStreamEventPs
+import fs2.Pipe
+import wow.doge.http4sdemo.models.StreamEvent
 
 final class AppRoutes(
     db: DatabaseDef,
@@ -37,9 +43,6 @@ final class AppRoutes(
     config: AppConfig
 )(implicit logger: Logger[Task]) {
   val routes = for {
-    _ <- Resource.eval(Task.unit)
-    libraryDbio = new LibraryDbio
-    libraryService = new LibraryServiceImpl(libraryDbio, db)
     _key <- Resource.eval(
       HMACSHA256.buildKey[Task](
         config.auth.secretKey.value.getBytes(StandardCharsets.UTF_8)
@@ -48,23 +51,28 @@ final class AppRoutes(
     key = JwtSigningKey(_key)
     usersDbio = new UsersDbio
     usersRepo = new UsersRepo(db, usersDbio)
+    libraryDbio = new LibraryDbio
+    libraryService = new LibraryServiceImpl(libraryDbio, db)
+    (pubsub, redis) <- RedisResource(config.redis.url, logger)
     credentialsRepo <- config.auth.session match {
-      case AuthSessionConfig.RedisSession(url) =>
-        for {
-          redis <- RedisResource(url, logger)
-        } yield new RedisCredentialsRepo(redis)(key)
+      case AuthSessionConfig.RedisSession =>
+        Resource.pure[Task, CredentialsRepo](
+          new RedisCredentialsRepo(redis)(key)
+        )
       case AuthSessionConfig.InMemory =>
         Resource.eval(InMemoryCredentialsRepo())
     }
+    messageSubject <- RedisSubject(pubsub, data.RedisChannel("message"))
     authService = new AuthServiceImpl(credentialsRepo, usersRepo, config.auth)(
       key
     )
     apiRoutes = Metrics(Dropwizard[Task](registry, "server"))(
-      Timeout(config.http.timeout)(
-        new LibraryRoutes(libraryService, authService)(logger).routes <+>
-          new LibraryRoutes2(libraryService, authService)(logger).routes <+>
-          new AccountRoutes(authService)(logger).routes
-      )
+      new MessageRoutes(messageSubject)(logger).routes <+>
+        Timeout(config.http.timeout)(
+          new LibraryRoutes(libraryService, authService)(logger).routes <+>
+            new LibraryRoutes2(libraryService, authService)(logger).routes <+>
+            new AccountRoutes(authService)(logger).routes
+        )
     )
     httpRoutes = apiRoutes <+> metricsRoutes(registry)
   } yield httpRoutes
@@ -74,4 +82,22 @@ final class AppRoutes(
       metricsResponse(registry)
   }
 
+}
+
+final case class RedisSubject(
+    tx: Pipe[Task, StreamEvent, Unit],
+    rx: fs2.Stream[Task, StreamEvent],
+    channel: data.RedisChannel[String]
+)
+
+object RedisSubject {
+  def apply(ps: RedisStreamEventPs, channel: data.RedisChannel[String])(implicit
+      logger: Logger[Task]
+  ) = {
+    for {
+      (tx, rx) <- Resource.make(
+        Task.pure(ps.publish(channel) -> ps.subscribe(channel))
+      )(_ => logger.debug("Unsubbing") >> ps.unsubscribe(channel).compile.drain)
+    } yield new RedisSubject(tx, rx, channel)
+  }
 }
