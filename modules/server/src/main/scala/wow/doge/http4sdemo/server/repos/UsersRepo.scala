@@ -34,7 +34,7 @@ trait UsersRepo {
   ): IO[AppError2, Unit]
 }
 
-final class InMemoryUsersRepo(
+final class InMemoryUsersRepo private (
     lock: MLock,
     counter: Ref[Task, Refinements.UserId],
     store: Ref[Task, List[User]]
@@ -57,8 +57,9 @@ final class InMemoryUsersRepo(
             )
           case None => IO.unit
         }
-        num <- counter.updateAndGet(_ :+ Refinements.UserId(1)).hideErrors
+        num <- counter.get.hideErrors
         user2 = nu.into[User].withFieldConst(_.id, num).transform
+        num <- counter.updateAndGet(_ :+ Refinements.UserId(1)).hideErrors
         _ <- store.update(user2 :: _).hideErrors
       } yield num.inner.value
     }
@@ -94,34 +95,46 @@ final class InMemoryUsersRepo(
 
 }
 
+object InMemoryUsersRepo {
+  def apply() = for {
+    lock <- MLock()
+    counter <- Ref
+      .of[Task, Refinements.UserId](Refinements.UserId(1))
+      .hideErrors
+    store <- Ref.of[Task, List[User]](List.empty).hideErrors
+    repo = new InMemoryUsersRepo(lock, counter, store)
+  } yield repo
+}
+
 final class UsersRepoImpl(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio)
     extends UsersRepo {
 
-  //TODO add validation
   def put(nu: NewUser)(implicit logger: Logger[Task]): IO[AppError2, Int] =
-    for {
-      _ <- logger.infoU("Putting user")
-      action <- UIO.deferAction(implicit s =>
-        UIO(for {
-          u <- usersDbio.getUserByName(nu.username)
-          _ <- u match {
-            case Some(_) =>
-              DBIO.failed(
-                AppError2.EntityAlreadyExists(
-                  s"user with username: ${nu.username} already exists"
+    infoSpan {
+      for {
+        _ <- logger.infoU("Putting user")
+        action <- UIO.deferAction(implicit s =>
+          UIO(for {
+            u <- usersDbio.getUserByName(nu.username)
+            _ <- u match {
+              case Some(_) =>
+                DBIO.failed(
+                  AppError2.EntityAlreadyExists(
+                    s"user with username: ${nu.username} already exists"
+                  )
                 )
-              )
-            case None => DBIO.unit
-          }
-          n <- usersDbio.insertUser(nu)
-        } yield n)
-      )
-      res <- db.runIO(action.transactionally)
-    } yield res
+              case None => DBIO.unit
+            }
+            n <- usersDbio.insertUser(nu)
+          } yield n)
+        )
+        res <- db.runIO(action.transactionally)
+      } yield res
+    }
 
   def getById(
       userId: Refinements.UserId
-  )(implicit logger: Logger[Task]): IO[AppError2, Option[User]] = {
+  )(implicit logger: Logger[Task]): IO[AppError2, Option[User]] = infoSpan {
     for {
       _ <- logger.infoU("Getting user")
       res <- db.runIO(usersDbio.getUserById(userId).transactionally)
@@ -130,7 +143,7 @@ final class UsersRepoImpl(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio)
 
   def getByName(
       userName: Refinements.Username
-  )(implicit logger: Logger[Task]): IO[AppError2, Option[User]] = {
+  )(implicit logger: Logger[Task]): IO[AppError2, Option[User]] = infoSpan {
     for {
       _ <- logger.infoU("Getting user")
       res <- db.runIO(usersDbio.getUserByName(userName).transactionally)
@@ -141,7 +154,6 @@ final class UsersRepoImpl(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio)
       logger: Logger[Task]
   ): IO[AppError2, Unit] = ???
 
-//   def remove(userId: UserId): IO[AppError2, Unit]
 }
 
 final class UsersDbio {

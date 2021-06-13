@@ -38,7 +38,7 @@ final class LibraryRoutes(
         IO.deferAction(implicit s =>
           for {
             _ <- clogger.debugU("Request to search book")
-            books = libraryService.searchBooks(mode, query)
+            books <- libraryService.searchBooks(mode, query)
             res <- Ok(books.map(_.asJson))
           } yield res
         )
@@ -107,7 +107,7 @@ final class LibraryRoutes(
         // IO.deferAction(implicit s =>
         for {
           stream <- IO.pure(req.body.chunks.through(fs2.text.utf8DecodeC))
-          _ <- stream.toObs.flatMap(_.dump("O").completedL.toIO)
+          _ <- stream.toObsU.flatMap(_.dump("O").completedL.toIO)
           res <- Ok()
         } yield res
       // )

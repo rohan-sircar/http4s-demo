@@ -78,10 +78,17 @@ package object implicits extends MyCirceSupportParser {
   }
 
   implicit final class StreamToObs[T](private val S: fs2.Stream[Task, T]) {
-    def toObs = {
+    def toObsU = {
       UIO.deferAction { implicit s =>
         implicit val C = ConcurrentEffect[Task]
         UIO(Observable.fromReactivePublisher(S.toUnicastPublisher))
+      }
+    }
+
+    def toObs = {
+      Task.deferAction { implicit s =>
+        implicit val C = ConcurrentEffect[Task]
+        Task(Observable.fromReactivePublisher(S.toUnicastPublisher))
       }
     }
   }

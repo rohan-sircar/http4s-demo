@@ -21,10 +21,13 @@ import wow.doge.http4sdemo.models.UserLogin
 import wow.doge.http4sdemo.models.UserRegistration
 import wow.doge.http4sdemo.models.common.UserRole
 import wow.doge.http4sdemo.server.auth._
-import wow.doge.http4sdemo.server.config.AuthConfig
 import wow.doge.http4sdemo.server.repos.CredentialsRepo
 import wow.doge.http4sdemo.server.repos.UsersRepo
 import wow.doge.http4sdemo.utils.infoSpan
+import wow.doge.http4sdemo.server.repos.InMemoryUsersRepo
+import scala.concurrent.duration.FiniteDuration
+import wow.doge.http4sdemo.server.repos.InMemoryCredentialsRepo
+import scala.concurrent.duration._
 
 trait AuthService {
   def verify(authDetails: AuthDetails)(implicit
@@ -43,7 +46,7 @@ trait AuthService {
 final class AuthServiceImpl(
     C: CredentialsRepo,
     U: UsersRepo,
-    config: AuthConfig
+    tokenTimeout: FiniteDuration
 )(implicit key: JwtSigningKey)
     extends AuthService {
 
@@ -91,7 +94,7 @@ final class AuthServiceImpl(
           case VerificationFailed =>
             IO.raiseError(AppError2.AuthError("Invalid password"))
           case Verified =>
-            encode[Task](identity, config.tokenTimeout).hideErrors
+            encode[Task](identity, tokenTimeout).hideErrors
         }
         _ <- C.put(user.id, jwt)
       } yield jwt
@@ -110,6 +113,15 @@ final class AuthServiceImpl(
         .transform
       _ <- U.put(nu)
     } yield ()
+  }
+}
+
+object AuthServiceImpl {
+  def inMemory(implicit key: JwtSigningKey) = {
+    for {
+      crepo <- InMemoryCredentialsRepo()
+      urepo <- InMemoryUsersRepo(),
+    } yield new AuthServiceImpl(crepo, urepo, 10.minutes)
   }
 }
 

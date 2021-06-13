@@ -34,14 +34,14 @@ trait LibraryService {
 
   def getBooks(pagination: Pagination)(implicit
       logger: Logger[Task]
-  ): Observable[Book]
+  ): IO[AppError2, Observable[Book]]
 
   def getBookById(id: BookId)(implicit logger: Logger[Task]): UIO[Option[Book]]
 
   def searchBooks(
       mode: BookSearchMode,
       value: SearchQuery
-  )(implicit logger: Logger[Task]): Observable[Book]
+  )(implicit logger: Logger[Task]): IO[AppError2, Observable[Book]]
 
   def updateBook(id: BookId, updateData: BookUpdate)(implicit
       logger: Logger[Task]
@@ -61,7 +61,7 @@ trait LibraryService {
 
   def getBooksByAuthorId(authorId: AuthorId)(implicit
       logger: Logger[Task]
-  ): Observable[Book]
+  ): IO[AppError2, Observable[Book]]
 
   def searchExtras(query: String)(implicit
       logger: Logger[Task]
@@ -79,7 +79,7 @@ final class LibraryServiceImpl(
   def getBooks(pagination: Pagination)(implicit
       logger: Logger[Task]
   ) =
-    db.streamO(dbio.getPaginatedBooks(pagination))
+    infoSpan(UIO(db.streamO(dbio.getPaginatedBooks(pagination))))
 
   def getBookById(id: BookId)(implicit
       logger: Logger[Task]
@@ -91,31 +91,22 @@ final class LibraryServiceImpl(
       query: SearchQuery
   )(implicit
       logger: Logger[Task]
-  ): Observable[Book] = {
-    val makeStr = Observable.fromTask(
-      s"%${query.value}%"
-        .transformL[SearchQuery]
-        .toTask
-    )
-    mode match {
-      case BookSearchMode.BookTitle =>
-        for {
-          _ <- Observable.fromTask(
-            logger.debug(s"Query str value = $query").toTask
-          )
-          res <- db.streamO(dbio.searchBooks(query))
-        } yield res
-
-      case BookSearchMode.AuthorName =>
-        for {
-          s <- makeStr
-          _ <- Observable.fromTask(logger.debug(s"Query str value = $s").toTask)
-          author <- db
-            .streamO(dbio.searchAuthors(s))
-          book <- db
-            .streamO(dbio.getBooksForAuthor(author.authorId))
-        } yield book
-    }
+  ): IO[AppError2, Observable[Book]] = infoSpan {
+    for {
+      s <- s"%${query.value}%".transformL[SearchQuery]
+      _ <- logger.debugU(s"Query str value = $s")
+      res = mode match {
+        case BookSearchMode.BookTitle =>
+          db.streamO(dbio.searchBooks(query))
+        case BookSearchMode.AuthorName =>
+          for {
+            author <- db
+              .streamO(dbio.searchAuthors(s))
+            book <- db
+              .streamO(dbio.getBooksForAuthor(author.authorId))
+          } yield book
+      }
+    } yield res
   }
 
   def createAuthor(a: NewAuthor)(implicit
@@ -183,76 +174,78 @@ final class LibraryServiceImpl(
   def createBooks(newBooks: List[NewBook])(implicit
       logger: Logger[Task]
   ): IO[AppError2, Option[NumRows]] =
-    for {
-      l <- IO.pure(LazyList.from(newBooks))
-      _ <-
-        if (l.length === l.distinctBy(_.bookIsbn.value).length)
-          IO.unit
-        else
-          IO.raiseError(
-            new AppError2.BadInput(s"Duplicate isbns provided")
-          )
-      action <- IO.deferAction(implicit s =>
-        UIO(
-          for {
-            //try fetching books with given isbns
-            _ <- for {
-              l2 <- DBIO
-                .traverse(l)(nb =>
-                  dbio
-                    .selectBookByIsbn(nb.bookIsbn)
-                    .map(_.bookIsbn)
-                    .result
-                    .headOption
-                )
-                .map(_.mapFilter(identity).toList)
-              //if the list of isbns from above is not empty, return an error
-              //since it means that these isbns already exist
-              _ <-
-                if (l2.isEmpty) DBIO.unit
-                else
-                  DBIO.failed(
-                    AppError2.EntityAlreadyExists(
-                      s"Books with these isbns already exist: $l2"
-                    )
-                  )
-            } yield ()
-            _ <- for {
-              l3 <-
-                DBIO
+    infoSpan {
+      for {
+        l <- IO.pure(LazyList.from(newBooks))
+        _ <-
+          if (l.length === l.distinctBy(_.bookIsbn.value).length)
+            IO.unit
+          else
+            IO.raiseError(
+              new AppError2.BadInput(s"Duplicate isbns provided")
+            )
+        action <- IO.deferAction(implicit s =>
+          UIO(
+            for {
+              //try fetching books with given isbns
+              _ <- for {
+                l2 <- DBIO
                   .traverse(l)(nb =>
                     dbio
-                      .getAuthor(nb.authorId)
-                      .map(o => nb.authorId -> o.map(_.authorId))
+                      .selectBookByIsbn(nb.bookIsbn)
+                      .map(_.bookIsbn)
+                      .result
+                      .headOption
                   )
-                  .map(_.foldLeft(List.empty[AuthorId]) {
-                    case (acc, (_, Some(_))) => acc
-                    case (acc, (id, None))   => id :: acc
-                  })
-
-              _ <-
-                if (l3.isEmpty) DBIO.unit
-                else
-                  DBIO.failed(
-                    AppError2.EntityDoesNotExist(
-                      s"Authors with these ids do not exist: $l3"
+                  .map(_.mapFilter(identity).toList)
+                //if the list of isbns from above is not empty, return an error
+                //since it means that these isbns already exist
+                _ <-
+                  if (l2.isEmpty) DBIO.unit
+                  else
+                    DBIO.failed(
+                      AppError2.EntityAlreadyExists(
+                        s"Books with these isbns already exist: $l2"
+                      )
                     )
-                  )
-            } yield ()
-            rows <- dbio.insertBooks(newBooks)
-          } yield rows
+              } yield ()
+              _ <- for {
+                l3 <-
+                  DBIO
+                    .traverse(l)(nb =>
+                      dbio
+                        .getAuthor(nb.authorId)
+                        .map(o => nb.authorId -> o.map(_.authorId))
+                    )
+                    .map(_.foldLeft(List.empty[AuthorId]) {
+                      case (acc, (_, Some(_))) => acc
+                      case (acc, (id, None))   => id :: acc
+                    })
+
+                _ <-
+                  if (l3.isEmpty) DBIO.unit
+                  else
+                    DBIO.failed(
+                      AppError2.EntityDoesNotExist(
+                        s"Authors with these ids do not exist: $l3"
+                      )
+                    )
+              } yield ()
+              rows <- dbio.insertBooks(newBooks)
+            } yield rows
+          )
         )
-      )
-      res <- db
-        .runTryL(action.transactionally.asTry)
-        .mapErrorPartial { case e: AppError2 => e }
-        .map(_.map(NumRows.apply))
-    } yield res
+        res <- db
+          .runTryL(action.transactionally.asTry)
+          .mapErrorPartial { case e: AppError2 => e }
+          .map(_.map(NumRows.apply))
+      } yield res
+    }
 
   def getBooksByAuthorId(authorId: AuthorId)(implicit
       logger: Logger[Task]
   ) =
-    db.streamO(dbio.getBooksForAuthor(authorId))
+    infoSpan(IO.pure(db.streamO(dbio.getBooksForAuthor(authorId))))
 
   def extrasRow = db.streamO(dbio.extrasRows)
 
@@ -411,16 +404,16 @@ final class LibraryDbio {
 trait NoopLibraryService extends LibraryService {
   def getBooks(pagination: Pagination)(implicit
       L: Logger[Task]
-  ): Observable[Book] =
-    Observable.raiseError(new NotImplementedError)
+  ): IO[AppError2, Observable[Book]] =
+    IO.terminate(new NotImplementedError)
 
   def getBookById(id: BookId)(implicit L: Logger[Task]): UIO[Option[Book]] =
     IO.terminate(new NotImplementedError)
 
   def searchBooks(mode: BookSearchMode, query: SearchQuery)(implicit
       L: Logger[Task]
-  ): Observable[Book] =
-    Observable.raiseError(new NotImplementedError)
+  ): IO[AppError2, Observable[Book]] =
+    IO.terminate(new NotImplementedError)
 
   def updateBook(id: BookId, updateData: BookUpdate)(implicit
       L: Logger[Task]
@@ -445,8 +438,8 @@ trait NoopLibraryService extends LibraryService {
 
   def getBooksByAuthorId(authorId: AuthorId)(implicit
       L: Logger[Task]
-  ): Observable[Book] =
-    Observable.raiseError(new NotImplementedError)
+  ): IO[AppError2, Observable[Book]] =
+    IO.terminate(new NotImplementedError)
 
   def searchExtras(query: String)(implicit L: Logger[Task]): Observable[Extra] =
     Observable.raiseError(new NotImplementedError)

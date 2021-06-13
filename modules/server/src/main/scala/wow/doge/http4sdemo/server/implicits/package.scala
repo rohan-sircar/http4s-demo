@@ -108,7 +108,7 @@ package object implicits
       Task.deferFuture(db.run(a)).flatMap(r => IO.fromTry(ev(r)))
 
     //format: off
-    def streamO[T](a: DBIOAction[_, Streaming[T], dbio.Effect.All with dbio.Effect.Transactional]
+    def streamO[T](a: DBIOAction[_, Streaming[T], dbio.Effect.All]
     )(implicit P: JdbcProfile) = {
     //format: on
       import P.api._

@@ -183,8 +183,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
                   BookSearchMode.AuthorName,
                   "barbar"
                 )
-                .toListL
-                .toIO
+                .flatMap(_.toListL.toIO)
                 .attempt
                 .assertEquals(Right(List(book1, book2)))
             } yield ()
@@ -224,8 +223,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
               )
               _ <- service
                 .searchBooks(BookSearchMode.BookTitle, "blah5")
-                .toListL
-                .toIO
+                .flatMap(_.toListL.toIO)
                 .attempt
                 .assertEquals(Right(List(book1)))
             } yield ()

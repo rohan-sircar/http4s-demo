@@ -63,9 +63,11 @@ final class AppRoutes(
         Resource.eval(InMemoryCredentialsRepo())
     }
     messageSubject <- RedisSubject(pubsub, data.RedisChannel("message"))
-    authService = new AuthServiceImpl(credentialsRepo, usersRepo, config.auth)(
-      key
-    )
+    authService = new AuthServiceImpl(
+      credentialsRepo,
+      usersRepo,
+      config.auth.tokenTimeout
+    )(key)
     apiRoutes = Metrics(Dropwizard[Task](registry, "server"))(
       new MessageRoutes(messageSubject)(logger).routes <+>
         Timeout(config.http.timeout)(

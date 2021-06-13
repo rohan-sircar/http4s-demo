@@ -48,8 +48,8 @@ class BooksRoutesSpec extends UnitTestBase {
 
         override def getBooks(pagination: Pagination)(implicit
             L: Logger[Task]
-        ): Observable[Book] =
-          Observable.fromIterable(book :: Nil)
+        ): IO[AppError2, Observable[Book]] =
+          IO.pure(Observable(book))
 
       }
       for {
@@ -123,9 +123,9 @@ class BooksRoutesSpec extends UnitTestBase {
         ) =
           mode match {
             case BookSearchMode.BookTitle =>
-              Observable.raiseError(new NotImplementedError)
+              IO.terminate(new NotImplementedError)
             case BookSearchMode.AuthorName =>
-              Observable.fromIterable(books)
+              IO.pure(Observable.fromIterable(books))
           }
       }
       for {
@@ -164,9 +164,9 @@ class BooksRoutesSpec extends UnitTestBase {
         ) =
           mode match {
             case BookSearchMode.BookTitle =>
-              Observable.fromIterable(books)
+              IO.pure(Observable.fromIterable(books))
             case BookSearchMode.AuthorName =>
-              Observable.raiseError(new NotImplementedError)
+              IO.terminate(new NotImplementedError)
           }
       }
       for {

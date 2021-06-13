@@ -11,15 +11,18 @@ import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.UserLogin
 import wow.doge.http4sdemo.models.UserRegistration
 import wow.doge.http4sdemo.server.services.AuthService
+import wow.doge.http4sdemo.utils.infoSpan
 
 final class AccountRoutes(A: AuthService)(val logger: Logger[Task])
     extends ServerInterpreter {
 
-  def login(user: UserLogin)(implicit logger: Logger[Task]) = for {
-    _ <- logger.debugU(s"Logging in")
-    jwt <- A.login(user)
-    res = LoginResponse(jwt.toEncodedString)
-  } yield res
+  def login(user: UserLogin)(implicit logger: Logger[Task]) = infoSpan {
+    for {
+      _ <- logger.debugU(s"Logging in")
+      jwt <- A.login(user)
+      res = LoginResponse(jwt.toEncodedString)
+    } yield res
+  }
 
   val loginRoute = toRoutes(
     AccountEndpoints.loginEndpoint
@@ -30,10 +33,12 @@ final class AccountRoutes(A: AuthService)(val logger: Logger[Task])
   )
 
   def register(registration: UserRegistration)(implicit logger: Logger[Task]) =
-    for {
-      _ <- logger.debugU(s"Registering ${registration.username}")
-      _ <- A.register(registration)
-    } yield RegistrationResponse("Success!")
+    infoSpan {
+      for {
+        _ <- logger.debugU(s"Registering ${registration.username}")
+        _ <- A.register(registration)
+      } yield RegistrationResponse("Success!")
+    }
 
   val registrationRoute = toRoutes(
     AccountEndpoints.registrationEndpoint

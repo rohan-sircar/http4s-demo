@@ -30,7 +30,7 @@ object GlobalErrorHandler {
             Response(
               Status.InternalServerError,
               body = fs2
-                .Stream("Internal server error")
+                .Stream(s"Internal server error ${err.getMessage}")
                 .through(fs2.text.utf8Encode)
             )
           )
@@ -41,7 +41,7 @@ object GlobalErrorHandler {
             Response(
               Status.InternalServerError,
               body = fs2
-                .Stream("Internal server error")
+                .Stream(s"Internal server error ${err.getMessage}")
                 .through(fs2.text.utf8Encode)
             )
           )

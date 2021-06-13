@@ -4,10 +4,8 @@ import cats.syntax.all._
 import io.odin.Logger
 import monix.bio.IO
 import monix.bio.Task
-import monix.bio.UIO
 import monix.reactive.Consumer
 import monix.reactive.Observable
-import org.http4s.EntityBody
 import org.http4s.HttpRoutes
 import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.endpoints.LibraryEndpoints
@@ -66,10 +64,10 @@ final class LibraryRoutes2(L: LibraryService, val authService: AuthService)(
 
   def getBooks(
       pagination: Pagination
-  )(implicit logger: Logger[Task]): UIO[Observable[Book]] = infoSpan {
+  )(implicit logger: Logger[Task]): IO[AppError2, Observable[Book]] = infoSpan {
     for {
       _ <- logger.infoU(s"Retrieving books")
-      books = L.getBooks(pagination)
+      books <- L.getBooks(pagination)
     } yield books
   }
 
@@ -102,12 +100,11 @@ final class LibraryRoutes2(L: LibraryService, val authService: AuthService)(
     )
 
   def createBooks(
-      stream: EntityBody[Task]
+      newBooks: Observable[NewBook]
   )(implicit logger: Logger[Task]): IO[AppError2, Int] = infoSpan {
     // IO.deferAction(implicit s =>
     for {
       _ <- logger.infoU(s"Creating books")
-      newBooks <- observableFromByteStreamA[NewBook](stream)
       numRows <- newBooks
         .bufferTumbling(50)
         .consumeWith(
@@ -134,8 +131,10 @@ final class LibraryRoutes2(L: LibraryService, val authService: AuthService)(
     toRoutes(
       LibraryEndpoints.createBooksWithStream
         .serverLogicPart(enrichLogger)
-        .andThenRecoverErrors { case (logger, nb) =>
-          createBooks(nb)(logger)
+        .andThenRecoverErrors { case (logger, stream) =>
+          observableFromByteStreamA[NewBook](stream).flatMap(obs =>
+            createBooks(obs)(logger)
+          )
         }
     )
 

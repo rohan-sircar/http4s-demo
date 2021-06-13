@@ -9,11 +9,11 @@ import monix.catnap.MVar
   *
   * Copied from monix documentation for MVar
   */
-final class MLock(mvar: MVar[Task, Unit]) {
-  def acquire[E]: IO[E, Unit] =
+final class MLock private (mvar: MVar[Task, Unit]) {
+  private def acquire[E]: IO[E, Unit] =
     mvar.take.hideErrors
 
-  def release[E]: IO[E, Unit] =
+  private def release[E]: IO[E, Unit] =
     mvar.put(()).hideErrors
 
   def greenLight[E, A](fa: IO[E, A]): IO[E, A] =
