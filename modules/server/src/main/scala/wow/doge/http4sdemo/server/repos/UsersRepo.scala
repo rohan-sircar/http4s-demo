@@ -4,6 +4,7 @@ import cats.effect.concurrent.Ref
 import cats.syntax.all._
 import eu.timepit.refined.auto._
 import io.odin.Logger
+import io.odin.meta.Position
 import io.scalaland.chimney.dsl._
 import monix.bio.IO
 import monix.bio.Task
@@ -22,7 +23,9 @@ import wow.doge.http4sdemo.utils.MLock
 import wow.doge.http4sdemo.utils.infoSpan
 
 trait UsersRepo {
-  def put(nu: NewUser)(implicit logger: Logger[Task]): IO[AppError2, Int]
+  def put(nu: NewUser)(implicit
+      logger: Logger[Task]
+  ): IO[AppError2, Refinements.UserId]
   def getById(
       userId: Refinements.UserId
   )(implicit logger: Logger[Task]): IO[AppError2, Option[User]]
@@ -40,10 +43,14 @@ final class InMemoryUsersRepo private (
     store: Ref[Task, List[User]]
 ) extends UsersRepo {
 
-  private def cake[E, A](io: IO[E, A])(implicit logger: Logger[Task]) =
+  private def cake[E, A](
+      io: IO[E, A]
+  )(implicit logger: Logger[Task], position: Position) =
     infoSpan(lock.greenLight(io))
 
-  def put(nu: NewUser)(implicit logger: Logger[Task]): IO[AppError2, Int] =
+  def put(
+      nu: NewUser
+  )(implicit logger: Logger[Task]): IO[AppError2, Refinements.UserId] =
     cake {
       for {
         users <- store.get.hideErrors
@@ -61,7 +68,7 @@ final class InMemoryUsersRepo private (
         user2 = nu.into[User].withFieldConst(_.id, num).transform
         num <- counter.updateAndGet(_ :+ Refinements.UserId(1)).hideErrors
         _ <- store.update(user2 :: _).hideErrors
-      } yield num.inner.value
+      } yield num
     }
 
   def getById(userId: Refinements.UserId)(implicit
@@ -109,7 +116,9 @@ object InMemoryUsersRepo {
 final class UsersRepoImpl(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio)
     extends UsersRepo {
 
-  def put(nu: NewUser)(implicit logger: Logger[Task]): IO[AppError2, Int] =
+  def put(
+      nu: NewUser
+  )(implicit logger: Logger[Task]): IO[AppError2, Refinements.UserId] =
     infoSpan {
       for {
         _ <- logger.infoU("Putting user")
@@ -158,7 +167,9 @@ final class UsersRepoImpl(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio)
 
 final class UsersDbio {
 
-  def insertUser(nu: NewUser) = Tables.Users.map(NewUser.fromUsersTableFn) += nu
+  def insertUser(nu: NewUser) = Tables.Users
+    .map(NewUser.fromUsersTableFn)
+    .returning(Tables.Users.map(_.userId)) += nu
 
   def getUserById(id: Refinements.UserId) =
     Tables.Users

@@ -69,6 +69,8 @@ package endpoints {
   import sttp.tapir.annotations.deriveEndpointInput
   import sttp.tapir.Mapping
   import sttp.model.Method
+  import wow.doge.http4sdemo.refinements.Refinements._
+  import wow.doge.http4sdemo.utils.mytapir._
   final case class ReqContext(
       reqId: String,
       reqMethod: Method,
@@ -113,7 +115,7 @@ package endpoints {
     implicit val schema = Schema.derived[LoginResponse]
   }
 
-  final case class RegistrationResponse(message: String)
+  final case class RegistrationResponse(userId: UserId)
   object RegistrationResponse {
     implicit val codec = deriveCodec[RegistrationResponse]
     implicit val schema = Schema.derived[RegistrationResponse]

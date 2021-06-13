@@ -1,14 +1,14 @@
 package wow.doge.http4sdemo
 
+import cats.syntax.all._
 import io.circe.Decoder
+import io.circe.DecodingFailure
+import io.circe.ParsingFailure
 import io.odin.Logger
 import io.odin.meta.Position
 import monix.bio.IO
 import monix.bio.Task
 import wow.doge.http4sdemo.implicits._
-import io.circe.DecodingFailure
-import cats.syntax.all._
-import io.circe.ParsingFailure
 
 package object utils {
   def observableFromByteStreamA[A: Decoder](stream: fs2.Stream[Task, Byte]) =

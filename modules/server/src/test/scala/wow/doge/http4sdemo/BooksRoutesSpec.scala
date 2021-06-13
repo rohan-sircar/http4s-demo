@@ -1,7 +1,5 @@
 package wow.doge.http4sdemo.server
 
-import java.time.LocalDateTime
-
 import cats.syntax.all._
 import eu.timepit.refined.auto._
 import io.odin.Logger
@@ -10,10 +8,12 @@ import monix.bio.IO
 import monix.bio.Task
 import monix.bio.UIO
 import monix.reactive.Observable
+import org.http4s.AuthScheme
+import org.http4s.Credentials
 import org.http4s.Method
 import org.http4s.Request
 import org.http4s.Status
-import org.http4s.Uri
+import org.http4s.headers.Authorization
 import org.http4s.implicits._
 import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.models.Book
@@ -26,12 +26,11 @@ import wow.doge.http4sdemo.refinements._
 import wow.doge.http4sdemo.server.AppError
 import wow.doge.http4sdemo.server.routes.LibraryRoutes
 import wow.doge.http4sdemo.server.routes.LibraryRoutes2
+import wow.doge.http4sdemo.server.services.AuthServiceImpl
 import wow.doge.http4sdemo.server.services.NoOpAuthService
 import wow.doge.http4sdemo.server.services.NoopLibraryService
 
 class BooksRoutesSpec extends UnitTestBase {
-
-  val Root = Uri(path = "")
 
   test("get books api should succeed") {
     import org.http4s.circe.CirceEntityCodec._
@@ -222,6 +221,44 @@ class BooksRoutesSpec extends UnitTestBase {
     }
   }
 
+  test("authed get book by id should succeed") {
+    import org.http4s.circe.CirceEntityCodec._
+    withReplayLogger { implicit logger =>
+      val book = Book(
+        BookId(1),
+        BookTitle("book1"),
+        BookIsbn("blahblah"),
+        AuthorId(1),
+        date
+      )
+      val service = new NoopLibraryService {
+        override def getBookById(id: BookId)(implicit
+            L: Logger[Task]
+        ): UIO[Option[Book]] = IO.some(book)
+      }
+      for {
+        _ <- UIO.unit
+        (id, token, authService) <- AuthServiceImpl.inMemoryWithUser(
+          suNewUser
+        )(testSecretKey, logger)
+        routes = new LibraryRoutes2(service, authService)(logger).routes
+        request = Request[Task](
+          Method.GET,
+          Root / "api" / "private" / "books" / "1"
+        ).withHeaders(
+          Authorization(Credentials.Token(AuthScheme.Bearer, token.inner))
+        )
+        res <- routes.run(request).value.hideErrors
+        body <- res.traverse(_.as[Book])
+        _ <- logger.debug(s"Request: $request, Response: $res, Body: $body")
+        _ <- IO(assertEquals(res.map(_.status), Some(Status.Ok)))
+        _ <- IO
+          .pure(body)
+          .assertEquals(Some(book))
+      } yield ()
+    }
+  }
+
   test("create book should succeed") {
     import org.http4s.circe.CirceEntityCodec._
     withReplayLogger { implicit logger =>
@@ -229,7 +266,7 @@ class BooksRoutesSpec extends UnitTestBase {
       val book = nb
         .into[Book]
         .withFieldConst(_.bookId, BookId(1))
-        .withFieldConst(_.createdAt, LocalDateTime.now)
+        .withFieldConst(_.createdAt, date)
         .transform
       val service = new NoopLibraryService {
         override def createBook(nb: NewBook)(implicit

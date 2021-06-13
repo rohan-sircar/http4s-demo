@@ -36,8 +36,8 @@ final class AccountRoutes(A: AuthService)(val logger: Logger[Task])
     infoSpan {
       for {
         _ <- logger.debugU(s"Registering ${registration.username}")
-        _ <- A.register(registration)
-      } yield RegistrationResponse("Success!")
+        id <- A.register(registration)
+      } yield RegistrationResponse(id)
     }
 
   val registrationRoute = toRoutes(

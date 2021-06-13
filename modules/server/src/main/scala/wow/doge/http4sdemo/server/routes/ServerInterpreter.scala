@@ -65,6 +65,7 @@ trait AuthedServerInterpreter extends ServerInterpreter {
   def authorize[T](ctx: ReqContext, details: AuthDetails)(role: UserRole)(
       f: (Logger[Task], VerifiedAuthDetails) => IO[AppError2, T]
   ) =
+    // infoSpan {
     for {
       logger <- enrichLogger(ctx).hideErrors.rethrow
       verified <- authService.verify(details)(logger)
@@ -81,5 +82,6 @@ trait AuthedServerInterpreter extends ServerInterpreter {
               .AuthError("Inadequate privileges for accessing this resource")
           )
     } yield res
+  // }(logger, implicitly[Position])
 
 }

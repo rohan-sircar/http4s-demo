@@ -1,5 +1,8 @@
 package wow.doge.http4sdemo.server.services
 
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
+
 import cats.syntax.eq._
 import eu.timepit.refined.auto._
 import io.odin.Logger
@@ -20,14 +23,13 @@ import wow.doge.http4sdemo.models.UserIdentity
 import wow.doge.http4sdemo.models.UserLogin
 import wow.doge.http4sdemo.models.UserRegistration
 import wow.doge.http4sdemo.models.common.UserRole
+import wow.doge.http4sdemo.refinements.Refinements
 import wow.doge.http4sdemo.server.auth._
 import wow.doge.http4sdemo.server.repos.CredentialsRepo
+import wow.doge.http4sdemo.server.repos.InMemoryCredentialsRepo
+import wow.doge.http4sdemo.server.repos.InMemoryUsersRepo
 import wow.doge.http4sdemo.server.repos.UsersRepo
 import wow.doge.http4sdemo.utils.infoSpan
-import wow.doge.http4sdemo.server.repos.InMemoryUsersRepo
-import scala.concurrent.duration.FiniteDuration
-import wow.doge.http4sdemo.server.repos.InMemoryCredentialsRepo
-import scala.concurrent.duration._
 
 trait AuthService {
   def verify(authDetails: AuthDetails)(implicit
@@ -40,7 +42,7 @@ trait AuthService {
 
   def register(user: UserRegistration)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit]
+  ): IO[AppError2, Refinements.UserId]
 }
 
 final class AuthServiceImpl(
@@ -102,18 +104,19 @@ final class AuthServiceImpl(
 
   def register(
       user: UserRegistration
-  )(implicit logger: Logger[Task]): IO[AppError2, Unit] = infoSpan {
-    for {
-      _ <- logger.infoU("Registering user")
-      hashed <- hashPasswordIO(user.password)
-      nu = user
-        .into[NewUser]
-        .withFieldConst(_.password, hashed)
-        .withFieldConst(_.role, UserRole.User)
-        .transform
-      _ <- U.put(nu)
-    } yield ()
-  }
+  )(implicit logger: Logger[Task]): IO[AppError2, Refinements.UserId] =
+    infoSpan {
+      for {
+        _ <- logger.infoU("Registering user")
+        hashed <- hashPasswordIO(user.password)
+        nu = user
+          .into[NewUser]
+          .withFieldConst(_.password, hashed)
+          .withFieldConst(_.role, UserRole.User)
+          .transform
+        id <- U.put(nu)
+      } yield id
+    }
 }
 
 object AuthServiceImpl {
@@ -122,6 +125,21 @@ object AuthServiceImpl {
       crepo <- InMemoryCredentialsRepo()
       urepo <- InMemoryUsersRepo(),
     } yield new AuthServiceImpl(crepo, urepo, 10.minutes)
+  }
+
+  def inMemoryWithUser(
+      nu: NewUser
+  )(implicit key: JwtSigningKey, logger: Logger[Task]) = {
+    for {
+      urepo <- InMemoryUsersRepo()
+      id <- urepo.put(nu)
+      identity = nu.into[UserIdentity].withFieldConst(_.id, id).transform
+      jwt <- encode[Task](identity, 10.minutes).hideErrors
+      crepo <- InMemoryCredentialsRepo()
+      _ <- crepo.put(id, jwt)
+      impl = new AuthServiceImpl(crepo, urepo, 10.minutes)
+      token = JwtToken(jwt)
+    } yield (id, token, impl)
   }
 }
 
@@ -135,6 +153,6 @@ class NoOpAuthService extends AuthService {
     IO.terminate(new NotImplementedError)
   def register(
       user: UserRegistration
-  )(implicit logger: Logger[Task]): IO[AppError2, Unit] =
+  )(implicit logger: Logger[Task]): IO[AppError2, Refinements.UserId] =
     IO.terminate(new NotImplementedError)
 }
