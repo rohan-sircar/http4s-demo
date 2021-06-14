@@ -67,13 +67,12 @@ trait DatabaseIntegrationTestBase
     }
   }
 
-  def withContainersIO[A](pf: PartialFunction[Containers, Task[A]]): Task[A] = {
-    withContainers { containers =>
-      pf.applyOrElse(
-        containers,
-        (c: Containers) =>
-          IO.terminate(new Exception(s"Unknown container: ${c.toString}"))
-      )
+  def withContainersIO[A](f: PostgreSQLContainer => Task[A]): Task[A] = {
+    withContainers {
+      case c: PostgreSQLContainer =>
+        f(c)
+      case c =>
+        IO.terminate(new Exception(s"Unknown container: ${c.toString}"))
     }
   }
 

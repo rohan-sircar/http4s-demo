@@ -1,6 +1,5 @@
 package wow.doge.http4sdemo
 
-import com.dimafeng.testcontainers.PostgreSQLContainer
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.numeric
 import monix.bio.UIO
@@ -25,7 +24,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
 
   test("get book by id should succeed") {
     withReplayLogger { implicit logger =>
-      withContainersIO { case container: PostgreSQLContainer =>
+      withContainersIO { container =>
         val io =
           withDb(container.jdbcUrl)(db =>
             for {
@@ -58,7 +57,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
     "create book should fail gracefully when provided author does not exist"
   ) {
     withReplayLogger { implicit logger =>
-      withContainersIO { case container: PostgreSQLContainer =>
+      withContainersIO { container =>
         val io =
           withDb(container.jdbcUrl)(db =>
             for {
@@ -93,7 +92,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
     "create book should fail gracefully when book with isbn already exists"
   ) {
     withReplayLogger { implicit logger =>
-      withContainersIO { case container: PostgreSQLContainer =>
+      withContainersIO { container =>
         val io =
           withDb(container.jdbcUrl)(db =>
             for {
@@ -135,7 +134,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
 
   test("search books by author name should succeed") {
     withReplayLogger { implicit logger =>
-      withContainersIO { case container: PostgreSQLContainer =>
+      withContainersIO { container =>
         val io =
           withDb(container.jdbcUrl)(db =>
             for {
@@ -195,7 +194,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
 
   test("search books by book title should succeed") {
     withReplayLogger { implicit logger =>
-      withContainersIO { case container: PostgreSQLContainer =>
+      withContainersIO { container =>
         val io =
           withDb(container.jdbcUrl)(db =>
             for {
@@ -235,7 +234,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
 
   test("update book should succeed") {
     withReplayLogger { implicit logger =>
-      withContainersIO { case container: PostgreSQLContainer =>
+      withContainersIO { container =>
         val io =
           withDb(container.jdbcUrl)(db =>
             for {
@@ -276,7 +275,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
     "update book should fail gracefully if book with given id doesn't exist"
   ) {
     withReplayLogger { implicit logger =>
-      withContainersIO { case container: PostgreSQLContainer =>
+      withContainersIO { container =>
         val io =
           withDb(container.jdbcUrl)(db =>
             for {
@@ -318,7 +317,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
     "create books should fail gracefully on duplicate isbn's in input"
   ) {
     withReplayLogger { implicit logger =>
-      withContainersIO { case container: PostgreSQLContainer =>
+      withContainersIO { container =>
         val io =
           withDb(container.jdbcUrl)(db =>
             for {
@@ -361,7 +360,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
     "create books should fail gracefully if any provided isbns already exist"
   ) {
     withReplayLogger { implicit logger =>
-      withContainersIO { case container: PostgreSQLContainer =>
+      withContainersIO { container =>
         val io =
           withDb(container.jdbcUrl)(db =>
             for {
@@ -426,7 +425,7 @@ class LibraryServiceSpec extends DatabaseIntegrationTestBase {
     "create books should fail gracefully if any provided author id's don't exist"
   ) {
     withReplayLogger { implicit logger =>
-      withContainersIO { case container: PostgreSQLContainer =>
+      withContainersIO { container =>
         val io =
           withDb(container.jdbcUrl)(db =>
             for {
