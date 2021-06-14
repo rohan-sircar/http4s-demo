@@ -126,6 +126,7 @@ lazy val server = (project in file("modules/server"))
   )
   .configs(DeepIntegrationTest)
   .settings(
+    fork := true,
     organization := "wow.doge",
     name := "http4s-demo",
     version in Docker := sys.env
@@ -197,6 +198,7 @@ lazy val server = (project in file("modules/server"))
       "dev.profunktor"                %% "redis4cats-effects"        % "0.13.1",
       "dev.profunktor"                %% "redis4cats-streams"        % "0.13.1",
       "dev.profunktor"                %% "redis4cats-log4cats"       % "0.13.1",
+      "jp.ne.opt"                     %% "chronoscala"               % "1.0.0",
       // "ch.qos.logback" % "logback-classic" % LogbackVersion,
       // "org.scalameta"                 %% "svm-subs"                 % "20.2.0",
       //test deps

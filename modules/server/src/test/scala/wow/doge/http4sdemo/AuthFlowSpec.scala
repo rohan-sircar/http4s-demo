@@ -25,17 +25,20 @@ import wow.doge.http4sdemo.server.services.AuthService
 import wow.doge.http4sdemo.server.services.AuthServiceImpl
 import wow.doge.http4sdemo.utils.mytapir._
 
-class AuthFlowSpec extends UnitTestBase {
+final class AuthFlowSpec extends UnitTestBase {
+
+  val fixture = ResourceFixture(
+    AuthServiceImpl.inMemory()(testSecretKey, Logger.noop[Task])
+  )
 
   val registration =
     UserRegistration(Username("foobar1"), UnhashedUserPassword("barfoo1"))
   val login = registration.transformInto[UserLogin]
 
-  test("auth flow should succeed for regular user") {
+  fixture.test("auth flow should succeed for regular user") { authService =>
     withReplayLogger { implicit logger =>
       for {
         _ <- IO.unit
-        authService <- AuthServiceImpl.inMemory(testSecretKey)
         routes = new TestAuthedRoutes(authService, logger).routes <+>
           new AccountRoutes(authService)(logger).routes
 

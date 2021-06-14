@@ -30,7 +30,12 @@ import wow.doge.http4sdemo.server.services.AuthServiceImpl
 import wow.doge.http4sdemo.server.services.NoOpAuthService
 import wow.doge.http4sdemo.server.services.NoopLibraryService
 
-class BooksRoutesSpec extends UnitTestBase {
+final class BooksRoutesSpec extends UnitTestBase {
+
+  val fixture = ResourceFixture(
+    AuthServiceImpl
+      .inMemoryWithUser(suNewUser)(testSecretKey, Logger.noop[Task])
+  )
 
   test("get books api should succeed") {
     import org.http4s.circe.CirceEntityCodec._
@@ -221,42 +226,40 @@ class BooksRoutesSpec extends UnitTestBase {
     }
   }
 
-  test("authed get book by id should succeed") {
-    import org.http4s.circe.CirceEntityCodec._
-    withReplayLogger { implicit logger =>
-      val book = Book(
-        BookId(1),
-        BookTitle("book1"),
-        BookIsbn("blahblah"),
-        AuthorId(1),
-        date
-      )
-      val service = new NoopLibraryService {
-        override def getBookById(id: BookId)(implicit
-            L: Logger[Task]
-        ): UIO[Option[Book]] = IO.some(book)
-      }
-      for {
-        _ <- UIO.unit
-        (id, token, authService) <- AuthServiceImpl.inMemoryWithUser(
-          suNewUser
-        )(testSecretKey, logger)
-        routes = new LibraryRoutes2(service, authService)(logger).routes
-        request = Request[Task](
-          Method.GET,
-          Root / "api" / "private" / "books" / "1"
-        ).withHeaders(
-          Authorization(Credentials.Token(AuthScheme.Bearer, token.inner))
+  fixture.test("authed get book by id should succeed") {
+    case (id, token, authService) =>
+      import org.http4s.circe.CirceEntityCodec._
+      withReplayLogger { implicit logger =>
+        val book = Book(
+          BookId(1),
+          BookTitle("book1"),
+          BookIsbn("blahblah"),
+          AuthorId(1),
+          date
         )
-        res <- routes.run(request).value.hideErrors
-        body <- res.traverse(_.as[Book])
-        _ <- logger.debug(s"Request: $request, Response: $res, Body: $body")
-        _ <- IO(assertEquals(res.map(_.status), Some(Status.Ok)))
-        _ <- IO
-          .pure(body)
-          .assertEquals(Some(book))
-      } yield ()
-    }
+        val service = new NoopLibraryService {
+          override def getBookById(id: BookId)(implicit
+              L: Logger[Task]
+          ): UIO[Option[Book]] = IO.some(book)
+        }
+        for {
+          _ <- UIO.unit
+          routes = new LibraryRoutes2(service, authService)(logger).routes
+          request = Request[Task](
+            Method.GET,
+            Root / "api" / "private" / "books" / "1"
+          ).withHeaders(
+            Authorization(Credentials.Token(AuthScheme.Bearer, token.inner))
+          )
+          res <- routes.run(request).value.hideErrors
+          body <- res.traverse(_.as[Book])
+          _ <- logger.debug(s"Request: $request, Response: $res, Body: $body")
+          _ <- IO(assertEquals(res.map(_.status), Some(Status.Ok)))
+          _ <- IO
+            .pure(body)
+            .assertEquals(Some(book))
+        } yield ()
+      }
   }
 
   test("create book should succeed") {

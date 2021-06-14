@@ -2,6 +2,7 @@ package wow.doge.http4sdemo.server.repos
 
 import cats.syntax.all._
 import dev.profunktor.redis4cats.RedisCommands
+import io.odin.Logger
 import monix.bio.IO
 import monix.bio.Task
 import tsec.jws.mac.JWTMac
@@ -20,24 +21,9 @@ final class RedisCredentialsRepo(redis: RedisCommands[Task, String, String])(
     s"$prefix:$uid"
   }
 
-//   private val tx = transactions.RedisTransaction(redis)
-
-  def put(userId: UserId, jwt: JWTMac[HMACSHA256]): IO[AppError2, Unit] = {
-    // val commands = redis
-    //   .get(userId.toString)
-    //   .flatTap {
-    //     case Some(_) =>
-    //       IO.raiseError(
-    //         AppError2.EntityAlreadyExists(
-    //           s"token for uid: $userId already exists"
-    //         )
-    //       )
-    //     case None => IO.unit
-    //   }
-    //   .hideErrors ::
-    //   redis.set(userId.toString, jwt.toString).hideErrors :: HNil
-
-    // tx.filterExec(commands).mapErrorPartial { case e: AppError2 => e }.void
+  def put(userId: UserId, jwt: JWTMac[HMACSHA256])(implicit
+      logger: Logger[Task]
+  ): IO[AppError2, Unit] = {
     for {
       token <- redis.get(key(userId)).hideErrors
       _ <- token match {
@@ -53,22 +39,9 @@ final class RedisCredentialsRepo(redis: RedisCommands[Task, String, String])(
     } yield ()
   }
 
-  def remove(userId: UserId): IO[AppError2, Unit] = {
-    // val commands = redis
-    //   .get(userId.toString)
-    //   .flatTap {
-    //     case Some(_) =>
-    //       IO.raiseError(
-    //         AppError2.EntityDoesNotExist(
-    //           s"token for uid: $userId does not exist"
-    //         )
-    //       )
-    //     case None => IO.unit
-    //   }
-    //   .hideErrors ::
-    //   redis.del(userId.toString).hideErrors :: HNil
-
-    // tx.filterExec(commands).mapErrorPartial { case e: AppError2 => e }.void
+  def remove(
+      userId: UserId
+  )(implicit logger: Logger[Task]): IO[AppError2, Unit] = {
     for {
       token <- redis.get(key(userId)).hideErrors
       _ <- token match {
@@ -84,16 +57,9 @@ final class RedisCredentialsRepo(redis: RedisCommands[Task, String, String])(
     } yield ()
   }
 
-  def get(userId: UserId): IO[AppError2, Option[JwtToken]] = {
-    // val commands = redis.get(userId.toString) :: HNil
-    // for {
-    //   txRes <- tx
-    //     .filterExec(commands)
-    //     .mapErrorPartial { case e: AppError2 => e }
-    //   t <- txRes match {
-    //     case res1 ~: HNil => res1.traverse(JwtToken.fromTokenStr)
-    //   }
-    // } yield t
+  def get(
+      userId: UserId
+  )(implicit logger: Logger[Task]): IO[AppError2, Option[JwtToken]] = {
     for {
       u <- redis.get(key(userId)).hideErrors
       t <- u.traverse(JwtToken.fromTokenStr)
@@ -101,11 +67,3 @@ final class RedisCredentialsRepo(redis: RedisCommands[Task, String, String])(
   }
 
 }
-
-// object RedisCredentialsRepo {
-//   def apply() = for {
-//     lock <- MLock()
-//     store <- Ref.of[Task, Map[UserId, JwtToken]](Map.empty).hideErrors
-//     repo = new RedisCredentialsRepo(lock, store)
-//   } yield repo
-// }

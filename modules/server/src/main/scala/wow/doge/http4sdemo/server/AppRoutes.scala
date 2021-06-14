@@ -2,6 +2,8 @@ package wow.doge.http4sdemo.server
 
 import java.nio.charset.StandardCharsets
 
+import scala.concurrent.duration._
+
 import cats.effect.Resource
 import cats.syntax.all._
 import com.codahale.metrics.MetricRegistry
@@ -60,7 +62,7 @@ final class AppRoutes(
           new RedisCredentialsRepo(redis)(key)
         )
       case AuthSessionConfig.InMemory =>
-        Resource.eval(InMemoryCredentialsRepo())
+        InMemoryCredentialsRepo(config.auth.tokenTimeout, 10.seconds)(logger)
     }
     messageSubject <- RedisSubject(pubsub, data.RedisChannel("message"))
     authService = new AuthServiceImpl(

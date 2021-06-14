@@ -3,6 +3,7 @@ package wow.doge.http4sdemo.server.services
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
 
+import cats.effect.Resource
 import cats.syntax.eq._
 import eu.timepit.refined.auto._
 import io.odin.Logger
@@ -120,24 +121,31 @@ final class AuthServiceImpl(
 }
 
 object AuthServiceImpl {
-  def inMemory(implicit key: JwtSigningKey) = {
+  def inMemory(
+      tokenTimeout: FiniteDuration = 10.seconds,
+      interval: FiniteDuration = 10.seconds
+  )(implicit
+      key: JwtSigningKey,
+      logger: Logger[Task]
+  ) =
     for {
-      crepo <- InMemoryCredentialsRepo()
-      urepo <- InMemoryUsersRepo(),
-    } yield new AuthServiceImpl(crepo, urepo, 10.minutes)
-  }
+      crepo <- InMemoryCredentialsRepo(tokenTimeout, interval)(logger)
+      urepo <- Resource.eval(InMemoryUsersRepo()),
+    } yield new AuthServiceImpl(crepo, urepo, tokenTimeout)
 
   def inMemoryWithUser(
-      nu: NewUser
+      nu: NewUser,
+      tokenTimeout: FiniteDuration = 10.seconds,
+      interval: FiniteDuration = 10.seconds
   )(implicit key: JwtSigningKey, logger: Logger[Task]) = {
     for {
-      urepo <- InMemoryUsersRepo()
-      id <- urepo.put(nu)
+      urepo <- Resource.eval(InMemoryUsersRepo())
+      id <- Resource.eval(urepo.put(nu))
       identity = nu.into[UserIdentity].withFieldConst(_.id, id).transform
-      jwt <- encode[Task](identity, 10.minutes).hideErrors
-      crepo <- InMemoryCredentialsRepo()
-      _ <- crepo.put(id, jwt)
-      impl = new AuthServiceImpl(crepo, urepo, 10.minutes)
+      jwt <- Resource.eval(encode[Task](identity, tokenTimeout).hideErrors)
+      crepo <- InMemoryCredentialsRepo(tokenTimeout, interval)(logger)
+      _ <- Resource.eval(crepo.put(id, jwt))
+      impl = new AuthServiceImpl(crepo, urepo, tokenTimeout)
       token = JwtToken(jwt)
     } yield (id, token, impl)
   }
