@@ -11,10 +11,12 @@ import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.UserLogin
 import wow.doge.http4sdemo.models.UserRegistration
 import wow.doge.http4sdemo.server.services.AuthService
+import wow.doge.http4sdemo.server.services.UserService
 import wow.doge.http4sdemo.utils.infoSpan
 
-final class AccountRoutes(A: AuthService)(val logger: Logger[Task])
-    extends ServerInterpreter {
+final class AccountRoutes(A: AuthService, U: UserService)(
+    val logger: Logger[Task]
+) extends ServerInterpreter {
 
   def login(user: UserLogin)(implicit logger: Logger[Task]) = infoSpan {
     for {
@@ -36,7 +38,7 @@ final class AccountRoutes(A: AuthService)(val logger: Logger[Task])
     infoSpan {
       for {
         _ <- logger.debugU(s"Registering ${registration.username}")
-        id <- A.register(registration)
+        id <- U.createUser(registration)
       } yield RegistrationResponse(id)
     }
 

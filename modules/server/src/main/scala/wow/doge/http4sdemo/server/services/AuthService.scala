@@ -22,9 +22,6 @@ import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.NewUser
 import wow.doge.http4sdemo.models.UserIdentity
 import wow.doge.http4sdemo.models.UserLogin
-import wow.doge.http4sdemo.models.UserRegistration
-import wow.doge.http4sdemo.models.common.UserRole
-import wow.doge.http4sdemo.refinements.Refinements
 import wow.doge.http4sdemo.server.auth._
 import wow.doge.http4sdemo.server.repos.CredentialsRepo
 import wow.doge.http4sdemo.server.repos.InMemoryCredentialsRepo
@@ -41,12 +38,9 @@ trait AuthService {
       logger: Logger[Task]
   ): IO[AppError2, JWTMac[HMACSHA256]]
 
-  def register(user: UserRegistration)(implicit
-      logger: Logger[Task]
-  ): IO[AppError2, Refinements.UserId]
 }
 
-final class AuthServiceImpl(
+sealed class AuthServiceImpl(
     C: CredentialsRepo,
     U: UsersRepo,
     tokenTimeout: FiniteDuration
@@ -103,34 +97,20 @@ final class AuthServiceImpl(
       } yield jwt
     }
 
-  def register(
-      user: UserRegistration
-  )(implicit logger: Logger[Task]): IO[AppError2, Refinements.UserId] =
-    infoSpan {
-      for {
-        _ <- logger.infoU("Registering user")
-        hashed <- hashPasswordIO(user.password)
-        nu = user
-          .into[NewUser]
-          .withFieldConst(_.password, hashed)
-          .withFieldConst(_.role, UserRole.User)
-          .transform
-        id <- U.put(nu)
-      } yield id
-    }
 }
 
 object AuthServiceImpl {
   def inMemory(
+      usersRepo: Option[UsersRepo] = None,
       tokenTimeout: FiniteDuration = 10.seconds,
       interval: FiniteDuration = 10.seconds
-  )(implicit
-      key: JwtSigningKey,
-      logger: Logger[Task]
-  ) =
+  )(implicit key: JwtSigningKey, logger: Logger[Task]) =
     for {
       crepo <- InMemoryCredentialsRepo(tokenTimeout, interval)(logger)
-      urepo <- Resource.eval(InMemoryUsersRepo()),
+      urepo <- usersRepo match {
+        case Some(value) => Resource.pure[Task, UsersRepo](value)
+        case None        => Resource.eval(InMemoryUsersRepo())
+      }
     } yield new AuthServiceImpl(crepo, urepo, tokenTimeout)
 
   def inMemoryWithUser(
@@ -151,6 +131,37 @@ object AuthServiceImpl {
   }
 }
 
+final class TestAuthService(
+    C: CredentialsRepo,
+    U: UsersRepo,
+    tokenTimeout: FiniteDuration
+)(implicit key: JwtSigningKey)
+    extends AuthServiceImpl(C, U, tokenTimeout) {
+  def createAuthedUser(nu: NewUser)(implicit logger: Logger[Task]) = {
+    for {
+      id <- U.put(nu)
+      identity = nu.into[UserIdentity].withFieldConst(_.id, id).transform
+      jwt <- encode[Task](identity, tokenTimeout).hideErrors
+      _ <- C.put(id, jwt)
+      token = JwtToken(jwt)
+    } yield (id, token)
+  }
+}
+
+object TestAuthService {
+  def inMemory(
+      tokenTimeout: FiniteDuration = 10.seconds,
+      interval: FiniteDuration = 10.seconds
+  )(implicit
+      key: JwtSigningKey,
+      logger: Logger[Task]
+  ) =
+    for {
+      crepo <- InMemoryCredentialsRepo(tokenTimeout, interval)(logger)
+      urepo <- Resource.eval(InMemoryUsersRepo()),
+    } yield new TestAuthService(crepo, urepo, tokenTimeout)
+}
+
 class NoOpAuthService extends AuthService {
   def verify(authDetails: AuthDetails)(implicit
       logger: Logger[Task]
@@ -158,9 +169,5 @@ class NoOpAuthService extends AuthService {
   def login(
       user: UserLogin
   )(implicit logger: Logger[Task]): IO[AppError2, JWTMac[HMACSHA256]] =
-    IO.terminate(new NotImplementedError)
-  def register(
-      user: UserRegistration
-  )(implicit logger: Logger[Task]): IO[AppError2, Refinements.UserId] =
     IO.terminate(new NotImplementedError)
 }

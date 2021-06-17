@@ -1,7 +1,9 @@
 package wow.doge.http4sdemo
 
+import com.dimafeng.testcontainers.PostgreSQLContainer
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.numeric
+import monix.bio.IO
 import monix.bio.UIO
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.BookSearchMode
@@ -14,12 +16,17 @@ import wow.doge.http4sdemo.server.services.LibraryDbio
 import wow.doge.http4sdemo.server.services.LibraryService
 import wow.doge.http4sdemo.server.services.LibraryServiceImpl
 
-class LibraryServiceSpec extends DatabaseIntegrationTestBase {
+class LibraryServiceSpec extends PgItTestBase {
 
   override def afterContainersStart(containers: Containers): Unit = {
-    implicit val s = schedulers.async.value
+    implicit val s = schedulers.io.value
     super.afterContainersStart(containers)
-    createSchema(containers).runSyncUnsafe(munitTimeout)
+    val io = containers match {
+      case container: PostgreSQLContainer =>
+        createSchema(container)
+      case c => IO.terminate(new Exception("boom"))
+    }
+    io.runSyncUnsafe(munitTimeout)
   }
 
   test("get book by id should succeed") {

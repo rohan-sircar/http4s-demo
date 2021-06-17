@@ -11,24 +11,39 @@ import org.testcontainers.utility.DockerImageName
 import slick.jdbc.JdbcBackend
 import wow.doge.http4sdemo.MonixBioSuite
 import wow.doge.http4sdemo.server.DBMigrations
-import wow.doge.http4sdemo.server.ExtendedPgProfile
 import wow.doge.http4sdemo.server.JdbcDatabaseConfig
 
-trait DatabaseIntegrationTestBase
+trait PgItTestBase
     extends MonixBioSuite
-    with TestContainerForAll {
+    with TestContainerForAll
+    with PgItTestOps {
   val databaseName = "testcontainer-scala"
   val username = "scala"
   val password = "scala"
 
-  override val containerDef: ContainerDef = PostgreSQLContainer.Def(
+  override val containerDef: ContainerDef = pgContainerDef
+
+  def withContainersIO[A](f: PostgreSQLContainer => Task[A]): Task[A] = {
+    withContainers {
+      case c: PostgreSQLContainer => f(c)
+      case c                      => IO.terminate(new Exception(s"Unknown container: ${c.toString}"))
+    }
+  }
+
+}
+
+trait PgItTestOps {
+
+  def databaseName: String
+  def username: String
+  def password: String
+
+  lazy val pgContainerDef = PostgreSQLContainer.Def(
     dockerImageName = DockerImageName.parse("postgres:12-alpine"),
     databaseName = databaseName,
     username = username,
     password = password
   )
-
-  lazy val profile: ExtendedPgProfile = ExtendedPgProfile
 
   def config(url: String) = ConfigFactory.parseString(s"""|
                                |testDatabase = {
@@ -51,29 +66,15 @@ trait DatabaseIntegrationTestBase
     JdbcBackend.Database.forConfig("testDatabase", config(url))
   ).bracket(f)(db => UIO(db.close()))
 
-  def createSchema(containers: Containers) = {
-    containers match {
-      case container: PostgreSQLContainer =>
-        val config = JdbcDatabaseConfig(
-          container.jdbcUrl,
-          "org.postgresql.Driver",
-          Some(username),
-          Some(password),
-          "flyway_schema_history",
-          List("classpath:db/migration/default")
-        )
-        DBMigrations.migrate[Task](config).void
-      case _ => IO.unit
-    }
+  def createSchema(container: PostgreSQLContainer) = {
+    val config = JdbcDatabaseConfig(
+      container.jdbcUrl,
+      "org.postgresql.Driver",
+      Some(username),
+      Some(password),
+      "flyway_schema_history",
+      List("classpath:db/migration/default")
+    )
+    DBMigrations.migrate[Task](config).void
   }
-
-  def withContainersIO[A](f: PostgreSQLContainer => Task[A]): Task[A] = {
-    withContainers {
-      case c: PostgreSQLContainer =>
-        f(c)
-      case c =>
-        IO.terminate(new Exception(s"Unknown container: ${c.toString}"))
-    }
-  }
-
 }

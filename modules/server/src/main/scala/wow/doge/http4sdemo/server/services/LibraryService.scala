@@ -140,9 +140,7 @@ final class LibraryServiceImpl(
         )
         rows <- db
           .runTryL(action.transactionally.asTry)
-          .mapErrorPartial { case e: AppError =>
-            e
-          }
+          .mapErrorPartial { case e: AppError => e }
       } yield NumRows(rows)
     }
 
@@ -161,12 +159,7 @@ final class LibraryServiceImpl(
             _ <- dbio.checkAuthorWithIdExists(newBook.authorId)
             book <- dbio.insertBookAndGetBook(newBook)
           } yield book)
-          book <- db
-            // .runTryL(action.transactionally.asTry)
-            // .mapErrorPartial { case e: AppError2 =>
-            //   e
-            // }
-            .runIO(action.transactionally)
+          book <- db.runIO(action.transactionally)
         } yield book
       }
     }
@@ -232,13 +225,10 @@ final class LibraryServiceImpl(
                     )
               } yield ()
               rows <- dbio.insertBooks(newBooks)
-            } yield rows
+            } yield rows.map(NumRows.apply)
           )
         )
-        res <- db
-          .runTryL(action.transactionally.asTry)
-          .mapErrorPartial { case e: AppError2 => e }
-          .map(_.map(NumRows.apply))
+        res <- db.runIO(action.transactionally)
       } yield res
     }
 
@@ -401,7 +391,7 @@ final class LibraryDbio {
   }
 }
 
-trait NoopLibraryService extends LibraryService {
+class NoopLibraryService extends LibraryService {
   def getBooks(pagination: Pagination)(implicit
       L: Logger[Task]
   ): IO[AppError2, Observable[Book]] =

@@ -14,7 +14,8 @@ import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.NewUser
 import wow.doge.http4sdemo.models.User
-import wow.doge.http4sdemo.refinements.Refinements
+import wow.doge.http4sdemo.models.common.UserRole
+import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.server.ExtendedPgProfile.api._
 import wow.doge.http4sdemo.server.ExtendedPgProfile.mapping._
 import wow.doge.http4sdemo.server.implicits._
@@ -23,23 +24,24 @@ import wow.doge.http4sdemo.utils.MLock
 import wow.doge.http4sdemo.utils.infoSpan
 
 trait UsersRepo {
-  def put(nu: NewUser)(implicit
+  def put(nu: NewUser)(implicit logger: Logger[Task]): IO[AppError2, UserId]
+  def getById(id: UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Refinements.UserId]
-  def getById(
-      userId: Refinements.UserId
-  )(implicit logger: Logger[Task]): IO[AppError2, Option[User]]
-  def getByName(
-      userName: Refinements.Username
-  )(implicit logger: Logger[Task]): IO[AppError2, Option[User]]
-  def remove(userId: Refinements.UserId)(implicit
+  ): IO[AppError2, Option[User]]
+  def getByName(userName: Username)(implicit
+      logger: Logger[Task]
+  ): IO[AppError2, Option[User]]
+  def removeById(id: UserId)(implicit
+      logger: Logger[Task]
+  ): IO[AppError2, Unit]
+  def updateRoleById(id: UserId, role: UserRole)(implicit
       logger: Logger[Task]
   ): IO[AppError2, Unit]
 }
 
 final class InMemoryUsersRepo private (
     lock: MLock,
-    counter: Ref[Task, Refinements.UserId],
+    counter: Ref[Task, UserId],
     store: Ref[Task, List[User]]
 ) extends UsersRepo {
 
@@ -48,9 +50,7 @@ final class InMemoryUsersRepo private (
   )(implicit logger: Logger[Task], position: Position) =
     infoSpan(lock.greenLight(io))
 
-  def put(
-      nu: NewUser
-  )(implicit logger: Logger[Task]): IO[AppError2, Refinements.UserId] =
+  def put(nu: NewUser)(implicit logger: Logger[Task]): IO[AppError2, UserId] =
     cake {
       for {
         users <- store.get.hideErrors
@@ -66,12 +66,12 @@ final class InMemoryUsersRepo private (
         }
         num <- counter.get.hideErrors
         user2 = nu.into[User].withFieldConst(_.id, num).transform
-        num <- counter.updateAndGet(_ :+ Refinements.UserId(1)).hideErrors
+        num <- counter.updateAndGet(_ :+ UserId(1)).hideErrors
         _ <- store.update(user2 :: _).hideErrors
       } yield num
     }
 
-  def getById(userId: Refinements.UserId)(implicit
+  def getById(userId: UserId)(implicit
       logger: Logger[Task]
   ): IO[AppError2, Option[User]] = cake {
     for {
@@ -80,7 +80,7 @@ final class InMemoryUsersRepo private (
     } yield res
   }
 
-  def getByName(userName: Refinements.Username)(implicit
+  def getByName(userName: Username)(implicit
       logger: Logger[Task]
   ): IO[AppError2, Option[User]] = cake {
     for {
@@ -89,7 +89,7 @@ final class InMemoryUsersRepo private (
     } yield res
   }
 
-  def remove(userId: Refinements.UserId)(implicit
+  def removeById(userId: UserId)(implicit
       logger: Logger[Task]
   ): IO[AppError2, Unit] =
     cake {
@@ -100,13 +100,24 @@ final class InMemoryUsersRepo private (
       } yield ()
     }
 
+  def updateRoleById(id: UserId, role: UserRole)(implicit
+      logger: Logger[Task]
+  ): IO[AppError2, Unit] = cake {
+    for {
+      users <- store.get.hideErrors
+      next = users.foldLeft(List.empty[User]) { case (acc, next) =>
+        if (next.id === id) next.copy(role = role) :: acc else next :: acc
+      }
+      _ <- store.set(next).hideErrors
+    } yield ()
+  }
 }
 
 object InMemoryUsersRepo {
   def apply() = for {
     lock <- MLock()
     counter <- Ref
-      .of[Task, Refinements.UserId](Refinements.UserId(1))
+      .of[Task, UserId](UserId(1))
       .hideErrors
     store <- Ref.of[Task, List[User]](List.empty).hideErrors
     repo = new InMemoryUsersRepo(lock, counter, store)
@@ -118,7 +129,7 @@ final class UsersRepoImpl(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio)
 
   def put(
       nu: NewUser
-  )(implicit logger: Logger[Task]): IO[AppError2, Refinements.UserId] =
+  )(implicit logger: Logger[Task]): IO[AppError2, UserId] =
     infoSpan {
       for {
         _ <- logger.infoU("Putting user")
@@ -142,7 +153,7 @@ final class UsersRepoImpl(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio)
     }
 
   def getById(
-      userId: Refinements.UserId
+      userId: UserId
   )(implicit logger: Logger[Task]): IO[AppError2, Option[User]] = infoSpan {
     for {
       _ <- logger.infoU("Getting user")
@@ -151,7 +162,7 @@ final class UsersRepoImpl(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio)
   }
 
   def getByName(
-      userName: Refinements.Username
+      userName: Username
   )(implicit logger: Logger[Task]): IO[AppError2, Option[User]] = infoSpan {
     for {
       _ <- logger.infoU("Getting user")
@@ -159,9 +170,17 @@ final class UsersRepoImpl(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio)
     } yield res
   }
 
-  def remove(userId: Refinements.UserId)(implicit
+  def removeById(id: UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit] = ???
+  ): IO[AppError2, Unit] = infoSpan {
+    db.runIO(usersDbio.removeById(id).transactionally >> DBIO.unit)
+  }
+
+  def updateRoleById(id: UserId, role: UserRole)(implicit
+      logger: Logger[Task]
+  ): IO[AppError2, Unit] = infoSpan {
+    db.runIO(usersDbio.updateRoleById(id, role).transactionally >> DBIO.unit)
+  }
 
 }
 
@@ -171,18 +190,23 @@ final class UsersDbio {
     .map(NewUser.fromUsersTableFn)
     .returning(Tables.Users.map(_.userId)) += nu
 
-  def getUserById(id: Refinements.UserId) =
+  def getUserById(id: UserId) =
     Tables.Users
       .filter(_.userId === id)
       .map(User.fromUsersTableFn)
       .result
       .headOption
 
-  def getUserByName(userName: Refinements.Username) =
+  def getUserByName(userName: Username) =
     Tables.Users
       .filter(_.userName === userName)
       .map(User.fromUsersTableFn)
       .result
       .headOption
+
+  def removeById(id: UserId) = Tables.Users.filter(_.userId === id).delete
+
+  def updateRoleById(id: UserId, role: UserRole) =
+    Tables.Users.filter(_.userId === id).map(_.userRole).update(role)
 
 }

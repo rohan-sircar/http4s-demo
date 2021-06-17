@@ -14,6 +14,7 @@ import pureconfig.error.FailureReason
 import pureconfig.generic.auto._
 import pureconfig.generic.semiauto._
 import pureconfig.module.enumeratum._
+import eu.timepit.refined.api.RefinedTypeOps
 // import pureconfig.generic.CoproductHint
 // import pureconfig.generic.CoproductReaderOptions._
 
@@ -118,19 +119,32 @@ object LoggerConfig {
   implicit val configReader = deriveReader[LoggerConfig]
 }
 
-final case class RedisUrl private (inner: string.NonEmptyFiniteString[100])
+final case class RedisUrl private (inner: RedisUrl.Refinement)
 object RedisUrl {
-  implicit val configReader: ConfigReader[RedisUrl] =
-    ConfigReader[string.NonEmptyFiniteString[100]].emap { s =>
+  type Refinement = string.NonEmptyFiniteString[100]
+  object Refinement extends RefinedTypeOps[Refinement, String]
+
+  def parseStr(s: String) = for {
+    nes <- Refinement.from(s)
+    res <- parseNes(nes)
+  } yield res
+
+  def parseNes(s: Refinement) = for {
+    res <-
       if (s.value.startsWith("redis://")) Right(RedisUrl(s))
-      else
-        Left(
-          CannotConvert(
-            s.value,
-            "RedisUrl",
-            s"Failed to parse config value: Invalid format"
-          )
+      else Left("Url should begin with `redis://`")
+  } yield res
+
+  implicit val configReader: ConfigReader[RedisUrl] =
+    ConfigReader[Refinement].emap { s =>
+      parseNes(s).leftMap(err =>
+        CannotConvert(
+          s.value,
+          "RedisUrl",
+          s"Failed to parse config value: Invalid format: $err"
         )
+      )
+
     }
 }
 

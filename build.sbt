@@ -220,6 +220,8 @@ lazy val server = (project in file("modules/server"))
       javacOptions,
       dockerBaseImage
     ),
+    wartremoverErrors in (Test, compile) ++= WartRemoverErrors,
+    wartremoverErrors in (DeepIntegrationTest, compile) ++= WartRemoverErrors,
     wartremoverErrors in (Compile, compile) ++= WartRemoverErrors,
     wartremoverExcluded += (sourceManaged in Compile).value
   )

@@ -36,6 +36,7 @@ import wow.doge.http4sdemo.server.routes.MessageRoutes
 import wow.doge.http4sdemo.server.services.AuthServiceImpl
 import wow.doge.http4sdemo.server.services.LibraryDbio
 import wow.doge.http4sdemo.server.services.LibraryServiceImpl
+import wow.doge.http4sdemo.server.services.UserService
 import wow.doge.http4sdemo.server.types.RedisStreamEventPs
 import wow.doge.http4sdemo.server.utils.RedisResource
 
@@ -53,6 +54,7 @@ final class AppRoutes(
     key = JwtSigningKey(_key)
     usersDbio = new UsersDbio
     usersRepo = new UsersRepoImpl(db, usersDbio)
+    userService = new UserService(usersRepo)
     libraryDbio = new LibraryDbio
     libraryService = new LibraryServiceImpl(libraryDbio, db)
     (pubsub, redis) <- RedisResource(config.redis.url, logger)
@@ -75,7 +77,7 @@ final class AppRoutes(
         Timeout(config.http.timeout)(
           new LibraryRoutes(libraryService, authService)(logger).routes <+>
             new LibraryRoutes2(libraryService, authService)(logger).routes <+>
-            new AccountRoutes(authService)(logger).routes
+            new AccountRoutes(authService, userService)(logger).routes
         )
     )
     httpRoutes = apiRoutes <+> metricsRoutes(registry)

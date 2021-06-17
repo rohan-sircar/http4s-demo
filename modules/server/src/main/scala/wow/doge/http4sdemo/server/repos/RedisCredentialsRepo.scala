@@ -13,7 +13,7 @@ import wow.doge.http4sdemo.server.auth.JwtSigningKey
 import wow.doge.http4sdemo.server.auth.JwtToken
 
 final class RedisCredentialsRepo(redis: RedisCommands[Task, String, String])(
-    implicit key: JwtSigningKey
+    implicit signingKey: JwtSigningKey
 ) extends CredentialsRepo {
 
   private def key(uid: UserId) = {

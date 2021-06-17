@@ -1,5 +1,7 @@
 package wow.doge.http4sdemo
 
+import java.nio.charset.StandardCharsets
+
 import eu.timepit.refined.auto._
 import monix.bio.IO
 import monix.bio.Task
@@ -100,7 +102,9 @@ class SttpInterpreterTest extends MonixBioSuite {
         .streamBody(Fs2Streams[Task])(
           steambase
             .flatMap(x =>
-              fs2.Stream.fromIterator[Task](x.toString.getBytes.iterator)
+              fs2.Stream.fromIterator[Task](
+                x.toString.getBytes(StandardCharsets.UTF_8).iterator
+              )
             )
         )
         .send(backend)

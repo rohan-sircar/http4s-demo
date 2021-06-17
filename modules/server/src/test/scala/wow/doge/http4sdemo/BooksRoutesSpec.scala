@@ -8,12 +8,9 @@ import monix.bio.IO
 import monix.bio.Task
 import monix.bio.UIO
 import monix.reactive.Observable
-import org.http4s.AuthScheme
-import org.http4s.Credentials
 import org.http4s.Method
 import org.http4s.Request
 import org.http4s.Status
-import org.http4s.headers.Authorization
 import org.http4s.implicits._
 import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.models.Book
@@ -34,7 +31,7 @@ final class BooksRoutesSpec extends UnitTestBase {
 
   val fixture = ResourceFixture(
     AuthServiceImpl
-      .inMemoryWithUser(suNewUser)(testSecretKey, Logger.noop[Task])
+      .inMemoryWithUser(suNewUser)(dummySigningKey, Logger.noop[Task])
   )
 
   test("get books api should succeed") {
@@ -248,16 +245,12 @@ final class BooksRoutesSpec extends UnitTestBase {
           request = Request[Task](
             Method.GET,
             Root / "api" / "private" / "books" / "1"
-          ).withHeaders(
-            Authorization(Credentials.Token(AuthScheme.Bearer, token.inner))
-          )
-          res <- routes.run(request).value.hideErrors
+          ).withHeaders(authHeader(token))
+          res <- routes.run(request).value
           body <- res.traverse(_.as[Book])
           _ <- logger.debug(s"Request: $request, Response: $res, Body: $body")
           _ <- IO(assertEquals(res.map(_.status), Some(Status.Ok)))
-          _ <- IO
-            .pure(body)
-            .assertEquals(Some(book))
+          _ <- IO.pure(body).assertEquals(Some(book))
         } yield ()
       }
   }
