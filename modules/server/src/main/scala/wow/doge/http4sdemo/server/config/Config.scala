@@ -4,6 +4,7 @@ import scala.concurrent.duration.FiniteDuration
 
 import cats.syntax.all._
 import enumeratum._
+import eu.timepit.refined.api.RefinedTypeOps
 import eu.timepit.refined.pureconfig._
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string
@@ -13,7 +14,6 @@ import pureconfig.error.CannotConvert
 import pureconfig.error.FailureReason
 import pureconfig.generic.semiauto._
 import pureconfig.module.enumeratum._
-import eu.timepit.refined.api.RefinedTypeOps
 
 private[config] final case class ListWrapper(list: List[String])
 private[config] object ListWrapper {
