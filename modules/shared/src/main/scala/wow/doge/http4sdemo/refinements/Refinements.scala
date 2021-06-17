@@ -114,9 +114,10 @@ object Refinements {
     implicit val eq: Eq[UserId] = Eq[IdRefinement].coerce
 
     implicit class UserIdOps(id: UserId) {
-      @SuppressWarnings(Array("org.wartremover.warts.Throw"))
-      /** @throws IllegalArgumentException
+
+      /** @throws java.lang.IllegalArgumentException
         */
+      @SuppressWarnings(Array("org.wartremover.warts.Throw"))
       def :+(that: UserId) = UserId(
         IdRefinement
           .from(id.inner.value + that.inner.value)
