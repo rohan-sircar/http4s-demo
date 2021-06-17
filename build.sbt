@@ -341,7 +341,8 @@ inThisBuild(
       else Seq.empty
     },
     javacOptions ++= Seq("-source", "11", "-target", "11"),
-    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.4.3"
+    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.4.3",
+    skip in publish := true
   )
 )
 
