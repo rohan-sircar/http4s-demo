@@ -11,12 +11,9 @@ import io.odin.{Level => OLevel}
 import pureconfig._
 import pureconfig.error.CannotConvert
 import pureconfig.error.FailureReason
-import pureconfig.generic.auto._
 import pureconfig.generic.semiauto._
 import pureconfig.module.enumeratum._
 import eu.timepit.refined.api.RefinedTypeOps
-// import pureconfig.generic.CoproductHint
-// import pureconfig.generic.CoproductReaderOptions._
 
 private[config] final case class ListWrapper(list: List[String])
 private[config] object ListWrapper {
@@ -156,7 +153,9 @@ object AuthSessionConfig {
   case object InMemory extends AuthSessionConfig {
     implicit val reader = deriveReader[InMemory.type]
   }
-  implicit val configReader = deriveReader[AuthSessionConfig]
+
+  implicit val configReader: ConfigReader[AuthSessionConfig] =
+    deriveReader
 }
 
 final case class AuthConfig(
