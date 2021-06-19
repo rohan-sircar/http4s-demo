@@ -90,10 +90,10 @@ final class AppRoutes(
 
 }
 
-final case class RedisSubject(
-    tx: Pipe[Task, StreamEvent, Unit],
-    rx: fs2.Stream[Task, StreamEvent],
-    channel: data.RedisChannel[String]
+final class RedisSubject(
+    val tx: Pipe[Task, StreamEvent, Unit],
+    val rx: fs2.Stream[Task, StreamEvent],
+    val channel: data.RedisChannel[String]
 )
 
 object RedisSubject {

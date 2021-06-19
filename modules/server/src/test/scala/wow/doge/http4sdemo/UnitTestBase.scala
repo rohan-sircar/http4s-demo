@@ -5,12 +5,10 @@ import org.http4s.AuthScheme
 import org.http4s.Credentials
 import org.http4s.Uri
 import org.http4s.headers.Authorization
-import tsec.mac.jca.HMACSHA256
 import wow.doge.http4sdemo.MonixBioSuite
 import wow.doge.http4sdemo.models.NewUser
 import wow.doge.http4sdemo.models.common.UserRole
 import wow.doge.http4sdemo.refinements.Refinements._
-import wow.doge.http4sdemo.server.auth.JwtSigningKey
 import wow.doge.http4sdemo.server.auth.JwtToken
 
 trait UnitTestBase extends MonixBioSuite {
@@ -28,8 +26,6 @@ trait UnitTestBase extends MonixBioSuite {
 
   val suNewUser =
     NewUser(Username("super-user"), dummyUserPassword, UserRole.SuperUser)
-
-  val dummySigningKey = JwtSigningKey(HMACSHA256.unsafeGenerateKey)
 
   def authHeader(token: JwtToken) = Authorization(
     Credentials.Token(AuthScheme.Bearer, token.inner)

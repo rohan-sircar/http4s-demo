@@ -5,7 +5,7 @@ on:
     branches: ["*", series/*]
     paths-ignore:
       - ".dockerignore"
-      - ".github/workflow/ci.yml"
+      - ".github/workflow/ci.yaml"
       - "Changelog.md"
       - "Dockerfile"
       - "doc/**"
@@ -18,7 +18,7 @@ on:
     tags: [v*]
     paths-ignore:
       - ".dockerignore"
-      - ".github/workflow/ci.yml"
+      - ".github/workflow/ci.yaml"
       - "Changelog.md"
       - "Dockerfile"
       - "doc/**"
@@ -64,17 +64,16 @@ jobs:
           java-version: adopt@1.11
       - name: Migrate
         run: csbt flyway/flywayMigrate
-      - name: Lint
-        run: csbt lint-check
+      - name: Format check
+        run: csbt scalafmtCheckAll
       - name: Compile
-        run: |
-          csbt "compile; test:compile"
+        run: csbt "compile; test:compile"
+      - name: Scalafix check
+        run: csbt scalafixAll --check
       - name: Run Unit Tests
-        run: |
-          csbt test
+        run: csbt test
       - name: Run Integration Tests
-        run: |
-          csbt it:test
+        run: csbt it:test
   publish:
     name: Publish Release Docker Image
     needs: [build]
@@ -125,7 +124,7 @@ jobs:
       - name: Publish Latest
         if: github.ref == 'refs/heads/main'
         env:
-          DOCKER_PUBLISH_TAG: latest
+          HTTP4S_DEMO_DOCKER_PUBLISH_TAG: latest
         run: |
           csbt docker:publish
 

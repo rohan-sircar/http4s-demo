@@ -45,13 +45,13 @@ final class RedisCredentialsRepo(redis: RedisCommands[Task, String, String])(
     for {
       token <- redis.get(key(userId)).hideErrors
       _ <- token match {
-        case Some(_) =>
+        case Some(_) => IO.unit
+        case None =>
           IO.raiseError(
             AppError2.EntityDoesNotExist(
               s"token for uid: $userId does not exist"
             )
           )
-        case None => IO.unit
       }
       _ <- redis.del(key(userId)).hideErrors
     } yield ()
