@@ -67,9 +67,9 @@ jobs:
       - name: Format check
         run: csbt scalafmtCheckAll
       - name: Compile
-        run: csbt "compile; test:compile"
+        run: csbt "compile; test:compile; it:compile"
       - name: Scalafix check
-        run: csbt scalafixAll --check
+        run: csbt "scalafixAll --check"
       - name: Run Unit Tests
         run: csbt test
       - name: Run Integration Tests
