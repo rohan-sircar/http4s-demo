@@ -10,7 +10,8 @@ val MonixVersion           = "3.4.0"
 val MonixBioVersion        = "0a2ad29275"
 // val MonixBioVersion        = "1.1.0+39-73a5fb1c-SNAPSHOT"
 val SttpVersion            = "3.1.7"
-val OdinVersion            = "0.11.0"
+// val OdinVersion            = "0.11.0"
+val OdinVersion            = "scalajs-1-support-2-SNAPSHOT"
 val TestContainersVersion  = "0.39.3"
 val PureconfigVersion      = "0.14.0"
 val RefinedVersion         = "0.9.19"
@@ -79,8 +80,10 @@ lazy val shared = (project in file("modules/shared"))
       // "io.monix"                      %% "monix-bio"                % MonixBioVersion,
       "com.github.monix"               % "monix-bio"                % MonixBioVersion,
       // "com.github.valskalla"          %% "odin-monix"               % OdinVersion,
-      "com.github.rohan-sircar"        % "odin"                     % "scalajs-1-support-2-SNAPSHOT",	
-      // "de.lolhens"                    %% "munit-tagless-final"      % "0.0.1",
+      "com.github.rohan-sircar.odin"  %% "odin-monix"               % OdinVersion,
+      "com.github.rohan-sircar.odin"  %% "odin-slf4j"               % OdinVersion,
+      "com.github.rohan-sircar.odin"  %% "odin-json"                % OdinVersion,
+      "com.github.rohan-sircar.odin"  %% "odin-extras"              % OdinVersion,	
       "com.beachape"                  %% "enumeratum"               % EnumeratumVersion,
       "com.beachape"                  %% "enumeratum-circe"         % EnumeratumVersion,
       "com.beachape"                  %% "enumeratum-cats"          % EnumeratumVersion,
@@ -165,10 +168,6 @@ lazy val server = (project in file("modules/server"))
       "com.softwaremill.quicklens"    %% "quicklens"                 % "1.6.1",
       "com.softwaremill.common"       %% "tagging"                   % "2.2.1",
       "com.softwaremill.macwire"      %% "macros"                    % "2.3.6"                       % "provided",
-      // "com.github.rohan-sircar"        % "odin"                      % "scalajs-1-support-2-SNAPSHOT",
-      // "com.github.valskalla"          %% "odin-slf4j"                % OdinVersion,
-      // "com.github.valskalla"          %% "odin-json"                 % OdinVersion,
-      // "com.github.valskalla"          %% "odin-extras"               % OdinVersion,
       "com.typesafe.scala-logging"    %% "scala-logging"             % "3.9.2",
       "com.lihaoyi"                   %% "os-lib"                    % "0.7.1",
       "com.chuusai"                   %% "shapeless"                 % "2.3.3",
