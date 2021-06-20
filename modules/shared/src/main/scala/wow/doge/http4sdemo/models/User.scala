@@ -1,6 +1,7 @@
 package wow.doge.http4sdemo.models
 
 import io.circe.Decoder
+import io.circe.Encoder
 import io.circe.generic.semiauto._
 import sttp.tapir.Schema
 import wow.doge.http4sdemo.models.common.UserRole
@@ -26,6 +27,8 @@ final case class UserEntity(
 )
 object UserEntity {
   val tupled = (this.apply _).tupled
+  // implicit val codec: Codec[User] = deriveCodec
+
 }
 
 final case class User(
@@ -34,8 +37,13 @@ final case class User(
     role: UserRole
 )
 object User {
-  val tupled = (this.apply _).tupled
   implicit val codec: io.circe.Codec[User] = deriveCodec
+
+  implicit val Decoder: Decoder[User] = deriveDecoder
+  implicit val encoder: Encoder[User] =
+    Encoder.forProduct4("id", "username", "password", "role")(u =>
+      (u.id, u.username, "[REDACTED]", u.role)
+    )
 
   implicit val schema = Schema.derived[User]
 
@@ -61,7 +69,11 @@ final case class UserLogin(
 )
 object UserLogin {
   val tupled = (this.apply _).tupled
-  implicit val codec: io.circe.Codec[UserLogin] = deriveCodec
+  implicit val Decoder: Decoder[UserLogin] = deriveDecoder
+  //redact out password field
+  implicit val encoder: Encoder[UserLogin] =
+    Encoder.forProduct2("username", "password")(u => (u.username, "[REDACTED]"))
+
   implicit val schema = Schema.derived[UserLogin]
 }
 
@@ -70,6 +82,10 @@ final case class UserRegistration(
     password: UnhashedUserPassword
 )
 object UserRegistration {
-  implicit val codec: io.circe.Codec[UserRegistration] = deriveCodec
+  implicit val Decoder: Decoder[UserRegistration] = deriveDecoder
+  //redact out password field
+  implicit val encoder: Encoder[UserRegistration] =
+    Encoder.forProduct2("username", "password")(u => (u.username, "[REDACTED]"))
+
   implicit val schema = Schema.derived[UserRegistration]
 }
