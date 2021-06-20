@@ -13,7 +13,7 @@ import slick.jdbc.JdbcBackend
 import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.NewUser
-import wow.doge.http4sdemo.models.User
+import wow.doge.http4sdemo.models.UserEntity
 import wow.doge.http4sdemo.models.common.UserRole
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.server.ExtendedPgProfile.api._
@@ -27,10 +27,10 @@ trait UsersRepo {
   def put(nu: NewUser)(implicit logger: Logger[Task]): IO[AppError2, UserId]
   def getById(id: UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Option[User]]
+  ): IO[AppError2, Option[UserEntity]]
   def getByName(userName: Username)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Option[User]]
+  ): IO[AppError2, Option[UserEntity]]
   def removeById(id: UserId)(implicit
       logger: Logger[Task]
   ): IO[AppError2, Unit]
@@ -42,7 +42,7 @@ trait UsersRepo {
 final class InMemoryUsersRepo private (
     lock: MLock,
     counter: Ref[Task, UserId],
-    store: Ref[Task, List[User]]
+    store: Ref[Task, List[UserEntity]]
 ) extends UsersRepo {
 
   private def cake[E, A](
@@ -65,7 +65,7 @@ final class InMemoryUsersRepo private (
           case None => IO.unit
         }
         num <- counter.get.hideErrors
-        user2 = nu.into[User].withFieldConst(_.id, num).transform
+        user2 = nu.into[UserEntity].withFieldConst(_.id, num).transform
         num <- counter.updateAndGet(_ :+ UserId(1)).hideErrors
         _ <- store.update(user2 :: _).hideErrors
       } yield num
@@ -73,7 +73,7 @@ final class InMemoryUsersRepo private (
 
   def getById(userId: UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Option[User]] = cake {
+  ): IO[AppError2, Option[UserEntity]] = cake {
     for {
       users <- store.get.hideErrors
       res = users.find(_.id === userId)
@@ -82,7 +82,7 @@ final class InMemoryUsersRepo private (
 
   def getByName(userName: Username)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Option[User]] = cake {
+  ): IO[AppError2, Option[UserEntity]] = cake {
     for {
       users <- store.get.hideErrors
       res = users.find(_.username === userName)
@@ -105,7 +105,7 @@ final class InMemoryUsersRepo private (
   ): IO[AppError2, Unit] = cake {
     for {
       users <- store.get.hideErrors
-      next = users.foldLeft(List.empty[User]) { case (acc, next) =>
+      next = users.foldLeft(List.empty[UserEntity]) { case (acc, next) =>
         if (next.id === id) next.copy(role = role) :: acc else next :: acc
       }
       _ <- store.set(next).hideErrors
@@ -119,7 +119,7 @@ object InMemoryUsersRepo {
     counter <- Ref
       .of[Task, UserId](UserId(1))
       .hideErrors
-    store <- Ref.of[Task, List[User]](List.empty).hideErrors
+    store <- Ref.of[Task, List[UserEntity]](List.empty).hideErrors
     repo = new InMemoryUsersRepo(lock, counter, store)
   } yield repo
 }
@@ -154,21 +154,23 @@ final class UsersRepoImpl(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio)
 
   def getById(
       userId: UserId
-  )(implicit logger: Logger[Task]): IO[AppError2, Option[User]] = infoSpan {
-    for {
-      _ <- logger.infoU("Getting user")
-      res <- db.runIO(usersDbio.getUserById(userId).transactionally)
-    } yield res
-  }
+  )(implicit logger: Logger[Task]): IO[AppError2, Option[UserEntity]] =
+    infoSpan {
+      for {
+        _ <- logger.infoU("Getting user")
+        res <- db.runIO(usersDbio.getUserById(userId).transactionally)
+      } yield res
+    }
 
   def getByName(
       userName: Username
-  )(implicit logger: Logger[Task]): IO[AppError2, Option[User]] = infoSpan {
-    for {
-      _ <- logger.infoU("Getting user")
-      res <- db.runIO(usersDbio.getUserByName(userName).transactionally)
-    } yield res
-  }
+  )(implicit logger: Logger[Task]): IO[AppError2, Option[UserEntity]] =
+    infoSpan {
+      for {
+        _ <- logger.infoU("Getting user")
+        res <- db.runIO(usersDbio.getUserByName(userName).transactionally)
+      } yield res
+    }
 
   def removeById(id: UserId)(implicit
       logger: Logger[Task]
@@ -193,14 +195,14 @@ final class UsersDbio {
   def getUserById(id: UserId) =
     Tables.Users
       .filter(_.userId === id)
-      .map(User.fromUsersTableFn)
+      .map(UserEntity.fromUsersTableFn)
       .result
       .headOption
 
   def getUserByName(userName: Username) =
     Tables.Users
       .filter(_.userName === userName)
-      .map(User.fromUsersTableFn)
+      .map(UserEntity.fromUsersTableFn)
       .result
       .headOption
 

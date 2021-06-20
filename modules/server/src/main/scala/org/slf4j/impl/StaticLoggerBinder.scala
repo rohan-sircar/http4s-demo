@@ -21,7 +21,7 @@ import wow.doge.http4sdemo.server.config.LoggerRoutes
 //log line will be recorded right after the call with no suspension
 class StaticLoggerBinder extends OdinLoggerBinder[IO] {
 
-  val s: Scheduler = Schedulers.default.async.value
+  val s: Scheduler = Schedulers.default.io.value
   implicit val timer: Timer[IO] = IO.timer(s)
   implicit val clock: Clock[IO] = timer.clock
   implicit val cs: ContextShift[IO] = IO.contextShift(s)

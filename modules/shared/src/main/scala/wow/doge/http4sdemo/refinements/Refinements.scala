@@ -146,7 +146,8 @@ object Refinements {
   )
   object UnhashedUserPassword {
     implicit val encoder: Encoder[UnhashedUserPassword] =
-      Encoder[UnhashedPasswordRefinement].coerce
+      // Encoder[UnhashedPasswordRefinement].coerce
+      Encoder.forProduct1("password")(u => ("[REDACTED]"))
     implicit val decoder: Decoder[UnhashedUserPassword] =
       Decoder[UnhashedPasswordRefinement].coerce
     implicit val fromT =
@@ -159,7 +160,8 @@ object Refinements {
   @newtype final case class HashedUserPassword(inner: HashedPasswordRefinement)
   object HashedUserPassword {
     implicit val encoder: Encoder[HashedUserPassword] =
-      Encoder[HashedPasswordRefinement].coerce
+      // Encoder[HashedPasswordRefinement].coerce
+      Encoder.forProduct1("password")(u => ("[REDACTED]"))
     implicit val decoder: Decoder[HashedUserPassword] =
       Decoder[HashedPasswordRefinement].coerce
     implicit val fromT =

@@ -17,7 +17,7 @@ import tsec.jwt._
 import tsec.mac.jca._
 import tsec.passwordhashers.PasswordHash
 import tsec.passwordhashers.jca.BCrypt
-import wow.doge.http4sdemo.models.User
+import wow.doge.http4sdemo.models.UserEntity
 import wow.doge.http4sdemo.models.UserIdentity
 import wow.doge.http4sdemo.models.UserLogin
 import wow.doge.http4sdemo.refinements.HashedPasswordRefinement
@@ -64,7 +64,7 @@ package object auth {
       .mapError(s => new Exception(s))
       .hideErrors
 
-  def checkPasswordIO(userLogin: UserLogin, user: User) = BCrypt
+  def checkPasswordIO(userLogin: UserLogin, user: UserEntity) = BCrypt
     .checkpw[Task](
       userLogin.password.inner.value,
       PasswordHash[BCrypt](user.password.inner.value)

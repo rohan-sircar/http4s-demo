@@ -31,10 +31,13 @@ trait RedisTestOps {
 
   lazy val redisContainerDef = RedisContainer.Def(6379)
 
+  def redisResource(url: RedisUrl)(implicit logger: Logger[Task]) =
+    RedisResource(url, logger)
+
   def withRedis[T](url: RedisUrl)(
       f: (RedisStreamEventPs, RedisCommands[Task, String, String]) => Task[T]
   )(implicit logger: Logger[Task]) = {
-    RedisResource(url, logger).use { case (ps, redis) =>
+    redisResource(url).use { case (ps, redis) =>
       f(ps, redis)
     }
   }

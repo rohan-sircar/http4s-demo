@@ -21,11 +21,10 @@ final class CredentialsRepoSpec extends RedisItTestBase {
           // val testObs = new TestObject()
           val userId = UserId(1)
           for {
-            jwt <- JWTMac
-              .build[Task, HMACSHA256](
-                JWTClaims.default(),
-                dummySigningKey.inner
-              )
+            jwt <- JWTMac.build[Task, HMACSHA256](
+              JWTClaims.default(),
+              dummySigningKey.inner
+            )
             _ <- repo.put(userId, jwt)
             _ <- repo.get(userId).assertEquals(Some(JwtToken(jwt)))
           } yield ()
@@ -44,11 +43,10 @@ final class CredentialsRepoSpec extends RedisItTestBase {
           // val testObs = new TestObject()
           val userId = UserId(2)
           for {
-            jwt <- JWTMac
-              .build[Task, HMACSHA256](
-                JWTClaims.default(),
-                dummySigningKey.inner
-              )
+            jwt <- JWTMac.build[Task, HMACSHA256](
+              JWTClaims.default(),
+              dummySigningKey.inner
+            )
             _ <- repo.put(userId, jwt)
             _ <- repo.get(userId).assertEquals(Some(JwtToken(jwt)))
             _ <- repo.remove(userId)

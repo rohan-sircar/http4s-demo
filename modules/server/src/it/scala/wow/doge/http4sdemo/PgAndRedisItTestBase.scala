@@ -1,5 +1,6 @@
 package wow.doge.http4sdemo
 
+import cats.effect.Resource
 import com.dimafeng.testcontainers.PostgreSQLContainer
 import com.dimafeng.testcontainers.lifecycle.and
 import com.dimafeng.testcontainers.munit.TestContainersForAll
@@ -43,8 +44,13 @@ trait PgAndRedisItTestBase
           RedisStreamEventPs,
           RedisCommands[Task, String, String]
       ) => Task[T]
-  )(implicit logger: Logger[Task]) = withRedis(redisUrl) { (ps, redis) =>
-    withDb(pgUrl)(db => f(db, ps, redis))
+  )(implicit logger: Logger[Task]) = {
+    val r = for {
+      (ps, redis) <- redisResource(redisUrl)
+      db <- dbResource(pgUrl)
+      _ <- Resource.eval(f(db, ps, redis))
+    } yield ()
+    r.use(_ => Task.unit)
   }
 
 }

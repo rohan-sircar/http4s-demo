@@ -1,5 +1,6 @@
 package wow.doge.http4sdemo
 
+import cats.effect.Resource
 import com.dimafeng.testcontainers.ContainerDef
 import com.dimafeng.testcontainers.PostgreSQLContainer
 import com.dimafeng.testcontainers.munit.TestContainerForAll
@@ -62,9 +63,14 @@ trait PgItTestOps {
                                |
                                |}""".stripMargin)
 
-  def withDb[T](url: String)(f: JdbcBackend.DatabaseDef => Task[T]) = Task(
-    JdbcBackend.Database.forConfig("testDatabase", config(url))
-  ).bracket(f)(db => UIO(db.close()))
+  def dbResource(url: String) = Resource.make(
+    Task(
+      JdbcBackend.Database.forConfig("testDatabase", config(url))
+    )
+  )(db => UIO(db.close()))
+
+  def withDb[T](url: String)(f: JdbcBackend.DatabaseDef => Task[T]) =
+    dbResource(url).use(f)
 
   def createSchema(container: PostgreSQLContainer) = {
     val config = JdbcDatabaseConfig(

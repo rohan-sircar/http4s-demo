@@ -57,11 +57,11 @@ package object implicits
     }
   }
 
-  implicit final class UserExt(private val B: User.type) extends AnyVal {
+  implicit final class UserExt(private val B: UserEntity.type) extends AnyVal {
     def fromUsersTableFn(implicit profile: JdbcProfile) = {
       import profile.api._
       (u: Tables.Users) =>
-        (u.userId, u.userName, u.userPassword, u.userRole).mapTo[User]
+        (u.userId, u.userName, u.userPassword, u.userRole).mapTo[UserEntity]
     }
   }
 
