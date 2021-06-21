@@ -12,10 +12,11 @@ import monix.bio.Task
 import monix.bio.UIO
 import monix.execution.Scheduler
 import pureconfig.ConfigSource
-import pureconfig.module.catseffect.syntax._
+import pureconfig.module.catseffect2.syntax._
 import wow.doge.http4sdemo.BuildInfo
 import wow.doge.http4sdemo.server.concurrent.Schedulers
 import wow.doge.http4sdemo.server.config.AppConfig
+import wow.doge.http4sdemo.server.utils.S3ClientResource
 
 object Main extends BIOApp {
   val profile = wow.doge.http4sdemo.server.ExtendedPgProfile
@@ -46,6 +47,7 @@ object Main extends BIOApp {
       logger.info(s"Starting ${BuildInfo.name}-${BuildInfo.version}")
     )
     db <- SlickResource("http4s-demo.database", Some(rootConfig), schedulers.io)
+    s3 <- S3ClientResource("http://192.168.1.69:4343")(logger)
     _ <- Resource.eval((for {
       config <- JdbcDatabaseConfig.load(
         rootConfig.getConfig("http4s-demo.database"),
@@ -53,12 +55,12 @@ object Main extends BIOApp {
       )
       _ <- DBMigrations.migrate(config)
     } yield ()).executeOn(schedulers.io.value))
-    _ <- Resource.eval(logger.debug(s"Value = ${appConfig.logger.routes}"))
+    _ <- Resource.eval(logger.debug(s"Routes = ${appConfig.logger.routes}"))
     registry <- Resource.eval(
       Task(SharedMetricRegistries.getOrCreate("default"))
     )
     appRoutes <- Resource.eval(
-      IO.pure(new AppRoutes(db, registry, appConfig)(logger))
+      IO.pure(new AppRoutes(db, registry, s3, appConfig)(logger))
     )
     _ <- new Server(schedulers, appRoutes, appConfig.http)(logger).resource
   } yield ()

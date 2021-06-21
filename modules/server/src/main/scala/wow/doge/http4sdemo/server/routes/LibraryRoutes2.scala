@@ -15,13 +15,18 @@ import wow.doge.http4sdemo.models.NewBook
 import wow.doge.http4sdemo.models.common.UserRole
 import wow.doge.http4sdemo.models.pagination._
 import wow.doge.http4sdemo.refinements.Refinements._
+import wow.doge.http4sdemo.server.repos.BookImagesRepo
 import wow.doge.http4sdemo.server.services.AuthService
 import wow.doge.http4sdemo.server.services.LibraryService
 import wow.doge.http4sdemo.server.utils.observableToJsonStreamA
 import wow.doge.http4sdemo.utils.infoSpan
 import wow.doge.http4sdemo.utils.observableFromByteStreamA
 
-final class LibraryRoutes2(L: LibraryService, val authService: AuthService)(
+final class LibraryRoutes2(
+    L: LibraryService,
+    val authService: AuthService,
+    bookImagesRepo: BookImagesRepo
+)(
     val logger: Logger[Task]
 ) extends AuthedServerInterpreter {
 
@@ -138,8 +143,47 @@ final class LibraryRoutes2(L: LibraryService, val authService: AuthService)(
         }
     )
 
+  def uploadBookImage(id: BookId, data: Observable[Array[Byte]])(implicit
+      logger: Logger[Task]
+  ) = infoSpan {
+    bookImagesRepo.put(id, data)
+  }
+
+  val uploadBookImageRoute = toRoutes(
+    LibraryEndpoints.uploadBookImageEndpoint
+      .serverLogicPart(enrichLogger)
+      .andThenRecoverErrors { case (logger, (id, stream)) =>
+        for {
+          data <- stream.chunks.map(_.toArray).toObs
+          _ <- uploadBookImage(id, data)(logger)
+        } yield ()
+
+      }
+  )
+
+  def downloadBookImage(id: BookId)(implicit
+      logger: Logger[Task]
+  ) = infoSpan {
+    bookImagesRepo.get(id)
+  }
+
+  val downloadBookImageRoute = toRoutes(
+    LibraryEndpoints.downloadBookImageEndpoint
+      .serverLogicPart(enrichLogger)
+      .andThenRecoverErrors { case (logger, id) =>
+        for {
+          obs <- downloadBookImage(id)(logger)
+          stream <- obs.toStreamIO
+        } yield stream.flatMap(arr =>
+          fs2.Stream.evalUnChunk(IO.pure(fs2.Chunk.array(arr)))
+        )
+
+      }
+  )
+
   val routes: HttpRoutes[Task] =
     getBookByIdRoute <+> authedGetBookByIdRoute <+> getBookByIdRoute <+>
-      getBooksRoute <+> createBookRoute <+> createBooksRoute
+      getBooksRoute <+> createBookRoute <+> createBooksRoute <+> uploadBookImageRoute <+>
+      downloadBookImageRoute
 
 }

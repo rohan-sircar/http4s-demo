@@ -54,4 +54,27 @@ object LibraryEndpoints {
         )
       )
 
+  val uploadBookImageEndpoint =
+    baseBookEndpoint.put
+      .in(path[BookId])
+      .in("image")
+      .in(
+        streamBody(Fs2Streams[Task])(
+          Schema(Schema.schemaForByteArray.schemaType),
+          CodecFormat.OctetStream()
+        )
+      )
+      .out(statusCode(StatusCode.Created))
+
+  val downloadBookImageEndpoint =
+    baseBookEndpoint.get
+      .in(path[BookId])
+      .in("image")
+      .out(
+        streamBody(Fs2Streams[Task])(
+          Schema(Schema.schemaForByteArray.schemaType),
+          CodecFormat.OctetStream()
+        )
+      )
+
 }

@@ -14,7 +14,7 @@ import org.flywaydb.core.api.configuration.FluentConfiguration
 import pureconfig.ConfigConvert
 import pureconfig.ConfigSource
 import pureconfig.generic.semiauto._
-import pureconfig.module.catseffect.syntax._
+import pureconfig.module.catseffect2.syntax._
 
 /** @author Alexandru Nedelcu
   */

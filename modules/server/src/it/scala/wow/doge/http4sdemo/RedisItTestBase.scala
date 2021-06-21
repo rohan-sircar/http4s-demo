@@ -29,7 +29,7 @@ trait RedisItTestBase
 
 trait RedisTestOps {
 
-  lazy val redisContainerDef = RedisContainer.Def(6379)
+  lazy val redisContainerDef = RedisContainer.Def()
 
   def redisResource(url: RedisUrl)(implicit logger: Logger[Task]) =
     RedisResource(url, logger)

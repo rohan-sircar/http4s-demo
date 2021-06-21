@@ -11,9 +11,9 @@ val MonixBioVersion        = "0a2ad29275"
 // val MonixBioVersion        = "1.1.0+39-73a5fb1c-SNAPSHOT"
 val SttpVersion            = "3.1.7"
 // val OdinVersion            = "0.11.0"
-val OdinVersion            = "scalajs-1-support-2-SNAPSHOT"
+val OdinVersion            = "97e004aa52"
 val TestContainersVersion  = "0.39.3"
-val PureconfigVersion      = "0.14.0"
+val PureconfigVersion      = "0.16.0"
 val RefinedVersion         = "0.9.19"
 val EnumeratumVersion      = "1.6.1"
 val SlickVersion           = "3.3.3"
@@ -179,7 +179,7 @@ lazy val server = (project in file("modules/server"))
       "org.postgresql"                 % "postgresql"                % "42.2.18",
       "com.github.pureconfig"         %% "pureconfig"                % PureconfigVersion,
       "com.github.pureconfig"         %% "pureconfig-enumeratum"     % PureconfigVersion,
-      "com.github.pureconfig"         %% "pureconfig-cats-effect"    % PureconfigVersion,
+      "com.github.pureconfig"         %% "pureconfig-cats-effect2"  % PureconfigVersion,
       "io.scalaland"                  %% "chimney"                   % "0.6.1",
       "io.scalaland"                  %% "chimney-cats"              % "0.6.1",
       "com.rms.miu"                   %% "slick-cats"                % "0.10.4",
@@ -198,6 +198,7 @@ lazy val server = (project in file("modules/server"))
       "dev.profunktor"                %% "redis4cats-streams"        % "0.13.1",
       "dev.profunktor"                %% "redis4cats-log4cats"       % "0.13.1",
       "jp.ne.opt"                     %% "chronoscala"               % "1.0.0",
+      "io.monix"                      %% "monix-s3"                  % "0.6.0",
       // "ch.qos.logback" % "logback-classic" % LogbackVersion,
       // "org.scalameta"                 %% "svm-subs"                 % "20.2.0",
       //test deps

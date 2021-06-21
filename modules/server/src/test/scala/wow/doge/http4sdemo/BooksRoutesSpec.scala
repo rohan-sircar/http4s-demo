@@ -21,6 +21,7 @@ import wow.doge.http4sdemo.models.pagination.Pagination
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.refinements._
 import wow.doge.http4sdemo.server.AppError
+import wow.doge.http4sdemo.server.repos.NoopBookImagesRepo
 import wow.doge.http4sdemo.server.routes.LibraryRoutes
 import wow.doge.http4sdemo.server.routes.LibraryRoutes2
 import wow.doge.http4sdemo.server.services.AuthServiceImpl
@@ -55,8 +56,11 @@ final class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- IO.unit
+        bookImagesRepo = new NoopBookImagesRepo
         authService = new NoOpAuthService
-        routes = new LibraryRoutes2(service, authService)(logger).routes
+        routes = new LibraryRoutes2(service, authService, bookImagesRepo)(
+          logger
+        ).routes
         request = Request[Task](
           Method.GET,
           uri"/api/books" withQueryParams Map(
@@ -87,6 +91,7 @@ final class BooksRoutesSpec extends UnitTestBase {
 
       for {
         _ <- IO.unit
+        // bookImagesRepo = new NoopBookImagesRepo
         authService = new NoOpAuthService
         reqBody = BookUpdate(Some(BookTitle("blahblah")), None)
         routes = new LibraryRoutes(service, authService)(logger).routes
@@ -131,6 +136,7 @@ final class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- IO.unit
+        // bookImagesRepo = new NoopBookImagesRepo
         authService = new NoOpAuthService
         routes = new LibraryRoutes(service, authService)(logger).routes
         request = Request[Task](
@@ -172,6 +178,7 @@ final class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- UIO.unit
+        // bookImagesRepo = new NoopBookImagesRepo
         authService = new NoOpAuthService
         routes = new LibraryRoutes(service, authService)(logger).routes
         request = Request[Task](
@@ -201,8 +208,11 @@ final class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- UIO.unit
+        bookImagesRepo = new NoopBookImagesRepo
         authService = new NoOpAuthService
-        routes = new LibraryRoutes2(service, authService)(logger).routes
+        routes = new LibraryRoutes2(service, authService, bookImagesRepo)(
+          logger
+        ).routes
         request = Request[Task](
           Method.GET,
           Root / "api" / "books" / "12312"
@@ -241,7 +251,10 @@ final class BooksRoutesSpec extends UnitTestBase {
         }
         for {
           _ <- UIO.unit
-          routes = new LibraryRoutes2(service, authService)(logger).routes
+          bookImagesRepo = new NoopBookImagesRepo
+          routes = new LibraryRoutes2(service, authService, bookImagesRepo)(
+            logger
+          ).routes
           request = Request[Task](
             Method.GET,
             Root / "api" / "private" / "books" / "1"
@@ -271,8 +284,11 @@ final class BooksRoutesSpec extends UnitTestBase {
       }
       for {
         _ <- UIO.unit
+        bookImagesRepo = new NoopBookImagesRepo
         authService = new NoOpAuthService
-        routes = new LibraryRoutes2(service, authService)(logger).routes
+        routes = new LibraryRoutes2(service, authService, bookImagesRepo)(
+          logger
+        ).routes
         request = Request[Task](
           Method.PUT,
           Root / "api" / "books"
