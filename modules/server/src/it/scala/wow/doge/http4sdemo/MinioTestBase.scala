@@ -2,7 +2,6 @@ package wow.doge.http4sdemo
 
 import com.dimafeng.testcontainers.ContainerDef
 import com.dimafeng.testcontainers.munit.TestContainerForAll
-import io.odin.Logger
 import monix.bio.IO
 import monix.bio.Task
 import monix.connect.s3.S3
@@ -27,7 +26,7 @@ trait MinioItTestBase
 trait MinioItTestOps {
   lazy val minioContainerDef = MinioContainer.Def()
 
-  def withS3[T](url: String)(
-      f: S3 => Task[T]
-  )(implicit logger: Logger[Task]) = { S3ClientResource(url).use(f) }
+  def withS3[T](url: String)(f: S3 => Task[T]) = {
+    S3ClientResource(url).use(f)
+  }
 }

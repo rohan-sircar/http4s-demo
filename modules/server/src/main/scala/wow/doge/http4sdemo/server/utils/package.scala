@@ -1,7 +1,9 @@
 package wow.doge.http4sdemo.server
+import scala.collection.immutable.ArraySeq
+
 import cats.Show
 import cats.effect.ConcurrentEffect
-import cats.syntax.show._
+import cats.syntax.all._
 import fs2.interop.reactivestreams._
 import io.circe.Encoder
 import io.circe.Json
@@ -18,7 +20,8 @@ import org.http4s.Request
 import org.http4s.circe.streamJsonArrayDecoder
 import org.http4s.circe.streamJsonArrayEncoder
 import org.http4s.server.middleware.RequestId
-
+import wow.doge.http4sdemo.AppError2
+import wow.doge.http4sdemo.implicits._
 package object utils {
   def extractReqId(req: Request[Task]) =
     req.attributes.lookup(RequestId.requestIdAttrKey).getOrElse("null")
@@ -58,5 +61,22 @@ package object utils {
         observableArrayJsonEncoder[Task].toEntity(obs.map(_.asJson)).body
       )
     }
+
+  val PngHeaderSeq = ArraySeq(0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a)
+    .map(_.toByte)
+
+  def checkImageType(data: Observable[ArraySeq[Byte]]) = {
+    // implicit val s = ioScheduler.value
+    data
+      .take(1)
+      .map(a => a.take(PngHeaderSeq.length))
+      .mapEval(header =>
+        if (header === PngHeaderSeq) Task.unit.toTask
+        else
+          Task.raiseError(AppError2.BadInput("Image format is not png")).toTask
+      )
+      .completedL
+      .toIO
+  }
 
 }

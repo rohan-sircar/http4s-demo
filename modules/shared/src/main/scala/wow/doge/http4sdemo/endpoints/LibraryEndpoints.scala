@@ -55,7 +55,7 @@ object LibraryEndpoints {
       )
 
   val uploadBookImageEndpoint =
-    baseBookEndpoint.put
+    baseBookEndpoint.post
       .in(path[BookId])
       .in("image")
       .in(
@@ -70,6 +70,7 @@ object LibraryEndpoints {
     baseBookEndpoint.get
       .in(path[BookId])
       .in("image")
+      .out(header[String]("content-type"))
       .out(
         streamBody(Fs2Streams[Task])(
           Schema(Schema.schemaForByteArray.schemaType),

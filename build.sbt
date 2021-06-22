@@ -179,7 +179,7 @@ lazy val server = (project in file("modules/server"))
       "org.postgresql"                 % "postgresql"                % "42.2.18",
       "com.github.pureconfig"         %% "pureconfig"                % PureconfigVersion,
       "com.github.pureconfig"         %% "pureconfig-enumeratum"     % PureconfigVersion,
-      "com.github.pureconfig"         %% "pureconfig-cats-effect2"  % PureconfigVersion,
+      "com.github.pureconfig"         %% "pureconfig-cats-effect2"   % PureconfigVersion,
       "io.scalaland"                  %% "chimney"                   % "0.6.1",
       "io.scalaland"                  %% "chimney-cats"              % "0.6.1",
       "com.rms.miu"                   %% "slick-cats"                % "0.10.4",

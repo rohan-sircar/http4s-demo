@@ -1,38 +1,47 @@
 package wow.doge.http4sdemo.server.repos
 
+import fs2.Chunk
 import io.odin.Logger
 import monix.bio.IO
 import monix.bio.Task
-import monix.bio.UIO
 import monix.connect.s3.S3
-import monix.reactive.Observable
 import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.refinements.Refinements._
+import wow.doge.http4sdemo.server.utils.ImageStream
 import wow.doge.http4sdemo.utils.infoSpan
 
 trait BookImagesRepo {
-  def put(id: BookId, data: Observable[Array[Byte]])(implicit
+  def put(id: BookId, imageStream: ImageStream)(implicit
       logger: Logger[Task]
   ): Task[Unit]
 
   def get(id: BookId)(implicit
       logger: Logger[Task]
-  ): UIO[Observable[Array[Byte]]]
+  ): IO[AppError2, ImageStream]
 }
 
 final class BookImagesRepoImpl private (s3: S3, bucketName: String)
     extends BookImagesRepo {
-  private def key(id: BookId) = s"books/$id/image.png"
+  private def key(id: BookId) = s"books/$id/image"
 
-  def put(id: BookId, data: Observable[Array[Byte]])(implicit
+  def put(id: BookId, imageStream: ImageStream)(implicit
       logger: Logger[Task]
   ) = infoSpan {
-    data.consumeWith(s3.uploadMultipart(bucketName, key(id))).toIO.void
+    for {
+      _ <- imageStream.obs
+        .map(_.toArray)
+        .consumeWith(
+          s3.uploadMultipart(bucketName, key(id))
+        )
+        .toIO
+    } yield ()
   }
 
   def get(id: BookId)(implicit logger: Logger[Task]) = infoSpan {
-    UIO.pure(s3.downloadMultipart(bucketName, key(id)))
+    ImageStream.parse(
+      s3.downloadMultipart(bucketName, key(id)).map(Chunk.array[Byte])
+    )
   }
 }
 
@@ -52,11 +61,12 @@ object BookImagesRepoImpl {
 }
 
 class NoopBookImagesRepo extends BookImagesRepo {
-  def put(id: BookId, data: Observable[Array[Byte]])(implicit
+  def put(id: BookId, imageStream: ImageStream)(implicit
       logger: Logger[Task]
   ): Task[Unit] = Task.raiseError(new NotImplementedError)
 
   def get(id: BookId)(implicit
       logger: Logger[Task]
-  ): UIO[Observable[Array[Byte]]] = IO.terminate(new NotImplementedError)
+  ): IO[AppError2, ImageStream] =
+    IO.terminate(new NotImplementedError)
 }

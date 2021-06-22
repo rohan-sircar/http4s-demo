@@ -1,15 +1,13 @@
 package wow.doge.http4sdemo
 
-import java.nio.charset.StandardCharsets
-
 import eu.timepit.refined.auto._
-import io.odin.Logger
+import fs2.Chunk
 import monix.bio.IO
 import monix.bio.Task
-import monix.reactive.Observable
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.refinements.Refinements
 import wow.doge.http4sdemo.server.repos.BookImagesRepoImpl
+import wow.doge.http4sdemo.server.utils.ImageStream
 
 final class BooksRepoSpec extends MinioItTestBase {
 
@@ -22,9 +20,7 @@ final class BooksRepoSpec extends MinioItTestBase {
 
     val task = containers match {
       case c: MinioContainer =>
-        withS3(c.rootUrl) { _.createBucket(bucketName).toIO }(
-          Logger.noop[Task]
-        )
+        withS3(c.rootUrl) { _.createBucket(bucketName).toIO }
       case other => IO.terminate(new Exception("wrong container type"))
     }
     task.runSyncUnsafe(munitTimeout)
@@ -37,18 +33,17 @@ final class BooksRepoSpec extends MinioItTestBase {
           val bookId = Refinements.BookId(1)
           for {
             repo <- BookImagesRepoImpl(s3, bucketName)
-            data = Observable.pure(
-              "hello world".getBytes(StandardCharsets.UTF_8)
+            dataBytes = Chunk.array(
+              os.read.bytes(os.resource / "images" / "JME.png")
             )
-            _ <- repo.put(bookId, data)
+            iStream <- ImageStream.parse(
+              fs2.Stream.chunk[Task, Byte](dataBytes)
+            )
+            _ <- repo.put(bookId, iStream)
             _ <- repo
               .get(bookId)
-              .flatMap(
-                _.map(bytes =>
-                  new String(bytes, StandardCharsets.UTF_8)
-                ).firstOptionL.toIO
-              )
-              .assertEquals(Some("hello world"))
+              .flatMap(_.obs.firstOptionL.toIO)
+              .assertEquals(Some(dataBytes))
           } yield ()
         }
       )

@@ -6,6 +6,7 @@ import monix.bio.IO
 import monix.bio.Task
 import monix.reactive.Consumer
 import monix.reactive.Observable
+import org.apache.http.entity.ContentType
 import org.http4s.HttpRoutes
 import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.endpoints.LibraryEndpoints
@@ -18,6 +19,9 @@ import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.server.repos.BookImagesRepo
 import wow.doge.http4sdemo.server.services.AuthService
 import wow.doge.http4sdemo.server.services.LibraryService
+import wow.doge.http4sdemo.server.utils.ImageFormat.Jpeg
+import wow.doge.http4sdemo.server.utils.ImageFormat.Png
+import wow.doge.http4sdemo.server.utils.ImageStream
 import wow.doge.http4sdemo.server.utils.observableToJsonStreamA
 import wow.doge.http4sdemo.utils.infoSpan
 import wow.doge.http4sdemo.utils.observableFromByteStreamA
@@ -143,10 +147,10 @@ final class LibraryRoutes2(
         }
     )
 
-  def uploadBookImage(id: BookId, data: Observable[Array[Byte]])(implicit
+  def uploadBookImage(id: BookId, imageStream: ImageStream)(implicit
       logger: Logger[Task]
   ) = infoSpan {
-    bookImagesRepo.put(id, data)
+    bookImagesRepo.put(id, imageStream)
   }
 
   val uploadBookImageRoute = toRoutes(
@@ -154,8 +158,8 @@ final class LibraryRoutes2(
       .serverLogicPart(enrichLogger)
       .andThenRecoverErrors { case (logger, (id, stream)) =>
         for {
-          data <- stream.chunks.map(_.toArray).toObs
-          _ <- uploadBookImage(id, data)(logger)
+          iStream <- ImageStream.parse(stream)
+          _ <- uploadBookImage(id, iStream)(logger)
         } yield ()
 
       }
@@ -164,7 +168,13 @@ final class LibraryRoutes2(
   def downloadBookImage(id: BookId)(implicit
       logger: Logger[Task]
   ) = infoSpan {
-    bookImagesRepo.get(id)
+    for {
+      iStream <- bookImagesRepo.get(id)
+      ct = iStream.format match {
+        case Png  => ContentType.IMAGE_PNG
+        case Jpeg => ContentType.IMAGE_JPEG
+      }
+    } yield ct -> iStream
   }
 
   val downloadBookImageRoute = toRoutes(
@@ -172,11 +182,9 @@ final class LibraryRoutes2(
       .serverLogicPart(enrichLogger)
       .andThenRecoverErrors { case (logger, id) =>
         for {
-          obs <- downloadBookImage(id)(logger)
-          stream <- obs.toStreamIO
-        } yield stream.flatMap(arr =>
-          fs2.Stream.evalUnChunk(IO.pure(fs2.Chunk.array(arr)))
-        )
+          (ct, iStream) <- downloadBookImage(id)(logger)
+          stream = iStream.stream
+        } yield ct.getMimeType -> stream
 
       }
   )

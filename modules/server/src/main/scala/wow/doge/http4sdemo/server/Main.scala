@@ -47,7 +47,7 @@ object Main extends BIOApp {
       logger.info(s"Starting ${BuildInfo.name}-${BuildInfo.version}")
     )
     db <- SlickResource("http4s-demo.database", Some(rootConfig), schedulers.io)
-    s3 <- S3ClientResource("http://192.168.1.69:4343")(logger)
+    s3 <- S3ClientResource("http://192.168.1.69:4343")
     _ <- Resource.eval((for {
       config <- JdbcDatabaseConfig.load(
         rootConfig.getConfig("http4s-demo.database"),
