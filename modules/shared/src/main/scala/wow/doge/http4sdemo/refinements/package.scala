@@ -3,8 +3,10 @@ package wow.doge.http4sdemo
 import cats.data.ValidatedNec
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.api.RefinedTypeOps
+import eu.timepit.refined.boolean._
 import eu.timepit.refined.collection._
 import eu.timepit.refined.numeric._
+import eu.timepit.refined.string._
 import eu.timepit.refined.types.string.NonEmptyFiniteString
 
 //TODO add regex to these refinements
@@ -35,4 +37,8 @@ package object refinements {
 
   type UsernameRefinement = String Refined Size[Interval.Closed[5, 50]]
   object UsernameRefinement extends RefinedTypeOps[UsernameRefinement, String]
+
+  type UrlRefinement =
+    String Refined And[Size[Interval.Closed[1, 50]], StartsWith["http://"]]
+  object UrlRefinement extends RefinedTypeOps[UrlRefinement, String]
 }

@@ -60,7 +60,9 @@ final class AppRoutes(
     userService = new UserService(usersRepo)
     libraryDbio = new LibraryDbio
     libraryService = new LibraryServiceImpl(libraryDbio, db)
-    bookImagesRepo <- Resource.eval(BookImagesRepoImpl(s3, "library"))
+    bookImagesRepo <- Resource.eval(
+      BookImagesRepoImpl(s3, config.s3.bucketName.value)
+    )
     (pubsub, redis) <- RedisResource(config.redis.url, logger)
     credentialsRepo <- config.auth.session match {
       case AuthSessionConfig.RedisSession =>

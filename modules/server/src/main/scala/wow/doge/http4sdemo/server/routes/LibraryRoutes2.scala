@@ -19,8 +19,7 @@ import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.server.repos.BookImagesRepo
 import wow.doge.http4sdemo.server.services.AuthService
 import wow.doge.http4sdemo.server.services.LibraryService
-import wow.doge.http4sdemo.server.utils.ImageFormat.Jpeg
-import wow.doge.http4sdemo.server.utils.ImageFormat.Png
+import wow.doge.http4sdemo.server.utils.ImageFormat
 import wow.doge.http4sdemo.server.utils.ImageStream
 import wow.doge.http4sdemo.server.utils.observableToJsonStreamA
 import wow.doge.http4sdemo.utils.infoSpan
@@ -171,8 +170,8 @@ final class LibraryRoutes2(
     for {
       iStream <- bookImagesRepo.get(id)
       ct = iStream.format match {
-        case Png  => ContentType.IMAGE_PNG
-        case Jpeg => ContentType.IMAGE_JPEG
+        case ImageFormat.Png  => ContentType.IMAGE_PNG
+        case ImageFormat.Jpeg => ContentType.IMAGE_JPEG
       }
     } yield ct -> iStream
   }

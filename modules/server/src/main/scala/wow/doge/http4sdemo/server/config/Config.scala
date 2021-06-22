@@ -14,6 +14,7 @@ import pureconfig.error.CannotConvert
 import pureconfig.error.FailureReason
 import pureconfig.generic.semiauto._
 import pureconfig.module.enumeratum._
+import wow.doge.http4sdemo.refinements._
 
 private[config] final case class ListWrapper(list: List[String])
 private[config] object ListWrapper {
@@ -172,11 +173,22 @@ object RedisConfig {
   implicit val reader = deriveReader[RedisConfig]
 }
 
+final case class S3Config(
+    endpoint: UrlRefinement,
+    akid: string.NonEmptyFiniteString[100],
+    sak: string.NonEmptyFiniteString[100],
+    bucketName: string.NonEmptyFiniteString[100]
+)
+object S3Config {
+  implicit val reader = deriveReader[S3Config]
+}
+
 final case class AppConfig(
     http: HttpConfig,
     logger: LoggerConfig,
     auth: AuthConfig,
-    redis: RedisConfig
+    redis: RedisConfig,
+    s3: S3Config
 )
 object AppConfig {
   implicit val configReader = deriveReader[AppConfig]

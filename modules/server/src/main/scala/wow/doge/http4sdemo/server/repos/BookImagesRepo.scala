@@ -31,9 +31,7 @@ final class BookImagesRepoImpl private (s3: S3, bucketName: String)
     for {
       _ <- imageStream.obs
         .map(_.toArray)
-        .consumeWith(
-          s3.uploadMultipart(bucketName, key(id))
-        )
+        .consumeWith(s3.uploadMultipart(bucketName, key(id)))
         .toIO
     } yield ()
   }

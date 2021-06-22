@@ -4,11 +4,15 @@ import java.time.Duration
 
 import com.dimafeng.testcontainers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
+import wow.doge.http4sdemo.refinements.UrlRefinement
 
 final class MinioContainer private (port: Int, underlying: GenericContainer)
     extends GenericContainer(underlying) {
 
-  def rootUrl = s"http://$host:${mappedPort(port)}"
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+  def rootUrl = UrlRefinement
+    .from(s"http://$host:${mappedPort(port)}")
+    .getOrElse(throw new Exception("Invalid url"))
 }
 
 object MinioContainer {
