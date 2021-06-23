@@ -38,7 +38,7 @@ final class BookImagesRepoImpl private (s3: S3, bucketName: String)
 
   def get(id: BookId)(implicit logger: Logger[Task]) = infoSpan {
     ImageStream.parse(
-      s3.downloadMultipart(bucketName, key(id)).map(Chunk.array[Byte])
+      s3.downloadMultipart(bucketName, key(id)).map(Chunk.array(_))
     )
   }
 }

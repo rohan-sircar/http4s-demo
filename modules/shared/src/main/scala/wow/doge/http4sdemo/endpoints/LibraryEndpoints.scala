@@ -35,12 +35,14 @@ object LibraryEndpoints {
         )
       )
 
-  val createBook = baseBookEndpoint.put
+  val createBook = baseBookEndpoint.post
     .in(jsonBody[NewBook])
     .out(jsonBody[Book].and(statusCode(StatusCode.Created)))
 
   val createBooks =
-    baseBookEndpoint.post.out(jsonBody[Int].and(statusCode(StatusCode.Created)))
+    baseBookEndpoint.post
+      .in("stream")
+      .out(jsonBody[Int].and(statusCode(StatusCode.Created)))
 
   val createBooksWithIterable =
     createBooks.in(jsonBody[Iterable[NewBook]])

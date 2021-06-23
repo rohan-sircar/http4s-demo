@@ -290,7 +290,7 @@ final class BooksRoutesSpec extends UnitTestBase {
           logger
         ).routes
         request = Request[Task](
-          Method.PUT,
+          Method.POST,
           Root / "api" / "books"
         ).withEntity(nb)
         res <- routes.run(request).value

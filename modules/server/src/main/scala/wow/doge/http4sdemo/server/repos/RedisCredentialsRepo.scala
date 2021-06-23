@@ -16,10 +16,7 @@ final class RedisCredentialsRepo(redis: RedisCommands[Task, String, String])(
     implicit signingKey: JwtSigningKey
 ) extends CredentialsRepo {
 
-  private def key(uid: UserId) = {
-    val prefix = "user-session"
-    s"$prefix:$uid"
-  }
+  private def key(uid: UserId) = s"users:$uid:session.token"
 
   def put(userId: UserId, jwt: JWTMac[HMACSHA256])(implicit
       logger: Logger[Task]

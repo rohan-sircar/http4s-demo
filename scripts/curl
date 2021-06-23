@@ -1,8 +1,8 @@
 curl -X POST -H "content-type: application/json" http://localhost:8081/api/books --data '{"aege":"aaegqE"}'
 curl http://localhost:8081/api/books
 curl http://localhost:8081/api/books/1
-curl -X PUT -H "content-type: application/json" http://localhost:8081/api/books --data '{"bookTitle":"aaegqE", "bookIsbn":"asfeegwhw","authorId": 1}'
-curl -X POST -H "content-type: application/json" http://localhost:8081/api/books --data '[{"bookTitle":"pirates of the carribean", "bookIsbn":"asfaqwfqw","authorId": 1},{"bookTitle":"house of the rising sun", "bookIsbn":"asfeegwhw","authorId": 1}]'
+curl -X POST -H "content-type: application/json" http://localhost:8081/api/books --data '{"bookTitle":"aaegqE", "bookIsbn":"asfeegwhw","authorId": 1}'
+curl -X POST -H "content-type: application/json" http://localhost:8081/api/books/stream --data '[{"bookTitle":"pirates of the carribean", "bookIsbn":"asfaqwfqw","authorId": 1},{"bookTitle":"house of the rising sun", "bookIsbn":"asfeegwhw","authorId": 1}]'
 curl -X PATCH -H "content-type: application/json" http://localhost:8081/api/books/2 --data '{"title":"abwbewe"}'
 curl --header "Content-Type:application/octet-stream" -X POST --trace-ascii debugdump.txt --data-binary @~/Pictures/JME.png http://localhost:8081/api/books/1/image
 
