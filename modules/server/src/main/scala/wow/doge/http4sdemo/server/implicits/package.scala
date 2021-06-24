@@ -152,7 +152,7 @@ package object implicits
     }
 
   implicit val eqForJwtMac: Eq[JWTMac[HMACSHA256]] = Eq.instance {
-    case (self, that) => self.toEncodedString === that.toEncodedString
+    (self, that) => self.toEncodedString === that.toEncodedString
   }
 
 }
