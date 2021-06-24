@@ -9,7 +9,7 @@ import wow.doge.http4sdemo.refinements.Refinements
 import wow.doge.http4sdemo.server.repos.BookImagesRepoImpl
 import wow.doge.http4sdemo.server.utils.ImageStream
 
-final class BooksRepoSpec extends MinioItTestBase {
+final class BookImagesRepoSpec extends MinioItTestBase {
 
   val bucketName = "library"
 

@@ -59,10 +59,10 @@ final class AppRoutes(
     usersRepo = new UsersRepoImpl(db, usersDbio)
     userService = new UserService(usersRepo)
     libraryDbio = new LibraryDbio
-    libraryService = new LibraryServiceImpl(libraryDbio, db)
     bookImagesRepo <- Resource.eval(
       BookImagesRepoImpl(s3, config.s3.bucketName.value)
     )
+    libraryService = new LibraryServiceImpl(db, libraryDbio, bookImagesRepo)
     (pubsub, redis) <- RedisResource(config.redis.url, logger)
     credentialsRepo <- config.auth.session match {
       case AuthSessionConfig.RedisSession =>
@@ -82,9 +82,7 @@ final class AppRoutes(
       new MessageRoutes(messageSubject)(logger).routes <+>
         Timeout(config.http.timeout)(
           new LibraryRoutes(libraryService, authService)(logger).routes <+>
-            new LibraryRoutes2(libraryService, authService, bookImagesRepo)(
-              logger
-            ).routes <+>
+            new LibraryRoutes2(libraryService, authService)(logger).routes <+>
             new AccountRoutes(authService, userService)(logger).routes
         )
     )

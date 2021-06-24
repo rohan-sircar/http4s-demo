@@ -27,6 +27,8 @@ import wow.doge.http4sdemo.server.AppError
 import wow.doge.http4sdemo.server.ExtendedPgProfile.api._
 import wow.doge.http4sdemo.server.ExtendedPgProfile.mapping._
 import wow.doge.http4sdemo.server.implicits._
+import wow.doge.http4sdemo.server.repos.BookImagesRepo
+import wow.doge.http4sdemo.server.utils.ImageStream
 import wow.doge.http4sdemo.slickcodegen.Tables
 import wow.doge.http4sdemo.utils.infoSpan
 
@@ -69,11 +71,20 @@ trait LibraryService {
 
   def createExtra(ne: NewExtra)(implicit logger: Logger[Task]): Task[Int]
 
+  def uploadBookImage(id: BookId, imageStream: ImageStream)(implicit
+      logger: Logger[Task]
+  ): IO[AppError2, Unit]
+
+  def downloadBookImage(id: BookId)(implicit
+      logger: Logger[Task]
+  ): IO[AppError2, ImageStream]
+
 }
 
 final class LibraryServiceImpl(
+    db: JdbcBackend.DatabaseDef,
     dbio: LibraryDbio,
-    db: JdbcBackend.DatabaseDef
+    bookImagesRepo: BookImagesRepo
 ) extends LibraryService {
 
   def getBooks(pagination: Pagination)(implicit
@@ -249,6 +260,34 @@ final class LibraryServiceImpl(
       logger: Logger[Task]
   ) = db.streamO(dbio.searchExtra(query))
 
+  def uploadBookImage(id: BookId, imageStream: ImageStream)(implicit
+      logger: Logger[Task]
+  ) = infoSpan {
+    for {
+      action <- UIO.deferAction(implicit s =>
+        UIO(for {
+          _ <- dbio.checkBookIdExists(id)
+        } yield ())
+      )
+      _ <- db.runIO(action.transactionally)
+      _ <- bookImagesRepo.put(id, imageStream).hideErrors
+    } yield ()
+  }
+
+  def downloadBookImage(id: BookId)(implicit
+      logger: Logger[Task]
+  ): IO[AppError2, ImageStream] = infoSpan {
+    for {
+      action <- UIO.deferAction(implicit s =>
+        UIO(for {
+          _ <- dbio.checkBookIdExists(id)
+        } yield ())
+      )
+      _ <- db.runIO(action.transactionally)
+      iStream <- bookImagesRepo.get(id)
+    } yield iStream
+  }
+
 }
 
 final class LibraryDbio {
@@ -332,6 +371,24 @@ final class LibraryDbio {
       .result
   }
 
+  def checkBookIdExists(bookId: BookId)(implicit S: Scheduler) = {
+    selectBook(bookId)
+      .map(_.bookId)
+      .result
+      .headOption
+      .flatMap {
+        case None =>
+          DBIO.failed(
+            AppError2.EntityDoesNotExist(
+              s"Book with id=${bookId} does not exist"
+            )
+          )
+
+        case Some(_) => DBIO.unit
+
+      }
+  }
+
   def checkBookIsbnExists(bookIsbn: BookIsbn)(implicit S: Scheduler) = {
     selectBookByIsbn(bookIsbn)
       .map(_.bookId)
@@ -392,6 +449,7 @@ final class LibraryDbio {
 }
 
 class NoopLibraryService extends LibraryService {
+
   def getBooks(pagination: Pagination)(implicit
       L: Logger[Task]
   ): IO[AppError2, Observable[Book]] =
@@ -436,5 +494,13 @@ class NoopLibraryService extends LibraryService {
 
   def createExtra(ne: NewExtra)(implicit L: Logger[Task]): Task[Int] =
     IO.terminate(new NotImplementedError)
+
+  def uploadBookImage(id: BookId, imageStream: ImageStream)(implicit
+      logger: Logger[Task]
+  ): IO[AppError2, Unit] = IO.terminate(new NotImplementedError)
+
+  def downloadBookImage(id: BookId)(implicit
+      logger: Logger[Task]
+  ): IO[AppError2, ImageStream] = IO.terminate(new NotImplementedError)
 
 }

@@ -16,7 +16,6 @@ import wow.doge.http4sdemo.models.NewBook
 import wow.doge.http4sdemo.models.common.UserRole
 import wow.doge.http4sdemo.models.pagination._
 import wow.doge.http4sdemo.refinements.Refinements._
-import wow.doge.http4sdemo.server.repos.BookImagesRepo
 import wow.doge.http4sdemo.server.services.AuthService
 import wow.doge.http4sdemo.server.services.LibraryService
 import wow.doge.http4sdemo.server.utils.ImageFormat
@@ -27,8 +26,7 @@ import wow.doge.http4sdemo.utils.observableFromByteStreamA
 
 final class LibraryRoutes2(
     L: LibraryService,
-    val authService: AuthService,
-    bookImagesRepo: BookImagesRepo
+    val authService: AuthService
 )(
     val logger: Logger[Task]
 ) extends AuthedServerInterpreter {
@@ -149,7 +147,7 @@ final class LibraryRoutes2(
   def uploadBookImage(id: BookId, imageStream: ImageStream)(implicit
       logger: Logger[Task]
   ) = infoSpan {
-    bookImagesRepo.put(id, imageStream)
+    L.uploadBookImage(id, imageStream)
   }
 
   val uploadBookImageRoute = toRoutes(
@@ -168,7 +166,7 @@ final class LibraryRoutes2(
       logger: Logger[Task]
   ) = infoSpan {
     for {
-      iStream <- bookImagesRepo.get(id)
+      iStream <- L.downloadBookImage(id)
       ct = iStream.format match {
         case ImageFormat.Png  => ContentType.IMAGE_PNG
         case ImageFormat.Jpeg => ContentType.IMAGE_JPEG

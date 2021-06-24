@@ -3,7 +3,9 @@ package wow.doge.http4sdemo
 import com.dimafeng.testcontainers.PostgreSQLContainer
 import eu.timepit.refined.auto._
 import eu.timepit.refined.types.numeric
+import fs2.Chunk
 import monix.bio.IO
+import monix.bio.Task
 import monix.bio.UIO
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.BookSearchMode
@@ -12,11 +14,13 @@ import wow.doge.http4sdemo.models.NewAuthor
 import wow.doge.http4sdemo.models.NewBook
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.server.AppError
+import wow.doge.http4sdemo.server.repos.NoopBookImagesRepo
 import wow.doge.http4sdemo.server.services.LibraryDbio
 import wow.doge.http4sdemo.server.services.LibraryService
 import wow.doge.http4sdemo.server.services.LibraryServiceImpl
+import wow.doge.http4sdemo.server.utils.ImageStream
 
-class LibraryServiceSpec extends PgItTestBase {
+final class LibraryServiceSpec extends PgItTestBase {
 
   override def afterContainersStart(containers: Containers): Unit = {
     implicit val s = schedulers.io.value
@@ -36,9 +40,11 @@ class LibraryServiceSpec extends PgItTestBase {
           withDb(container.jdbcUrl)(db =>
             for {
               _ <- UIO.unit
+              bookImagesRepo = new NoopBookImagesRepo
               service: LibraryService = new LibraryServiceImpl(
+                db,
                 new LibraryDbio,
-                db
+                bookImagesRepo
               )
               id <- service.createAuthor(
                 NewAuthor(AuthorName("author1"))
@@ -69,9 +75,11 @@ class LibraryServiceSpec extends PgItTestBase {
           withDb(container.jdbcUrl)(db =>
             for {
               _ <- UIO.unit
+              bookImagesRepo = new NoopBookImagesRepo
               service: LibraryService = new LibraryServiceImpl(
+                db,
                 new LibraryDbio,
-                db
+                bookImagesRepo
               )
               _ <- service
                 .createBook(
@@ -104,9 +112,11 @@ class LibraryServiceSpec extends PgItTestBase {
           withDb(container.jdbcUrl)(db =>
             for {
               _ <- UIO.unit
+              bookImagesRepo = new NoopBookImagesRepo
               service: LibraryService = new LibraryServiceImpl(
+                db,
                 new LibraryDbio,
-                db
+                bookImagesRepo
               )
               _ <- service.createBook(
                 NewBook(
@@ -146,9 +156,11 @@ class LibraryServiceSpec extends PgItTestBase {
           withDb(container.jdbcUrl)(db =>
             for {
               _ <- UIO.unit
+              bookImagesRepo = new NoopBookImagesRepo
               service: LibraryService = new LibraryServiceImpl(
+                db,
                 new LibraryDbio,
-                db
+                bookImagesRepo
               )
 
               id <- service.createAuthor(
@@ -206,9 +218,11 @@ class LibraryServiceSpec extends PgItTestBase {
           withDb(container.jdbcUrl)(db =>
             for {
               _ <- UIO.unit
+              bookImagesRepo = new NoopBookImagesRepo
               service: LibraryService = new LibraryServiceImpl(
+                db,
                 new LibraryDbio,
-                db
+                bookImagesRepo
               )
               id <- service.createAuthor(
                 NewAuthor(AuthorName("barbar2"))
@@ -246,9 +260,11 @@ class LibraryServiceSpec extends PgItTestBase {
           withDb(container.jdbcUrl)(db =>
             for {
               _ <- UIO.unit
+              bookImagesRepo = new NoopBookImagesRepo
               service: LibraryService = new LibraryServiceImpl(
+                db,
                 new LibraryDbio,
-                db
+                bookImagesRepo
               )
               id <- service.createAuthor(
                 NewAuthor(AuthorName("barbar3"))
@@ -287,9 +303,11 @@ class LibraryServiceSpec extends PgItTestBase {
           withDb(container.jdbcUrl)(db =>
             for {
               _ <- UIO.unit
+              bookImagesRepo = new NoopBookImagesRepo
               service: LibraryService = new LibraryServiceImpl(
+                db,
                 new LibraryDbio,
-                db
+                bookImagesRepo
               )
               id <- service.createAuthor(
                 NewAuthor(AuthorName("barbar4"))
@@ -329,9 +347,11 @@ class LibraryServiceSpec extends PgItTestBase {
           withDb(container.jdbcUrl)(db =>
             for {
               _ <- UIO.unit
+              bookImagesRepo = new NoopBookImagesRepo
               service: LibraryService = new LibraryServiceImpl(
+                db,
                 new LibraryDbio,
-                db
+                bookImagesRepo
               )
               id <- service.createAuthor(
                 NewAuthor(AuthorName("barbar4"))
@@ -372,9 +392,11 @@ class LibraryServiceSpec extends PgItTestBase {
           withDb(container.jdbcUrl)(db =>
             for {
               _ <- UIO.unit
+              bookImagesRepo = new NoopBookImagesRepo
               service: LibraryService = new LibraryServiceImpl(
+                db,
                 new LibraryDbio,
-                db
+                bookImagesRepo
               )
               id <- service.createAuthor(
                 NewAuthor(AuthorName("barbar4"))
@@ -437,9 +459,11 @@ class LibraryServiceSpec extends PgItTestBase {
           withDb(container.jdbcUrl)(db =>
             for {
               _ <- UIO.unit
+              bookImagesRepo = new NoopBookImagesRepo
               service: LibraryService = new LibraryServiceImpl(
+                db,
                 new LibraryDbio,
-                db
+                bookImagesRepo
               )
               id <- service.createAuthor(
                 NewAuthor(AuthorName("barbar4"))
@@ -472,7 +496,74 @@ class LibraryServiceSpec extends PgItTestBase {
                       )
                   )
                 )
-              // _ <- UIO(println("here"))
+            } yield ()
+          )
+        io
+      }
+    }
+  }
+
+  test(
+    "upload book image should fail gracefully if book with id does not exist"
+  ) {
+    withReplayLogger { implicit logger =>
+      withContainersIO { container =>
+        val io =
+          withDb(container.jdbcUrl)(db =>
+            for {
+              _ <- UIO.unit
+              bookImagesRepo = new NoopBookImagesRepo
+              service: LibraryService = new LibraryServiceImpl(
+                db,
+                new LibraryDbio,
+                bookImagesRepo
+              )
+              dataBytes = Chunk.array(
+                os.read.bytes(os.resource / "images" / "JME.png")
+              )
+              iStream <- ImageStream.parse(
+                fs2.Stream.chunk[Task, Byte](dataBytes)
+              )
+              _ <- service
+                .uploadBookImage(BookId(2311), iStream)
+                .attempt
+                .assertEquals(
+                  Left(
+                    AppError2
+                      .EntityDoesNotExist("Book with id=2311 does not exist")
+                  )
+                )
+            } yield ()
+          )
+        io
+      }
+    }
+  }
+
+  test(
+    "download book image should fail gracefully if book with id does not exist"
+  ) {
+    withReplayLogger { implicit logger =>
+      withContainersIO { container =>
+        val io =
+          withDb(container.jdbcUrl)(db =>
+            for {
+              _ <- UIO.unit
+              bookImagesRepo = new NoopBookImagesRepo
+              service: LibraryService = new LibraryServiceImpl(
+                db,
+                new LibraryDbio,
+                bookImagesRepo
+              )
+              _ <- service
+                .downloadBookImage(BookId(2311))
+                .attempt
+                .assertEquals(
+                  Left(
+                    AppError2
+                      .EntityDoesNotExist("Book with id=2311 does not exist")
+                  )
+                )
             } yield ()
           )
         io
