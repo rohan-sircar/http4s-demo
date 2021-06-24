@@ -4,6 +4,7 @@ import scala.concurrent.duration.MILLISECONDS
 
 import cats.effect.ExitCode
 import cats.effect.Resource
+import cats.syntax.all._
 import com.codahale.metrics.SharedMetricRegistries
 import com.typesafe.config.ConfigFactory
 import monix.bio.BIOApp
@@ -42,7 +43,9 @@ object Main extends BIOApp {
         .fromConfig(rootConfig.getConfig("http4s-demo"))
         .loadF[Task, AppConfig](schedulers.io.blocker)
     )
-    logger <- AppLogger.routed[Task](appConfig.logger)
+    logstashLogger = LogstashLogger
+      .routed[Task](appConfig.logger, appConfig.logstash, schedulers.io.blocker)
+    logger <- AppLogger.routed[Task](appConfig.logger) |+| logstashLogger
     _ <- Resource.eval(
       logger.info(s"Starting ${BuildInfo.name}-${BuildInfo.version}")
     )

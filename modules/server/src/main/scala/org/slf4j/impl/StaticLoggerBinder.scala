@@ -7,21 +7,23 @@ import cats.effect.ContextShift
 import cats.effect.Effect
 import cats.effect.IO
 import cats.effect.Timer
-import cats.syntax.eq._
+import cats.syntax.all._
 import io.odin.Logger
 import io.odin.slf4j.OdinLoggerBinder
 import monix.execution.Scheduler
 import pureconfig.ConfigSource
 import wow.doge.http4sdemo.server.AppLogger
+import wow.doge.http4sdemo.server.LogstashLogger
 import wow.doge.http4sdemo.server.concurrent.Schedulers
 import wow.doge.http4sdemo.server.config.LoggerConfig
 import wow.doge.http4sdemo.server.config.LoggerRoutes
+import wow.doge.http4sdemo.server.config.LogstashConfig
 
 //effect type should be specified inbefore
 //log line will be recorded right after the call with no suspension
 class StaticLoggerBinder extends OdinLoggerBinder[IO] {
 
-  val s: Scheduler = Schedulers.default.io.value
+  implicit val s: Scheduler = Schedulers.default.io.value
   implicit val timer: Timer[IO] = IO.timer(s)
   implicit val clock: Clock[IO] = timer.clock
   implicit val cs: ContextShift[IO] = IO.contextShift(s)
@@ -39,8 +41,18 @@ class StaticLoggerBinder extends OdinLoggerBinder[IO] {
         .at("http4s-demo.logger")
         .loadOrThrow[LoggerConfig]
 
+  val logstashConfig = ConfigSource.default
+    .at("http4s-demo.logstash")
+    .loadOrThrow[LogstashConfig]
+
+  val logstashLogger = LogstashLogger[IO](
+    loggerConfig,
+    logstashConfig,
+    Schedulers.default.io.blocker
+  )
+
   val (defaultConsoleLogger, release1) =
-    AppLogger[IO](loggerConfig).allocated.unsafeRunSync()
+    (AppLogger[IO](loggerConfig) |+| logstashLogger).allocated.unsafeRunSync()
 
   ArraySeq(release1).foreach(r => sys.addShutdownHook(r.unsafeRunSync()))
 

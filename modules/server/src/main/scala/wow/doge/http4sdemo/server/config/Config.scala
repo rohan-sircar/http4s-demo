@@ -6,6 +6,7 @@ import cats.syntax.all._
 import enumeratum._
 import eu.timepit.refined.api.RefinedTypeOps
 import eu.timepit.refined.pureconfig._
+import eu.timepit.refined.types.net
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string
 import io.odin.{Level => OLevel}
@@ -183,12 +184,23 @@ object S3Config {
   implicit val reader = deriveReader[S3Config]
 }
 
+final case class LogstashConfig(
+    enabled: Boolean,
+    host: string.NonEmptyFiniteString[100],
+    port: net.PortNumber
+)
+
+object LogstashConfig {
+  implicit val reader = deriveReader[LogstashConfig]
+}
+
 final case class AppConfig(
     http: HttpConfig,
     logger: LoggerConfig,
     auth: AuthConfig,
     redis: RedisConfig,
-    s3: S3Config
+    s3: S3Config,
+    logstash: LogstashConfig
 )
 object AppConfig {
   implicit val configReader = deriveReader[AppConfig]

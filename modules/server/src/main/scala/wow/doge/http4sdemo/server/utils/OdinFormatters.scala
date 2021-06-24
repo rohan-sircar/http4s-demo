@@ -1,6 +1,8 @@
 package wow.doge.http4sdemo.server.utils
 
 import cats.syntax.show._
+import io.circe.Encoder
+import io.circe.syntax._
 import io.odin.Level
 import io.odin.Level.Debug
 import io.odin.Level.Info
@@ -8,10 +10,50 @@ import io.odin.Level.Trace
 import io.odin.Level.Warn
 import io.odin.LoggerMessage
 import io.odin.formatter.Formatter
+import io.odin.formatter.Formatter._
 import io.odin.formatter.options.PositionFormat
 import io.odin.formatter.options.ThrowableFormat
 
-object OdinFormatters {}
+object JsonFormatter {
+
+  val formatter: Formatter =
+    create(ThrowableFormat.Default, PositionFormat.Full)
+
+  def create(throwableFormat: ThrowableFormat): Formatter =
+    create(throwableFormat, PositionFormat.Full)
+
+  def create(
+      throwableFormat: ThrowableFormat,
+      positionFormat: PositionFormat
+  ): Formatter = {
+    implicit val encoder: Encoder[LoggerMessage] =
+      loggerMessageEncoder(throwableFormat, positionFormat)
+    (msg: LoggerMessage) => msg.asJson.noSpaces
+  }
+  def loggerMessageEncoder(
+      throwableFormat: ThrowableFormat,
+      positionFormat: PositionFormat
+  ): Encoder[LoggerMessage] =
+    Encoder.forProduct7(
+      "level",
+      "log_message",
+      "context",
+      "exception",
+      "position",
+      "thread_name",
+      "timestamp"
+    )(m =>
+      (
+        m.level.show,
+        m.message.value,
+        m.context,
+        m.exception.map(t => formatThrowable(t, throwableFormat)),
+        formatPosition(m.position, positionFormat),
+        m.threadName,
+        formatTimestamp(m.timestamp)
+      )
+    )
+}
 object PaddedFormatter {
   val default =
     apply(ThrowableFormat.Default, PositionFormat.Full, true)
