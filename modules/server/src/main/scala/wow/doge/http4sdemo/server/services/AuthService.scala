@@ -16,7 +16,7 @@ import tsec.common.VerificationFailed
 import tsec.common.Verified
 import tsec.jws.mac.JWTMac
 import tsec.mac.jca.HMACSHA256
-import wow.doge.http4sdemo.AppError2
+import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.endpoints.AuthDetails
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.NewUser
@@ -33,15 +33,15 @@ import wow.doge.http4sdemo.utils.infoSpan
 trait AuthService {
   def verify(authDetails: AuthDetails)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, VerifiedAuthDetails]
+  ): IO[AppError, VerifiedAuthDetails]
 
   def login(user: UserLogin)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, JWTMac[HMACSHA256]]
+  ): IO[AppError, JWTMac[HMACSHA256]]
 
   def logout(id: Refinements.UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit]
+  ): IO[AppError, Unit]
 
 }
 
@@ -54,7 +54,7 @@ sealed class AuthServiceImpl(
 
   def logout(id: Refinements.UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit] = infoSpan {
+  ): IO[AppError, Unit] = infoSpan {
     C.remove(id)
   }
 
@@ -64,7 +64,7 @@ sealed class AuthServiceImpl(
         decoded <- decode[Task](authDetails.bearerToken)
           .mapErrorPartialWith { case e: TSecError =>
             logger.errorU(s"Failed to decode auth token ${e.getMessage}") >>
-              IO.raiseError(AppError2.AuthError("Failed to decode auth token"))
+              IO.raiseError(AppError.AuthError("Failed to decode auth token"))
           }
         existingToken <- C.get(decoded.user.id)
         // ctx = Map("userId" -> decoded.user.id.inner.toString)
@@ -79,28 +79,28 @@ sealed class AuthServiceImpl(
             else
               logger.warnU(
                 "Invalid auth token: token did not match with session token"
-              ) >> IO.raiseError(AppError2.AuthError("Invalid token"))
+              ) >> IO.raiseError(AppError.AuthError("Invalid token"))
           case None =>
             logger.warnU(
               "Invalid auth token: user does not have an existing token"
-            ) >> IO.raiseError(AppError2.AuthError("Invalid token"))
+            ) >> IO.raiseError(AppError.AuthError("Invalid token"))
         }
       } yield decoded
     }
 
   def login(
       userLogin: UserLogin
-  )(implicit logger: Logger[Task]): IO[AppError2, JWTMac[HMACSHA256]] =
+  )(implicit logger: Logger[Task]): IO[AppError, JWTMac[HMACSHA256]] =
     infoSpan {
       for {
         // _ <- logger.infoU("Performing login")
         mbUser <- U.getByName(userLogin.username)
-        user <- IO.fromOption(mbUser, AppError2.AuthError("Invalid password"))
+        user <- IO.fromOption(mbUser, AppError.AuthError("Invalid password"))
         identity = user.transformInto[UserIdentity]
         status <- checkPasswordIO(userLogin, user)
         jwt <- status match {
           case VerificationFailed =>
-            IO.raiseError(AppError2.AuthError("Invalid password"))
+            IO.raiseError(AppError.AuthError("Invalid password"))
           case Verified =>
             encode[Task](identity, tokenTimeout).hideErrors
         }
@@ -160,13 +160,13 @@ object TestAuthService {
 class NoOpAuthService extends AuthService {
   def verify(authDetails: AuthDetails)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, VerifiedAuthDetails] = IO.terminate(new NotImplementedError)
+  ): IO[AppError, VerifiedAuthDetails] = IO.terminate(new NotImplementedError)
   def login(
       user: UserLogin
-  )(implicit logger: Logger[Task]): IO[AppError2, JWTMac[HMACSHA256]] =
+  )(implicit logger: Logger[Task]): IO[AppError, JWTMac[HMACSHA256]] =
     IO.terminate(new NotImplementedError)
 
   def logout(id: Refinements.UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit] = IO.terminate(new NotImplementedError)
+  ): IO[AppError, Unit] = IO.terminate(new NotImplementedError)
 }

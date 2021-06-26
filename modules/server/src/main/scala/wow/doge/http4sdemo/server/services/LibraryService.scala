@@ -8,7 +8,7 @@ import monix.bio.UIO
 import monix.execution.Scheduler
 import monix.reactive.Observable
 import slick.jdbc.JdbcBackend
-import wow.doge.http4sdemo.AppError2
+import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.Author
 import wow.doge.http4sdemo.models.Book
@@ -35,38 +35,38 @@ trait LibraryService {
 
   def getBooks(pagination: Pagination)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Observable[Book]]
+  ): IO[AppError, Observable[Book]]
 
   def getBookById(id: BookId)(implicit logger: Logger[Task]): UIO[Option[Book]]
 
   def searchBooks(
       mode: BookSearchMode,
       value: SearchQuery
-  )(implicit logger: Logger[Task]): IO[AppError2, Observable[Book]]
+  )(implicit logger: Logger[Task]): IO[AppError, Observable[Book]]
 
   def updateBook(id: BookId, updateData: BookUpdate)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, NumRows]
+  ): IO[AppError, NumRows]
 
   def deleteBook(id: BookId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, NumRows]
+  ): IO[AppError, NumRows]
 
   def createBook(newBook: NewBook)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Book]
+  ): IO[AppError, Book]
 
   def createBooks(newBooks: List[NewBook])(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Option[NumRows]]
+  ): IO[AppError, Option[NumRows]]
 
   def createAuthor(a: NewAuthor)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, AuthorId]
+  ): IO[AppError, AuthorId]
 
   def getBooksByAuthorId(authorId: AuthorId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Observable[Book]]
+  ): IO[AppError, Observable[Book]]
 
   def searchExtras(query: String)(implicit
       logger: Logger[Task]
@@ -76,11 +76,11 @@ trait LibraryService {
 
   def uploadBookImage(id: BookId, imageStream: ImageStream)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit]
+  ): IO[AppError, Unit]
 
   def downloadBookImage(id: BookId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, ImageStream]
+  ): IO[AppError, ImageStream]
 
 }
 
@@ -105,7 +105,7 @@ final class LibraryServiceImpl(
       query: SearchQuery
   )(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Observable[Book]] = infoSpan {
+  ): IO[AppError, Observable[Book]] = infoSpan {
     for {
       s <- s"%${query.value}%".transformL[SearchQuery]
       _ <- logger.debugU(s"Query str value = $s")
@@ -123,11 +123,11 @@ final class LibraryServiceImpl(
 
   def createAuthor(a: NewAuthor)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, AuthorId] = db.runIO(dbio.insertAuthor(a))
+  ): IO[AppError, AuthorId] = db.runIO(dbio.insertAuthor(a))
 
   def updateBook(id: BookId, updateData: BookUpdate)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, NumRows] =
+  ): IO[AppError, NumRows] =
     infoSpan {
       for {
         _ <- logger.debugU(s"Request for updating book $id")
@@ -140,7 +140,7 @@ final class LibraryServiceImpl(
                   DBIO.successful(updateData.update(value))
               case None =>
                 DBIO.failed(
-                  AppError2.EntityDoesNotExist(
+                  AppError.EntityDoesNotExist(
                     s"Book with id=$id does not exist"
                   )
                 )
@@ -160,7 +160,7 @@ final class LibraryServiceImpl(
 
   def createBook(newBook: NewBook)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Book] =
+  ): IO[AppError, Book] =
     infoSpan {
       IO.deferAction { implicit s =>
         for {
@@ -176,7 +176,7 @@ final class LibraryServiceImpl(
 
   def createBooks(newBooks: List[NewBook])(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Option[NumRows]] =
+  ): IO[AppError, Option[NumRows]] =
     infoSpan {
       for {
         l <- IO.pure(LazyList.from(newBooks))
@@ -185,7 +185,7 @@ final class LibraryServiceImpl(
             IO.unit
           else
             IO.raiseError(
-              new AppError2.BadInput(s"Duplicate isbns provided")
+              new AppError.BadInput(s"Duplicate isbns provided")
             )
         action <- IO.deferAction(implicit s =>
           UIO(
@@ -207,7 +207,7 @@ final class LibraryServiceImpl(
                   if (l2.isEmpty) DBIO.unit
                   else
                     DBIO.failed(
-                      AppError2.EntityAlreadyExists(
+                      AppError.EntityAlreadyExists(
                         s"Books with these isbns already exist: $l2"
                       )
                     )
@@ -229,7 +229,7 @@ final class LibraryServiceImpl(
                   if (l3.isEmpty) DBIO.unit
                   else
                     DBIO.failed(
-                      AppError2.EntityDoesNotExist(
+                      AppError.EntityDoesNotExist(
                         s"Authors with these ids do not exist: $l3"
                       )
                     )
@@ -285,7 +285,7 @@ final class LibraryServiceImpl(
 
   def downloadBookImage(id: BookId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, ImageStream] = infoSpan {
+  ): IO[AppError, ImageStream] = infoSpan {
     for {
       action <- UIO.deferAction(implicit s =>
         UIO(for {
@@ -388,7 +388,7 @@ final class LibraryDbio {
       .flatMap {
         case None =>
           DBIO.failed(
-            AppError2.EntityDoesNotExist(
+            AppError.EntityDoesNotExist(
               s"Book with id=${bookId} does not exist"
             )
           )
@@ -407,7 +407,7 @@ final class LibraryDbio {
         case None => DBIO.unit
         case Some(_) =>
           DBIO.failed(
-            AppError2.EntityAlreadyExists(
+            AppError.EntityAlreadyExists(
               s"Book with isbn=${bookIsbn} already exists"
             )
           )
@@ -418,7 +418,7 @@ final class LibraryDbio {
     getAuthor(id).flatMap {
       case None =>
         DBIO.failed(
-          AppError2.EntityDoesNotExist(
+          AppError.EntityDoesNotExist(
             s"Author with id=$id does not exist"
           )
         )
@@ -461,7 +461,7 @@ class NoopLibraryService extends LibraryService {
 
   def getBooks(pagination: Pagination)(implicit
       L: Logger[Task]
-  ): IO[AppError2, Observable[Book]] =
+  ): IO[AppError, Observable[Book]] =
     IO.terminate(new NotImplementedError)
 
   def getBookById(id: BookId)(implicit L: Logger[Task]): UIO[Option[Book]] =
@@ -469,35 +469,35 @@ class NoopLibraryService extends LibraryService {
 
   def searchBooks(mode: BookSearchMode, query: SearchQuery)(implicit
       L: Logger[Task]
-  ): IO[AppError2, Observable[Book]] =
+  ): IO[AppError, Observable[Book]] =
     IO.terminate(new NotImplementedError)
 
   def updateBook(id: BookId, updateData: BookUpdate)(implicit
       L: Logger[Task]
-  ): IO[AppError2, NumRows] =
+  ): IO[AppError, NumRows] =
     IO.terminate(new NotImplementedError)
 
-  def deleteBook(id: BookId)(implicit L: Logger[Task]): IO[AppError2, NumRows] =
+  def deleteBook(id: BookId)(implicit L: Logger[Task]): IO[AppError, NumRows] =
     IO.terminate(new NotImplementedError)
 
   def createBook(newBook: NewBook)(implicit
       L: Logger[Task]
-  ): IO[AppError2, Book] =
+  ): IO[AppError, Book] =
     IO.terminate(new NotImplementedError)
 
   def createBooks(newBooks: List[NewBook])(implicit
       L: Logger[Task]
-  ): IO[AppError2, Option[NumRows]] =
+  ): IO[AppError, Option[NumRows]] =
     IO.terminate(new NotImplementedError)
 
   def createAuthor(a: NewAuthor)(implicit
       L: Logger[Task]
-  ): IO[AppError2, AuthorId] =
+  ): IO[AppError, AuthorId] =
     IO.terminate(new NotImplementedError)
 
   def getBooksByAuthorId(authorId: AuthorId)(implicit
       L: Logger[Task]
-  ): IO[AppError2, Observable[Book]] =
+  ): IO[AppError, Observable[Book]] =
     IO.terminate(new NotImplementedError)
 
   def searchExtras(query: String)(implicit L: Logger[Task]): Observable[Extra] =
@@ -508,10 +508,10 @@ class NoopLibraryService extends LibraryService {
 
   def uploadBookImage(id: BookId, imageStream: ImageStream)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit] = IO.terminate(new NotImplementedError)
+  ): IO[AppError, Unit] = IO.terminate(new NotImplementedError)
 
   def downloadBookImage(id: BookId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, ImageStream] = IO.terminate(new NotImplementedError)
+  ): IO[AppError, ImageStream] = IO.terminate(new NotImplementedError)
 
 }

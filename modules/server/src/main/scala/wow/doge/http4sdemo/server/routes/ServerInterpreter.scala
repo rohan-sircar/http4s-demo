@@ -9,7 +9,7 @@ import monix.bio.Task
 import sttp.tapir.server.LogRequestHandling
 import sttp.tapir.server.http4s.Http4sServerInterpreter
 import sttp.tapir.server.http4s.Http4sServerOptions
-import wow.doge.http4sdemo.AppError2
+import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.endpoints.AuthDetails
 import wow.doge.http4sdemo.endpoints.ReqContext
 import wow.doge.http4sdemo.implicits._
@@ -54,7 +54,7 @@ trait ServerInterpreter extends Http4sServerInterpreter {
   def enrichLogger(ctx: ReqContext) = Task(
     logger
       .withConstContext(ctx.toStringMap)
-      .asRight[AppError2]
+      .asRight[AppError]
   )
 }
 
@@ -63,7 +63,7 @@ trait AuthedServerInterpreter extends ServerInterpreter {
   def authService: AuthService
 
   def authorize[T](ctx: ReqContext, details: AuthDetails)(role: UserRole)(
-      f: (Logger[Task], VerifiedAuthDetails) => IO[AppError2, T]
+      f: (Logger[Task], VerifiedAuthDetails) => IO[AppError, T]
   ) =
     // infoSpan {
     for {
@@ -78,7 +78,7 @@ trait AuthedServerInterpreter extends ServerInterpreter {
         if (verified.user.role.value <= role.value) f(logger, verified)
         else
           IO.raiseError(
-            AppError2
+            AppError
               .AuthError("Inadequate privileges for accessing this resource")
           )
     } yield res

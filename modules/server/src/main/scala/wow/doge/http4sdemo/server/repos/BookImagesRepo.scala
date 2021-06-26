@@ -5,7 +5,7 @@ import io.odin.Logger
 import monix.bio.IO
 import monix.bio.Task
 import monix.connect.s3.S3
-import wow.doge.http4sdemo.AppError2
+import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.server.utils.ImageStream
@@ -18,7 +18,7 @@ trait BookImagesRepo {
 
   def get(id: BookId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, ImageStream]
+  ): IO[AppError, ImageStream]
 }
 
 final class BookImagesRepoImpl private (s3: S3, bucketName: String)
@@ -50,7 +50,7 @@ object BookImagesRepoImpl {
     _ <-
       if (!exists)
         IO.raiseError(
-          new AppError2.EntityDoesNotExist(
+          new AppError.EntityDoesNotExist(
             s"Bucket with name: $bucketName does not exist"
           )
         )
@@ -65,6 +65,6 @@ class NoopBookImagesRepo extends BookImagesRepo {
 
   def get(id: BookId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, ImageStream] =
+  ): IO[AppError, ImageStream] =
     IO.terminate(new NotImplementedError)
 }

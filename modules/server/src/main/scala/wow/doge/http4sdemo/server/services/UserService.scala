@@ -5,7 +5,7 @@ import io.odin.Logger
 import io.scalaland.chimney.dsl._
 import monix.bio.IO
 import monix.bio.Task
-import wow.doge.http4sdemo.AppError2
+import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.models.NewUser
 import wow.doge.http4sdemo.models.UserEntity
 import wow.doge.http4sdemo.models.UserRegistration
@@ -18,13 +18,13 @@ import wow.doge.http4sdemo.utils.infoSpan
 trait UserService {
   def getUserById(id: UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Option[UserEntity]]
+  ): IO[AppError, Option[UserEntity]]
   def createUser(user: UserRegistration)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, UserId]
+  ): IO[AppError, UserId]
   def changeRole(id: UserId, role: UserRole)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit]
+  ): IO[AppError, Unit]
 }
 
 final class UserServiceImpl(U: UsersRepo) extends UserService {
@@ -35,7 +35,7 @@ final class UserServiceImpl(U: UsersRepo) extends UserService {
 
   def createUser(
       user: UserRegistration
-  )(implicit logger: Logger[Task]): IO[AppError2, UserId] =
+  )(implicit logger: Logger[Task]): IO[AppError, UserId] =
     infoSpan {
       for {
         hashed <- hashPasswordIO(user.password)
@@ -50,7 +50,7 @@ final class UserServiceImpl(U: UsersRepo) extends UserService {
 
   def changeRole(id: UserId, role: UserRole)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit] =
+  ): IO[AppError, Unit] =
     infoSpan { U.updateRoleById(id, role) }
 }
 
@@ -58,14 +58,14 @@ class NoopUserService extends UserService {
 
   def getUserById(id: UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Option[UserEntity]] = IO.terminate(new NotImplementedError)
+  ): IO[AppError, Option[UserEntity]] = IO.terminate(new NotImplementedError)
 
   def createUser(user: UserRegistration)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, UserId] = IO.terminate(new NotImplementedError)
+  ): IO[AppError, UserId] = IO.terminate(new NotImplementedError)
 
   def changeRole(id: UserId, role: UserRole)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit] = IO.terminate(new NotImplementedError)
+  ): IO[AppError, Unit] = IO.terminate(new NotImplementedError)
 
 }

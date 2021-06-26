@@ -7,7 +7,7 @@ import enumeratum._
 import fs2.Chunk
 import monix.bio.Task
 import monix.reactive.Observable
-import wow.doge.http4sdemo.AppError2
+import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.implicits._
 
 sealed abstract class ImageFormat(
@@ -42,7 +42,7 @@ object ImageStream {
         if (header === format.header) Task.unit
         else
           Task.raiseError(
-            AppError2.BadInput(
+            AppError.BadInput(
               "Image format did not match any of " +
                 s"${format.extensions.mkString_("[", ",", "]")}"
             )
@@ -50,7 +50,7 @@ object ImageStream {
       )
       .compile
       .drain
-      .mapErrorPartial { case e: AppError2 => e }
+      .mapErrorPartial { case e: AppError => e }
     obs <- data.chunks.toObsU
   } yield ImageStream(format, data, obs)
 
@@ -67,7 +67,7 @@ object ImageStream {
           else
             Task
               .raiseError(
-                AppError2.BadInput(
+                AppError.BadInput(
                   "Image format did not match any of " +
                     s"${format.extensions.mkString_("[", ",", "]")}"
                 )
@@ -76,7 +76,7 @@ object ImageStream {
         )
         .completedL
         .toIO
-        .mapErrorPartial { case e: AppError2 => e }
+        .mapErrorPartial { case e: AppError => e }
       stream <- data.toStreamIO.hideErrors
     } yield ImageStream(format, stream.flatMap(c => fs2.Stream.chunk(c)), data)
 
@@ -84,9 +84,9 @@ object ImageStream {
     parseFormatFromStream(data, ImageFormat.Png)
       .onErrorFallbackTo(parseFormatFromStream(data, ImageFormat.Jpeg))
       .mapErrorPartial {
-        case ex: AppError2.BadInput
+        case ex: AppError.BadInput
             if ex.getMessage.startsWith("Image format did not match") =>
-          AppError2.BadInput(
+          AppError.BadInput(
             "Failed to parse image format. None of the supported formats matched. " +
               s"Supported formats are: ${ImageFormat.formats}"
           )
@@ -96,9 +96,9 @@ object ImageStream {
     parseFormatFromObs(data, ImageFormat.Png)
       .onErrorFallbackTo(parseFormatFromObs(data, ImageFormat.Jpeg))
       .mapErrorPartial {
-        case ex: AppError2.BadInput
+        case ex: AppError.BadInput
             if ex.getMessage.startsWith("Image format did not match") =>
-          AppError2.BadInput(
+          AppError.BadInput(
             "Failed to parse image format. None of the supported formats matched. " +
               s"Supported formats are: ${ImageFormat.formats}"
           )

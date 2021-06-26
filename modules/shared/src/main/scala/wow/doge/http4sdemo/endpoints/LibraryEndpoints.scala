@@ -4,7 +4,7 @@ import monix.bio.Task
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.model.StatusCode
 import sttp.tapir.CodecFormat
-import wow.doge.http4sdemo.AppError2
+import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.models._
 import wow.doge.http4sdemo.models.pagination._
 import wow.doge.http4sdemo.refinements.Refinements._
@@ -76,7 +76,7 @@ object LibraryEndpoints {
 
   val updateBookEndpoint: Endpoint[
     (ReqContext, AuthDetails, BookId, BookUpdate),
-    AppError2,
+    AppError,
     Unit,
     Any
   ] =

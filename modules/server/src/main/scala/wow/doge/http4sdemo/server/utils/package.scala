@@ -20,7 +20,7 @@ import org.http4s.Request
 import org.http4s.circe.streamJsonArrayDecoder
 import org.http4s.circe.streamJsonArrayEncoder
 import org.http4s.server.middleware.RequestId
-import wow.doge.http4sdemo.AppError2
+import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.implicits._
 package object utils {
   def extractReqId(req: Request[Task]) =
@@ -73,7 +73,7 @@ package object utils {
       .mapEval(header =>
         if (header === PngHeaderSeq) Task.unit.toTask
         else
-          Task.raiseError(AppError2.BadInput("Image format is not png")).toTask
+          Task.raiseError(AppError.BadInput("Image format is not png")).toTask
       )
       .completedL
       .toIO

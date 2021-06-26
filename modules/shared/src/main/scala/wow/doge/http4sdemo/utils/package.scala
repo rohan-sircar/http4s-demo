@@ -17,9 +17,9 @@ package object utils {
       .through(io.circe.fs2.decoder)
       .adaptError {
         case e: ParsingFailure =>
-          AppError2.BadInput(e.getMessage)
+          AppError.BadInput(e.getMessage)
         case e: DecodingFailure =>
-          AppError2.BadInput(e.getMessage)
+          AppError.BadInput(e.getMessage)
       }
       .toObsU
 

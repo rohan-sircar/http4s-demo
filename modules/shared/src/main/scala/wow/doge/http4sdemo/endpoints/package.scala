@@ -5,7 +5,7 @@ import sttp.model.StatusCode
 import sttp.tapir._
 import sttp.tapir.codec.newtype._
 import sttp.tapir.json.circe._
-import wow.doge.http4sdemo.AppError2
+import wow.doge.http4sdemo.AppError
 
 package object endpoints {
   val reqCtxEndpoint = endpoint.in(
@@ -19,28 +19,28 @@ package object endpoints {
   val baseEndpoint = reqCtxEndpoint
     .in("api")
     .errorOut(
-      oneOf[AppError2](
+      oneOf[AppError](
         statusMappingValueMatcher(
           StatusCode.NotFound,
-          jsonBody[AppError2].description("not found")
+          jsonBody[AppError].description("not found")
         ) {
-          case e: AppError2.EntityDoesNotExist => true
-          case _                               => false
+          case e: AppError.EntityDoesNotExist => true
+          case _                              => false
         },
         statusMappingValueMatcher(
           StatusCode.BadRequest,
-          jsonBody[AppError2].description("bad request")
+          jsonBody[AppError].description("bad request")
         ) {
-          case e: AppError2.EntityAlreadyExists => true
-          case e: AppError2.BadInput            => true
-          case _                                => false
+          case e: AppError.EntityAlreadyExists => true
+          case e: AppError.BadInput            => true
+          case _                               => false
         },
         statusMappingValueMatcher(
           StatusCode.Unauthorized,
-          jsonBody[AppError2].description("forbidden")
+          jsonBody[AppError].description("forbidden")
         ) {
-          case e: AppError2.AuthError => true
-          case _                      => false
+          case e: AppError.AuthError => true
+          case _                     => false
         },
         // statusMapping(
         //   StatusCode.Unauthorized,
@@ -51,7 +51,7 @@ package object endpoints {
         //   emptyOutput.map(_ => NoContent)(_ => ())
         // ),
         statusDefaultMapping(
-          jsonBody[AppError2]
+          jsonBody[AppError]
             .description(
               "Internal Error case implying some error case was uncaught"
             )

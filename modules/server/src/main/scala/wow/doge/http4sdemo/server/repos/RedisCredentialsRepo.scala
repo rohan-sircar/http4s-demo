@@ -9,7 +9,7 @@ import monix.bio.IO
 import monix.bio.Task
 import tsec.jws.mac.JWTMac
 import tsec.mac.jca.HMACSHA256
-import wow.doge.http4sdemo.AppError2
+import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.refinements.Refinements.UserId
 import wow.doge.http4sdemo.server.auth.JwtSigningKey
 import wow.doge.http4sdemo.server.auth.JwtToken
@@ -25,13 +25,13 @@ final class RedisCredentialsRepo(
 
   def put(userId: UserId, jwt: JWTMac[HMACSHA256])(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit] = {
+  ): IO[AppError, Unit] = {
     for {
       token <- redis.get(key(userId)).hideErrors
       _ <- token match {
         case Some(_) =>
           IO.raiseError(
-            AppError2.EntityAlreadyExists(
+            AppError.EntityAlreadyExists(
               s"token for uid: $userId already exists"
             )
           )
@@ -45,14 +45,14 @@ final class RedisCredentialsRepo(
 
   def remove(
       userId: UserId
-  )(implicit logger: Logger[Task]): IO[AppError2, Unit] = {
+  )(implicit logger: Logger[Task]): IO[AppError, Unit] = {
     for {
       token <- redis.get(key(userId)).hideErrors
       _ <- token match {
         case Some(_) => IO.unit
         case None =>
           IO.raiseError(
-            AppError2.EntityDoesNotExist(
+            AppError.EntityDoesNotExist(
               s"token for uid: $userId does not exist"
             )
           )
@@ -63,7 +63,7 @@ final class RedisCredentialsRepo(
 
   def get(
       userId: UserId
-  )(implicit logger: Logger[Task]): IO[AppError2, Option[JwtToken]] = {
+  )(implicit logger: Logger[Task]): IO[AppError, Option[JwtToken]] = {
     for {
       u <- redis.get(key(userId)).hideErrors
       t <- u.traverse(JwtToken.fromTokenStr)

@@ -23,7 +23,7 @@ import slick.jdbc.ResultSetConcurrency
 import slick.jdbc.ResultSetType
 import tsec.jws.mac.JWTMac
 import tsec.mac.jca.HMACSHA256
-import wow.doge.http4sdemo.AppError2
+import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.models._
 import wow.doge.http4sdemo.server.{ExtendedPgProfile => JdbcProfile}
 import wow.doge.http4sdemo.slickcodegen.Tables
@@ -95,7 +95,7 @@ package object implicits
       Task.deferFuture(db.run(a))
 
     def runIO[R](a: DBIOAction[R, NoStream, Nothing]) =
-      runL(a).mapErrorPartial { case e: AppError2 => e }
+      runL(a).mapErrorPartial { case e: AppError => e }
 
     def runTryL[R, A](a: DBIOAction[R, NoStream, Nothing])(implicit
         ev: R <:< Try[A]

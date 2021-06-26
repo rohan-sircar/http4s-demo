@@ -33,7 +33,6 @@ import wow.doge.http4sdemo.server.repos.UsersDbio
 import wow.doge.http4sdemo.server.repos.UsersRepoImpl
 import wow.doge.http4sdemo.server.routes.AccountRoutes
 import wow.doge.http4sdemo.server.routes.LibraryRoutes
-import wow.doge.http4sdemo.server.routes.LibraryRoutes2
 import wow.doge.http4sdemo.server.routes.MessageRoutes
 import wow.doge.http4sdemo.server.routes.UserRoutes
 import wow.doge.http4sdemo.server.services.AuthServiceImpl
@@ -83,7 +82,6 @@ final class AppRoutes(
       new MessageRoutes(messageSubject)(logger).routes <+>
         Timeout(config.http.timeout)(
           new LibraryRoutes(libraryService, authService)(logger).routes <+>
-            new LibraryRoutes2(libraryService, authService)(logger).routes <+>
             new AccountRoutes(authService, userService)(logger).routes <+>
             new UserRoutes(userService, authService)(logger).routes
         )

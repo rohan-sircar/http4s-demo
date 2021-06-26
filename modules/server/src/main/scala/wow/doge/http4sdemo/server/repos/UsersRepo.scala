@@ -10,7 +10,7 @@ import monix.bio.IO
 import monix.bio.Task
 import monix.bio.UIO
 import slick.jdbc.JdbcBackend
-import wow.doge.http4sdemo.AppError2
+import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.NewUser
 import wow.doge.http4sdemo.models.UserEntity
@@ -24,19 +24,19 @@ import wow.doge.http4sdemo.utils.MLock
 import wow.doge.http4sdemo.utils.infoSpan
 
 trait UsersRepo {
-  def put(nu: NewUser)(implicit logger: Logger[Task]): IO[AppError2, UserId]
+  def put(nu: NewUser)(implicit logger: Logger[Task]): IO[AppError, UserId]
   def getById(id: UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Option[UserEntity]]
+  ): IO[AppError, Option[UserEntity]]
   def getByName(userName: Username)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Option[UserEntity]]
+  ): IO[AppError, Option[UserEntity]]
   def removeById(id: UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit]
+  ): IO[AppError, Unit]
   def updateRoleById(id: UserId, role: UserRole)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit]
+  ): IO[AppError, Unit]
 }
 
 final class InMemoryUsersRepo private (
@@ -50,7 +50,7 @@ final class InMemoryUsersRepo private (
   )(implicit logger: Logger[Task], position: Position) =
     infoSpan(lock.greenLight(io))
 
-  def put(nu: NewUser)(implicit logger: Logger[Task]): IO[AppError2, UserId] =
+  def put(nu: NewUser)(implicit logger: Logger[Task]): IO[AppError, UserId] =
     cake {
       for {
         users <- store.get.hideErrors
@@ -58,7 +58,7 @@ final class InMemoryUsersRepo private (
         _ <- user match {
           case Some(value) =>
             IO.raiseError(
-              AppError2.EntityAlreadyExists(
+              AppError.EntityAlreadyExists(
                 s"user with username: ${nu.username} already exists"
               )
             )
@@ -73,7 +73,7 @@ final class InMemoryUsersRepo private (
 
   def getById(userId: UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Option[UserEntity]] = cake {
+  ): IO[AppError, Option[UserEntity]] = cake {
     for {
       users <- store.get.hideErrors
       res = users.find(_.id === userId)
@@ -82,7 +82,7 @@ final class InMemoryUsersRepo private (
 
   def getByName(userName: Username)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Option[UserEntity]] = cake {
+  ): IO[AppError, Option[UserEntity]] = cake {
     for {
       users <- store.get.hideErrors
       res = users.find(_.username === userName)
@@ -91,7 +91,7 @@ final class InMemoryUsersRepo private (
 
   def removeById(userId: UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit] =
+  ): IO[AppError, Unit] =
     cake {
       for {
         users <- store.get.hideErrors
@@ -102,7 +102,7 @@ final class InMemoryUsersRepo private (
 
   def updateRoleById(id: UserId, role: UserRole)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit] = cake {
+  ): IO[AppError, Unit] = cake {
     for {
       users <- store.get.hideErrors
       next = users.foldLeft(List.empty[UserEntity]) { case (acc, next) =>
@@ -129,7 +129,7 @@ final class UsersRepoImpl(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio)
 
   def put(
       nu: NewUser
-  )(implicit logger: Logger[Task]): IO[AppError2, UserId] =
+  )(implicit logger: Logger[Task]): IO[AppError, UserId] =
     infoSpan {
       for {
         _ <- logger.infoU("Putting user")
@@ -139,7 +139,7 @@ final class UsersRepoImpl(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio)
             _ <- u match {
               case Some(_) =>
                 DBIO.failed(
-                  AppError2.EntityAlreadyExists(
+                  AppError.EntityAlreadyExists(
                     s"user with username: ${nu.username} already exists"
                   )
                 )
@@ -154,7 +154,7 @@ final class UsersRepoImpl(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio)
 
   def getById(
       userId: UserId
-  )(implicit logger: Logger[Task]): IO[AppError2, Option[UserEntity]] =
+  )(implicit logger: Logger[Task]): IO[AppError, Option[UserEntity]] =
     infoSpan {
       for {
         _ <- logger.infoU("Getting user")
@@ -164,7 +164,7 @@ final class UsersRepoImpl(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio)
 
   def getByName(
       userName: Username
-  )(implicit logger: Logger[Task]): IO[AppError2, Option[UserEntity]] =
+  )(implicit logger: Logger[Task]): IO[AppError, Option[UserEntity]] =
     infoSpan {
       for {
         _ <- logger.infoU("Getting user")
@@ -174,13 +174,13 @@ final class UsersRepoImpl(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio)
 
   def removeById(id: UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit] = infoSpan {
+  ): IO[AppError, Unit] = infoSpan {
     db.runIO(usersDbio.removeById(id).transactionally >> DBIO.unit)
   }
 
   def updateRoleById(id: UserId, role: UserRole)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit] = infoSpan {
+  ): IO[AppError, Unit] = infoSpan {
     db.runIO(usersDbio.updateRoleById(id, role).transactionally >> DBIO.unit)
   }
 

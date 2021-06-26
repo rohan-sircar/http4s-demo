@@ -91,7 +91,7 @@ final class LibraryServiceSpec extends PgItTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    AppError2
+                    AppError
                       .EntityDoesNotExist("Author with id=23 does not exist")
                   )
                 )
@@ -135,7 +135,7 @@ final class LibraryServiceSpec extends PgItTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    AppError2
+                    AppError
                       .EntityAlreadyExists(
                         "Book with isbn=agege already exists"
                       )
@@ -326,7 +326,7 @@ final class LibraryServiceSpec extends PgItTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    AppError2
+                    AppError
                       .EntityDoesNotExist("Book with id=12414 does not exist")
                   )
                 )
@@ -372,7 +372,7 @@ final class LibraryServiceSpec extends PgItTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    AppError2.BadInput("Duplicate isbns provided")
+                    AppError.BadInput("Duplicate isbns provided")
                   )
                 )
             } yield ()
@@ -436,7 +436,7 @@ final class LibraryServiceSpec extends PgItTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    AppError2
+                    AppError
                       .EntityAlreadyExists(
                         "Books with these isbns already exist: List(safasfa, asdasfa)"
                       )
@@ -489,7 +489,7 @@ final class LibraryServiceSpec extends PgItTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    AppError2
+                    AppError
                       .EntityDoesNotExist(
                         "Authors with these ids do not exist: List(2123, 2134)"
                       )
@@ -528,7 +528,7 @@ final class LibraryServiceSpec extends PgItTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    AppError2
+                    AppError
                       .EntityDoesNotExist("Book with id=2311 does not exist")
                   )
                 )
@@ -559,7 +559,7 @@ final class LibraryServiceSpec extends PgItTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    AppError2
+                    AppError
                       .EntityDoesNotExist("Book with id=2311 does not exist")
                   )
                 )

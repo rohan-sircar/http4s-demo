@@ -15,7 +15,7 @@ import monix.bio.UIO
 import monix.reactive.Observable
 import tsec.jws.mac.JWTMac
 import tsec.mac.jca.HMACSHA256
-import wow.doge.http4sdemo.AppError2
+import wow.doge.http4sdemo.AppError
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.refinements.Refinements.UserId
 import wow.doge.http4sdemo.server.auth.JwtToken
@@ -25,11 +25,11 @@ import wow.doge.http4sdemo.utils.infoSpan
 trait CredentialsRepo {
   def put(userId: UserId, jwt: JWTMac[HMACSHA256])(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit]
+  ): IO[AppError, Unit]
   def get(userId: UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Option[JwtToken]]
-  def remove(userId: UserId)(implicit logger: Logger[Task]): IO[AppError2, Unit]
+  ): IO[AppError, Option[JwtToken]]
+  def remove(userId: UserId)(implicit logger: Logger[Task]): IO[AppError, Unit]
 }
 
 final class InMemoryCredentialsRepo private (
@@ -48,7 +48,7 @@ final class InMemoryCredentialsRepo private (
 
   def put(userId: UserId, jwt: JWTMac[HMACSHA256])(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit] =
+  ): IO[AppError, Unit] =
     cake {
       for {
         s <- store.get.hideErrors
@@ -56,7 +56,7 @@ final class InMemoryCredentialsRepo private (
         next <- s.get(userId) match {
           case Some(_) =>
             IO.raiseError(
-              AppError2.EntityAlreadyExists(
+              AppError.EntityAlreadyExists(
                 s"token for uid: $userId already exists"
               )
             )
@@ -69,13 +69,13 @@ final class InMemoryCredentialsRepo private (
 
   def remove(
       userId: UserId
-  )(implicit logger: Logger[Task]): IO[AppError2, Unit] = cake {
+  )(implicit logger: Logger[Task]): IO[AppError, Unit] = cake {
     for {
       s <- store.get.hideErrors
       _ <- s.get(userId) match {
         case Some(_) =>
           IO.raiseError(
-            AppError2.EntityDoesNotExist(
+            AppError.EntityDoesNotExist(
               s"token for uid: $userId does not exist"
             )
           )
@@ -88,7 +88,7 @@ final class InMemoryCredentialsRepo private (
 
   def get(userId: UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Option[JwtToken]] =
+  ): IO[AppError, Option[JwtToken]] =
     cake { store.get.map(_.get(userId).map(_.token)).hideErrors }
 
   private def tokenInvalidator(implicit logger: Logger[Task]) = { // ()
