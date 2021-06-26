@@ -123,4 +123,10 @@ object InMemoryCredentialsRepo {
     repo = new InMemoryCredentialsRepo(lock, store, tokenTimeout, interval)
     _ <- Resource.make(repo.tokenInvalidator.completedL.toIO.start)(_.cancel)
   } yield repo
+
+  def withoutInvalidator() = for {
+    lock <- MLock()
+    store <- Ref.of[Task, Map[UserId, Node]](Map.empty).hideErrors
+    repo = new InMemoryCredentialsRepo(lock, store, 10.minutes, 10.minutes)
+  } yield repo
 }

@@ -25,10 +25,7 @@ import wow.doge.http4sdemo.refinements.Refinements
 
 package object auth {
   def decode[F[_]: Sync](token: String)(implicit key: JwtSigningKey) =
-    for {
-      parsed <- JWTMac.verifyAndParse[F, HMACSHA256](token, key.inner)
-      user <- parsed.body.getCustomF[F, UserIdentity](UserIdentity.Claim)
-    } yield VerifiedAuthDetails(parsed, user)
+    VerifiedAuthDetails.parse(token)
 
   def encode[F[_]: Sync](user: UserIdentity, tokenTimout: FiniteDuration)(
       implicit key: JwtSigningKey
@@ -100,8 +97,15 @@ package auth {
 
   final case class JwtSigningKey(inner: MacSigningKey[HMACSHA256])
 
-  final case class VerifiedAuthDetails(
-      jwt: JWTMac[HMACSHA256],
-      user: UserIdentity
+  final class VerifiedAuthDetails private (
+      val jwt: JWTMac[HMACSHA256],
+      val user: UserIdentity
   )
+
+  object VerifiedAuthDetails {
+    def parse[F[_]: Sync](token: String)(implicit key: JwtSigningKey) = for {
+      parsed <- JWTMac.verifyAndParse[F, HMACSHA256](token, key.inner)
+      user <- parsed.body.getCustomF[F, UserIdentity](UserIdentity.Claim)
+    } yield new VerifiedAuthDetails(parsed, user)
+  }
 }

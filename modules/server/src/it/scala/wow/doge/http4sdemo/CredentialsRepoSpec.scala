@@ -1,5 +1,7 @@
 package wow.doge.http4sdemo
 
+import scala.concurrent.duration._
+
 import eu.timepit.refined.auto._
 import monix.bio.Task
 import tsec.jws.mac.JWTMac
@@ -16,7 +18,8 @@ final class CredentialsRepoSpec extends RedisItTestBase {
       withReplayLogger(implicit logger =>
         withRedis(container.rootUrl) { (ps, redis) =>
           // redisCredentialsRepo
-          val repo = new RedisCredentialsRepo(redis)(dummySigningKey)
+          val repo =
+            new RedisCredentialsRepo(redis, 10.minutes)(dummySigningKey)
           //   val inMemoryCRepo = InMemoryCredentialsRepo()
           // val testObs = new TestObject()
           val userId = UserId(1)
@@ -38,7 +41,8 @@ final class CredentialsRepoSpec extends RedisItTestBase {
       withReplayLogger(implicit logger =>
         withRedis(container.rootUrl) { (ps, redis) =>
           // redisCredentialsRepo
-          val repo = new RedisCredentialsRepo(redis)(dummySigningKey)
+          val repo =
+            new RedisCredentialsRepo(redis, 10.minutes)(dummySigningKey)
           //   val inMemoryCRepo = InMemoryCredentialsRepo()
           // val testObs = new TestObject()
           val userId = UserId(2)

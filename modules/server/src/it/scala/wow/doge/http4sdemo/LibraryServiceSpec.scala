@@ -13,7 +13,6 @@ import wow.doge.http4sdemo.models.BookUpdate
 import wow.doge.http4sdemo.models.NewAuthor
 import wow.doge.http4sdemo.models.NewBook
 import wow.doge.http4sdemo.refinements.Refinements._
-import wow.doge.http4sdemo.server.AppError
 import wow.doge.http4sdemo.server.repos.NoopBookImagesRepo
 import wow.doge.http4sdemo.server.services.LibraryDbio
 import wow.doge.http4sdemo.server.services.LibraryService
@@ -327,7 +326,7 @@ final class LibraryServiceSpec extends PgItTestBase {
                 .attempt
                 .assertEquals(
                   Left(
-                    AppError
+                    AppError2
                       .EntityDoesNotExist("Book with id=12414 does not exist")
                   )
                 )

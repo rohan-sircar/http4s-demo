@@ -1,5 +1,7 @@
 package wow.doge.http4sdemo.server.repos
 
+import scala.concurrent.duration.FiniteDuration
+
 import cats.syntax.all._
 import dev.profunktor.redis4cats.RedisCommands
 import io.odin.Logger
@@ -12,8 +14,11 @@ import wow.doge.http4sdemo.refinements.Refinements.UserId
 import wow.doge.http4sdemo.server.auth.JwtSigningKey
 import wow.doge.http4sdemo.server.auth.JwtToken
 
-final class RedisCredentialsRepo(redis: RedisCommands[Task, String, String])(
-    implicit signingKey: JwtSigningKey
+final class RedisCredentialsRepo(
+    redis: RedisCommands[Task, String, String],
+    tokenTimeout: FiniteDuration
+)(implicit
+    signingKey: JwtSigningKey
 ) extends CredentialsRepo {
 
   private def key(uid: UserId) = s"users:$uid:session.token"
@@ -32,7 +37,9 @@ final class RedisCredentialsRepo(redis: RedisCommands[Task, String, String])(
           )
         case None => IO.unit
       }
-      _ <- redis.set(key(userId), JwtToken(jwt).inner).hideErrors
+      _ <- redis
+        .setEx(key(userId), JwtToken(jwt).inner, tokenTimeout)
+        .hideErrors
     } yield ()
   }
 

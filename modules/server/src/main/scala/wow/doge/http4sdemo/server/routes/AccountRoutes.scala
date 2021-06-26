@@ -10,18 +10,19 @@ import wow.doge.http4sdemo.endpoints.RegistrationResponse
 import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.UserLogin
 import wow.doge.http4sdemo.models.UserRegistration
+import wow.doge.http4sdemo.models.common.UserRole
 import wow.doge.http4sdemo.server.services.AuthService
 import wow.doge.http4sdemo.server.services.UserService
 import wow.doge.http4sdemo.utils.infoSpan
 
-final class AccountRoutes(A: AuthService, U: UserService)(
+final class AccountRoutes(val authService: AuthService, U: UserService)(
     val logger: Logger[Task]
-) extends ServerInterpreter {
+) extends AuthedServerInterpreter {
 
   def login(user: UserLogin)(implicit logger: Logger[Task]) = infoSpan {
     for {
       _ <- logger.debugU(s"Logging in")
-      jwt <- A.login(user)
+      jwt <- authService.login(user)
       res = LoginResponse(jwt.toEncodedString)
     } yield res
   }
@@ -52,5 +53,14 @@ final class AccountRoutes(A: AuthService, U: UserService)(
       }
   )
 
-  val routes = loginRoute <+> registrationRoute
+  val logoutRoute = toRoutes(
+    AccountEndpoints.logoutEndpoint
+      .serverLogicRecoverErrors { case (ctx, details) =>
+        authorize(ctx, details)(UserRole.User) { case (logger, authDetails) =>
+          authService.logout(authDetails.user.id)(logger)
+        }.leftWiden[Throwable]
+      }
+  )
+
+  val routes = loginRoute <+> registrationRoute <+> logoutRoute
 }

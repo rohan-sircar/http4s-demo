@@ -35,10 +35,11 @@ import wow.doge.http4sdemo.server.routes.AccountRoutes
 import wow.doge.http4sdemo.server.routes.LibraryRoutes
 import wow.doge.http4sdemo.server.routes.LibraryRoutes2
 import wow.doge.http4sdemo.server.routes.MessageRoutes
+import wow.doge.http4sdemo.server.routes.UserRoutes
 import wow.doge.http4sdemo.server.services.AuthServiceImpl
 import wow.doge.http4sdemo.server.services.LibraryDbio
 import wow.doge.http4sdemo.server.services.LibraryServiceImpl
-import wow.doge.http4sdemo.server.services.UserService
+import wow.doge.http4sdemo.server.services.UserServiceImpl
 import wow.doge.http4sdemo.server.types.RedisStreamEventPs
 import wow.doge.http4sdemo.server.utils.RedisResource
 
@@ -57,7 +58,7 @@ final class AppRoutes(
     key = JwtSigningKey(_key)
     usersDbio = new UsersDbio
     usersRepo = new UsersRepoImpl(db, usersDbio)
-    userService = new UserService(usersRepo)
+    userService = new UserServiceImpl(usersRepo)
     libraryDbio = new LibraryDbio
     bookImagesRepo <- Resource.eval(
       BookImagesRepoImpl(s3, config.s3.bucketName.value)
@@ -67,7 +68,7 @@ final class AppRoutes(
     credentialsRepo <- config.auth.session match {
       case AuthSessionConfig.RedisSession =>
         Resource.pure[Task, CredentialsRepo](
-          new RedisCredentialsRepo(redis)(key)
+          new RedisCredentialsRepo(redis, config.auth.tokenTimeout)(key)
         )
       case AuthSessionConfig.InMemory =>
         InMemoryCredentialsRepo(config.auth.tokenTimeout, 10.seconds)(logger)
@@ -83,7 +84,8 @@ final class AppRoutes(
         Timeout(config.http.timeout)(
           new LibraryRoutes(libraryService, authService)(logger).routes <+>
             new LibraryRoutes2(libraryService, authService)(logger).routes <+>
-            new AccountRoutes(authService, userService)(logger).routes
+            new AccountRoutes(authService, userService)(logger).routes <+>
+            new UserRoutes(userService, authService)(logger).routes
         )
     )
     httpRoutes = apiRoutes <+> metricsRoutes(registry)

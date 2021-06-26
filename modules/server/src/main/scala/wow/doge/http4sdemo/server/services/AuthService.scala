@@ -22,6 +22,7 @@ import wow.doge.http4sdemo.implicits._
 import wow.doge.http4sdemo.models.NewUser
 import wow.doge.http4sdemo.models.UserIdentity
 import wow.doge.http4sdemo.models.UserLogin
+import wow.doge.http4sdemo.refinements.Refinements
 import wow.doge.http4sdemo.server.auth._
 import wow.doge.http4sdemo.server.repos.CredentialsRepo
 import wow.doge.http4sdemo.server.repos.InMemoryCredentialsRepo
@@ -38,6 +39,10 @@ trait AuthService {
       logger: Logger[Task]
   ): IO[AppError2, JWTMac[HMACSHA256]]
 
+  def logout(id: Refinements.UserId)(implicit
+      logger: Logger[Task]
+  ): IO[AppError2, Unit]
+
 }
 
 sealed class AuthServiceImpl(
@@ -46,6 +51,12 @@ sealed class AuthServiceImpl(
     tokenTimeout: FiniteDuration
 )(implicit key: JwtSigningKey)
     extends AuthService {
+
+  def logout(id: Refinements.UserId)(implicit
+      logger: Logger[Task]
+  ): IO[AppError2, Unit] = infoSpan {
+    C.remove(id)
+  }
 
   def verify(authDetails: AuthDetails)(implicit logger: Logger[Task]) =
     infoSpan {
@@ -129,6 +140,26 @@ object AuthServiceImpl {
       token = JwtToken(jwt)
     } yield (id, token, impl)
   }
+
+  def inMemoryWithUserWithoutInvalidator(
+      nu: NewUser,
+      usersRepo: Option[UsersRepo] = None,
+      tokenTimeout: FiniteDuration = 10.seconds
+  )(implicit key: JwtSigningKey, logger: Logger[Task]) = {
+    for {
+      urepo <- usersRepo match {
+        case Some(value) => IO.pure(value)
+        case None        => InMemoryUsersRepo()
+      }
+      id <- urepo.put(nu)
+      identity = nu.into[UserIdentity].withFieldConst(_.id, id).transform
+      jwt <- encode[Task](identity, tokenTimeout).hideErrors
+      crepo <- InMemoryCredentialsRepo.withoutInvalidator()
+      _ <- crepo.put(id, jwt)
+      impl = new AuthServiceImpl(crepo, urepo, tokenTimeout)
+      token = JwtToken(jwt)
+    } yield (id, token, impl)
+  }
 }
 
 final class TestAuthService(
@@ -170,4 +201,8 @@ class NoOpAuthService extends AuthService {
       user: UserLogin
   )(implicit logger: Logger[Task]): IO[AppError2, JWTMac[HMACSHA256]] =
     IO.terminate(new NotImplementedError)
+
+  def logout(id: Refinements.UserId)(implicit
+      logger: Logger[Task]
+  ): IO[AppError2, Unit] = ???
 }

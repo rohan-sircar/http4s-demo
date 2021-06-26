@@ -144,6 +144,33 @@ final class LibraryRoutes2(
         }
     )
 
+  val searchBooksRoute = toRoutes(
+    LibraryEndpoints.searchBooksEndpoint
+      .serverLogicPart(enrichLogger)
+      .andThenRecoverErrors { case (logger, (mode, query)) =>
+        L.searchBooks(mode, query)(logger)
+          .flatMap(o => observableToJsonStreamA(o))
+      }
+  )
+
+  val deleteBookRoute = toRoutes(
+    LibraryEndpoints.deleteBookEndpoint
+      .serverLogicRecoverErrors { case (ctx, details, id) =>
+        authorize(ctx, details)(UserRole.Admin) { case (logger, authDetails) =>
+          L.deleteBook(id)(logger).void
+        }.leftWiden[Throwable]
+      }
+  )
+
+  val updateBookRoute = toRoutes(
+    LibraryEndpoints.updateBookEndpoint
+      .serverLogicRecoverErrors { case (ctx, details, id, bookUpdate) =>
+        authorize(ctx, details)(UserRole.Admin) { case (logger, authDetails) =>
+          L.updateBook(id, bookUpdate)(logger).void
+        }.leftWiden[Throwable]
+      }
+  )
+
   def uploadBookImage(id: BookId, imageStream: ImageStream)(implicit
       logger: Logger[Task]
   ) = infoSpan {
@@ -188,7 +215,7 @@ final class LibraryRoutes2(
 
   val routes: HttpRoutes[Task] =
     getBookByIdRoute <+> authedGetBookByIdRoute <+> getBookByIdRoute <+>
-      getBooksRoute <+> createBookRoute <+> createBooksRoute <+> uploadBookImageRoute <+>
-      downloadBookImageRoute
+      getBooksRoute <+> createBookRoute <+> searchBooksRoute <+> createBooksRoute <+> updateBookRoute <+> deleteBookRoute <+>
+      uploadBookImageRoute <+> downloadBookImageRoute
 
 }

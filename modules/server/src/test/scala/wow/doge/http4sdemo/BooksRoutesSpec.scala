@@ -20,8 +20,6 @@ import wow.doge.http4sdemo.models.NewBook
 import wow.doge.http4sdemo.models.pagination.Pagination
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.refinements._
-import wow.doge.http4sdemo.server.AppError
-import wow.doge.http4sdemo.server.routes.LibraryRoutes
 import wow.doge.http4sdemo.server.routes.LibraryRoutes2
 import wow.doge.http4sdemo.server.services.AuthServiceImpl
 import wow.doge.http4sdemo.server.services.NoOpAuthService
@@ -56,9 +54,7 @@ final class BooksRoutesSpec extends UnitTestBase {
       for {
         _ <- IO.unit
         authService = new NoOpAuthService
-        routes = new LibraryRoutes2(service, authService)(
-          logger
-        ).routes
+        routes = new LibraryRoutes2(service, authService)(logger).routes
         request = Request[Task](
           Method.GET,
           uri"/api/books" withQueryParams Map(
@@ -83,27 +79,71 @@ final class BooksRoutesSpec extends UnitTestBase {
             logger: Logger[Task]
         ) =
           IO.raiseError(
-            AppError.EntityDoesNotExist(s"Book with id=$id does not exist")
+            AppError2.EntityDoesNotExist(s"Book with id=$id does not exist")
           )
       }
 
       for {
         _ <- IO.unit
-        authService = new NoOpAuthService
+        (id, token, authService) <- AuthServiceImpl
+          .inMemoryWithUserWithoutInvalidator(adminNewUser)(
+            dummySigningKey,
+            logger
+          )
         reqBody = BookUpdate(Some(BookTitle("blahblah")), None)
-        routes = new LibraryRoutes(service, authService)(logger).routes
-        request = Request[Task](Method.PATCH, Root / "api" / "books" / "1")
-          .withEntity(reqBody)
+        routes = new LibraryRoutes2(service, authService)(logger).routes
+        request = Request[Task](
+          Method.PATCH,
+          Root / "api" / "private" / "books" / "1"
+        ).withEntity(reqBody)
+          .withHeaders(authHeader(token))
         res <- routes.run(request).value
-        body <- res.traverse(_.as[AppError])
+        body <- res.traverse(_.as[AppError2])
         _ <- logger.debug(s"Request: $request, Response: $res, Body: $body")
         _ <- IO(assertEquals(res.map(_.status), Some(Status.NotFound)))
         _ <- IO(
           assertEquals(
             body,
-            Some(
-              AppError.EntityDoesNotExist("Book with id=1 does not exist")
-            )
+            Some(AppError2.EntityDoesNotExist("Book with id=1 does not exist"))
+          )
+        )
+
+      } yield ()
+    }
+  }
+
+  test("delete book api should fail gracefully when book does not exist") {
+    import org.http4s.circe.CirceEntityCodec._
+    withReplayLogger { implicit logger =>
+      val service = new NoopLibraryService {
+        override def deleteBook(id: BookId)(implicit
+            logger: Logger[Task]
+        ) = IO.raiseError(
+          AppError2.EntityDoesNotExist(s"Book with id=$id does not exist")
+        )
+      }
+
+      for {
+        (id, token, authService) <- AuthServiceImpl
+          .inMemoryWithUserWithoutInvalidator(adminNewUser)(
+            dummySigningKey,
+            logger
+          )
+        reqBody = BookUpdate(Some(BookTitle("blahblah")), None)
+        routes = new LibraryRoutes2(service, authService)(logger).routes
+        request = Request[Task](
+          Method.DELETE,
+          Root / "api" / "private" / "books" / "1"
+        ).withEntity(reqBody)
+          .withHeaders(authHeader(token))
+        res <- routes.run(request).value
+        body <- res.traverse(_.as[AppError2])
+        _ <- logger.debug(s"Request: $request, Response: $res, Body: $body")
+        _ <- IO(assertEquals(res.map(_.status), Some(Status.NotFound)))
+        _ <- IO(
+          assertEquals(
+            body,
+            Some(AppError2.EntityDoesNotExist("Book with id=1 does not exist"))
           )
         )
 
@@ -134,7 +174,7 @@ final class BooksRoutesSpec extends UnitTestBase {
       for {
         _ <- IO.unit
         authService = new NoOpAuthService
-        routes = new LibraryRoutes(service, authService)(logger).routes
+        routes = new LibraryRoutes2(service, authService)(logger).routes
         request = Request[Task](
           Method.GET,
           Root / "api" / "books" / "search"
@@ -175,7 +215,7 @@ final class BooksRoutesSpec extends UnitTestBase {
       for {
         _ <- UIO.unit
         authService = new NoOpAuthService
-        routes = new LibraryRoutes(service, authService)(logger).routes
+        routes = new LibraryRoutes2(service, authService)(logger).routes
         request = Request[Task](
           Method.GET,
           Root / "api" / "books" / "search"
@@ -204,22 +244,20 @@ final class BooksRoutesSpec extends UnitTestBase {
       for {
         _ <- UIO.unit
         authService = new NoOpAuthService
-        routes = new LibraryRoutes2(service, authService)(
-          logger
-        ).routes
+        routes = new LibraryRoutes2(service, authService)(logger).routes
         request = Request[Task](
           Method.GET,
           Root / "api" / "books" / "12312"
         )
         res <- routes.run(request).value.hideErrors
-        body <- res.traverse(_.as[AppError])
+        body <- res.traverse(_.as[AppError2])
         _ <- logger.debug(s"Request: $request, Response: $res, Body: $body")
         _ <- IO(assertEquals(res.map(_.status), Some(Status.NotFound)))
         _ <- IO
           .pure(body)
           .assertEquals(
             Some(
-              AppError
+              AppError2
                 .EntityDoesNotExist("Book with id 12312 does not exist")
             )
           )
@@ -245,9 +283,7 @@ final class BooksRoutesSpec extends UnitTestBase {
         }
         for {
           _ <- UIO.unit
-          routes = new LibraryRoutes2(service, authService)(
-            logger
-          ).routes
+          routes = new LibraryRoutes2(service, authService)(logger).routes
           request = Request[Task](
             Method.GET,
             Root / "api" / "private" / "books" / "1"
@@ -278,9 +314,7 @@ final class BooksRoutesSpec extends UnitTestBase {
       for {
         _ <- UIO.unit
         authService = new NoOpAuthService
-        routes = new LibraryRoutes2(service, authService)(
-          logger
-        ).routes
+        routes = new LibraryRoutes2(service, authService)(logger).routes
         request = Request[Task](
           Method.POST,
           Root / "api" / "books"

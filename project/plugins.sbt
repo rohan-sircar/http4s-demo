@@ -17,3 +17,4 @@ addSbtPlugin("org.scalameta" % "sbt-native-image" % "0.3.0")
 addSbtPlugin(
   "com.thoughtworks.deeplearning" % "sbt-ammonite-classpath" % "2.0.0"
 )
+// addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.8.2")

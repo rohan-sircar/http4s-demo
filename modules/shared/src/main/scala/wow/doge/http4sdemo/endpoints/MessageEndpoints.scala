@@ -8,7 +8,7 @@ import wow.doge.http4sdemo.utils.mytapir._
 
 object MessageEndpoints {
   val subscribeEndpoint = baseEndpoint.get
-    .in("api" / "subscribe2")
+    .in("subscribe2")
     .out(
       streamBody(Fs2Streams[Task])(
         Schema(Schema.derived[List[StreamEvent]].schemaType),
@@ -17,7 +17,7 @@ object MessageEndpoints {
     )
 
   val publishEndpoint = baseEndpoint.post
-    .in("api" / "publish2")
+    .in("publish2")
     .in(
       streamBody(Fs2Streams[Task])(
         Schema(Schema.derived[List[StreamInputEvent]].schemaType),

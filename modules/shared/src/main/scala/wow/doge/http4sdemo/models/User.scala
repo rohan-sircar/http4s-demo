@@ -39,12 +39,6 @@ final case class User(
 object User {
   implicit val codec: io.circe.Codec[User] = deriveCodec
 
-  implicit val Decoder: Decoder[User] = deriveDecoder
-  implicit val encoder: Encoder[User] =
-    Encoder.forProduct4("id", "username", "password", "role")(u =>
-      (u.id, u.username, "[REDACTED]", u.role)
-    )
-
   implicit val schema = Schema.derived[User]
 
 }
@@ -55,7 +49,6 @@ final case class UserIdentity(
     role: UserRole
 )
 object UserIdentity {
-  val tupled = (this.apply _).tupled
   implicit val codec: io.circe.Codec[UserIdentity] = deriveCodec
 
   implicit val schema = Schema.derived[UserIdentity]

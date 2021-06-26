@@ -24,7 +24,7 @@ import wow.doge.http4sdemo.server.routes.AccountRoutes
 import wow.doge.http4sdemo.server.routes.AuthedServerInterpreter
 import wow.doge.http4sdemo.server.services.AuthService
 import wow.doge.http4sdemo.server.services.AuthServiceImpl
-import wow.doge.http4sdemo.server.services.UserService
+import wow.doge.http4sdemo.server.services.UserServiceImpl
 import wow.doge.http4sdemo.utils.mytapir._
 
 final class RegistrationFlowSpec extends UnitTestBase {
@@ -46,7 +46,7 @@ final class RegistrationFlowSpec extends UnitTestBase {
       withReplayLogger { implicit logger =>
         for {
           _ <- IO.unit
-          userService = new UserService(usersRepo)
+          userService = new UserServiceImpl(usersRepo)
           routes = new TestAuthedRoutes(authService, logger).routes <+>
             new AccountRoutes(authService, userService)(logger).routes
 

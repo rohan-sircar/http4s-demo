@@ -3,17 +3,16 @@ package wow.doge.http4sdemo.endpoints
 import monix.bio.Task
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.model.StatusCode
-import sttp.tapir._
-import sttp.tapir.codec.newtype._
-import sttp.tapir.codec.refined._
-import sttp.tapir.json.circe._
+import sttp.tapir.CodecFormat
+import wow.doge.http4sdemo.AppError2
 import wow.doge.http4sdemo.models._
 import wow.doge.http4sdemo.models.pagination._
 import wow.doge.http4sdemo.refinements.Refinements._
-
+import wow.doge.http4sdemo.refinements._
+import wow.doge.http4sdemo.utils.mytapir._
 object LibraryEndpoints {
 
-  val baseBookEndpoint = baseEndpoint.in("api" / "books")
+  val baseBookEndpoint = baseEndpoint.in("books")
 
   val getBookById =
     baseBookEndpoint.get
@@ -55,6 +54,38 @@ object LibraryEndpoints {
           CodecFormat.Json()
         )
       )
+
+  val searchBooksEndpoint =
+    baseBookEndpoint.get
+      .in("search")
+      .in(query[BookSearchMode]("mode"))
+      // .in(Pagination.endpoint)
+      .in(query[SearchQuery]("q"))
+      .out(
+        streamBody(Fs2Streams[Task])(
+          Schema(Schema.derived[List[Book]].schemaType),
+          CodecFormat.Json()
+        )
+      )
+
+  val deleteBookEndpoint = basePrivateEndpoint
+    .in("books")
+    .delete
+    .in(path[BookId])
+    .out(statusCode(StatusCode.NoContent))
+
+  val updateBookEndpoint: Endpoint[
+    (ReqContext, AuthDetails, BookId, BookUpdate),
+    AppError2,
+    Unit,
+    Any
+  ] =
+    basePrivateEndpoint
+      .in("books")
+      .patch
+      .in(path[BookId])
+      .in(jsonBody[BookUpdate])
+      .out(statusCode(StatusCode.NoContent))
 
   val uploadBookImageEndpoint =
     baseBookEndpoint.post

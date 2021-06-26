@@ -23,7 +23,6 @@ import wow.doge.http4sdemo.models.common.Color
 import wow.doge.http4sdemo.models.pagination.Pagination
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.refinements._
-import wow.doge.http4sdemo.server.AppError
 import wow.doge.http4sdemo.server.ExtendedPgProfile.api._
 import wow.doge.http4sdemo.server.ExtendedPgProfile.mapping._
 import wow.doge.http4sdemo.server.implicits._
@@ -47,9 +46,11 @@ trait LibraryService {
 
   def updateBook(id: BookId, updateData: BookUpdate)(implicit
       logger: Logger[Task]
-  ): IO[AppError, NumRows]
+  ): IO[AppError2, NumRows]
 
-  def deleteBook(id: BookId)(implicit logger: Logger[Task]): Task[NumRows]
+  def deleteBook(id: BookId)(implicit
+      logger: Logger[Task]
+  ): IO[AppError2, NumRows]
 
   def createBook(newBook: NewBook)(implicit
       logger: Logger[Task]
@@ -59,7 +60,9 @@ trait LibraryService {
       logger: Logger[Task]
   ): IO[AppError2, Option[NumRows]]
 
-  def createAuthor(a: NewAuthor)(implicit logger: Logger[Task]): Task[AuthorId]
+  def createAuthor(a: NewAuthor)(implicit
+      logger: Logger[Task]
+  ): IO[AppError2, AuthorId]
 
   def getBooksByAuthorId(authorId: AuthorId)(implicit
       logger: Logger[Task]
@@ -111,10 +114,8 @@ final class LibraryServiceImpl(
           db.streamO(dbio.searchBooks(query))
         case BookSearchMode.AuthorName =>
           for {
-            author <- db
-              .streamO(dbio.searchAuthors(s))
-            book <- db
-              .streamO(dbio.getBooksForAuthor(author.authorId))
+            author <- db.streamO(dbio.searchAuthors(s))
+            book <- db.streamO(dbio.getBooksForAuthor(author.authorId))
           } yield book
       }
     } yield res
@@ -122,11 +123,11 @@ final class LibraryServiceImpl(
 
   def createAuthor(a: NewAuthor)(implicit
       logger: Logger[Task]
-  ): Task[AuthorId] = db.runL(dbio.insertAuthor(a))
+  ): IO[AppError2, AuthorId] = db.runIO(dbio.insertAuthor(a))
 
   def updateBook(id: BookId, updateData: BookUpdate)(implicit
       logger: Logger[Task]
-  ): IO[AppError, NumRows] =
+  ): IO[AppError2, NumRows] =
     infoSpan {
       for {
         _ <- logger.debugU(s"Request for updating book $id")
@@ -139,7 +140,7 @@ final class LibraryServiceImpl(
                   DBIO.successful(updateData.update(value))
               case None =>
                 DBIO.failed(
-                  AppError.EntityDoesNotExist(
+                  AppError2.EntityDoesNotExist(
                     s"Book with id=$id does not exist"
                   )
                 )
@@ -149,15 +150,13 @@ final class LibraryServiceImpl(
             res <- updateAction
           } yield res)
         )
-        rows <- db
-          .runTryL(action.transactionally.asTry)
-          .mapErrorPartial { case e: AppError => e }
+        rows <- db.runIO(action.transactionally)
       } yield NumRows(rows)
     }
 
   def deleteBook(id: BookId)(implicit
       logger: Logger[Task]
-  ) = db.runL(dbio.deleteBook(id)).map(NumRows.apply)
+  ) = db.runIO(dbio.deleteBook(id)).map(NumRows.apply)
 
   def createBook(newBook: NewBook)(implicit
       logger: Logger[Task]
@@ -246,7 +245,17 @@ final class LibraryServiceImpl(
   def getBooksByAuthorId(authorId: AuthorId)(implicit
       logger: Logger[Task]
   ) =
-    infoSpan(IO.pure(db.streamO(dbio.getBooksForAuthor(authorId))))
+    infoSpan {
+      for {
+        action <- UIO.deferAction(implicit s =>
+          UIO(for {
+            _ <- dbio.checkAuthorWithIdExists(authorId)
+          } yield ())
+        )
+        _ <- db.runIO(action.transactionally)
+        o = db.streamO(dbio.getBooksForAuthor(authorId))
+      } yield o
+    }
 
   def extrasRow = db.streamO(dbio.extrasRows)
 
@@ -465,10 +474,10 @@ class NoopLibraryService extends LibraryService {
 
   def updateBook(id: BookId, updateData: BookUpdate)(implicit
       L: Logger[Task]
-  ): IO[AppError, NumRows] =
+  ): IO[AppError2, NumRows] =
     IO.terminate(new NotImplementedError)
 
-  def deleteBook(id: BookId)(implicit L: Logger[Task]): Task[NumRows] =
+  def deleteBook(id: BookId)(implicit L: Logger[Task]): IO[AppError2, NumRows] =
     IO.terminate(new NotImplementedError)
 
   def createBook(newBook: NewBook)(implicit
@@ -481,7 +490,9 @@ class NoopLibraryService extends LibraryService {
   ): IO[AppError2, Option[NumRows]] =
     IO.terminate(new NotImplementedError)
 
-  def createAuthor(a: NewAuthor)(implicit L: Logger[Task]): Task[AuthorId] =
+  def createAuthor(a: NewAuthor)(implicit
+      L: Logger[Task]
+  ): IO[AppError2, AuthorId] =
     IO.terminate(new NotImplementedError)
 
   def getBooksByAuthorId(authorId: AuthorId)(implicit
