@@ -21,16 +21,16 @@ import wow.doge.http4sdemo.models.pagination.Pagination
 import wow.doge.http4sdemo.refinements.Refinements._
 import wow.doge.http4sdemo.refinements._
 import wow.doge.http4sdemo.server.routes.LibraryRoutes2
-import wow.doge.http4sdemo.server.services.AuthServiceImpl
 import wow.doge.http4sdemo.server.services.NoOpAuthService
 import wow.doge.http4sdemo.server.services.NoopLibraryService
+import wow.doge.http4sdemo.server.services.TestAuthService
 
 final class BooksRoutesSpec extends UnitTestBase {
 
-  val fixture = ResourceFixture(
-    AuthServiceImpl
-      .inMemoryWithUser(suNewUser)(dummySigningKey, Logger.noop[Task])
-  )
+  // val fixture = ResourceFixture(
+  //   AuthServiceImpl
+  //     .inMemoryWithUser(suNewUser)(dummySigningKey, Logger.noop[Task])
+  // )
 
   test("get books api should succeed") {
     import org.http4s.circe.CirceEntityCodec._
@@ -85,11 +85,13 @@ final class BooksRoutesSpec extends UnitTestBase {
 
       for {
         _ <- IO.unit
-        (id, token, authService) <- AuthServiceImpl
-          .inMemoryWithUserWithoutInvalidator(adminNewUser)(
-            dummySigningKey,
-            logger
-          )
+        // (id, token, authService) <- AuthServiceImpl
+        //   .inMemoryWithUserWithoutInvalidator(adminNewUser)(
+        //     dummySigningKey,
+        //     logger
+        //   )
+        authService <- TestAuthService()(dummySigningKey)
+        (id, token) <- authService.createAuthedUser(adminNewUser)
         reqBody = BookUpdate(Some(BookTitle("blahblah")), None)
         routes = new LibraryRoutes2(service, authService)(logger).routes
         request = Request[Task](
@@ -124,11 +126,8 @@ final class BooksRoutesSpec extends UnitTestBase {
       }
 
       for {
-        (id, token, authService) <- AuthServiceImpl
-          .inMemoryWithUserWithoutInvalidator(adminNewUser)(
-            dummySigningKey,
-            logger
-          )
+        authService <- TestAuthService()(dummySigningKey)
+        (id, token) <- authService.createAuthedUser(adminNewUser)
         reqBody = BookUpdate(Some(BookTitle("blahblah")), None)
         routes = new LibraryRoutes2(service, authService)(logger).routes
         request = Request[Task](
@@ -265,36 +264,37 @@ final class BooksRoutesSpec extends UnitTestBase {
     }
   }
 
-  fixture.test("authed get book by id should succeed") {
-    case (id, token, authService) =>
-      import org.http4s.circe.CirceEntityCodec._
-      withReplayLogger { implicit logger =>
-        val book = Book(
-          BookId(1),
-          BookTitle("book1"),
-          BookIsbn("blahblah"),
-          AuthorId(1),
-          date
-        )
-        val service = new NoopLibraryService {
-          override def getBookById(id: BookId)(implicit
-              L: Logger[Task]
-          ): UIO[Option[Book]] = IO.some(book)
-        }
-        for {
-          _ <- UIO.unit
-          routes = new LibraryRoutes2(service, authService)(logger).routes
-          request = Request[Task](
-            Method.GET,
-            Root / "api" / "private" / "books" / "1"
-          ).withHeaders(authHeader(token))
-          res <- routes.run(request).value
-          body <- res.traverse(_.as[Book])
-          _ <- logger.debug(s"Request: $request, Response: $res, Body: $body")
-          _ <- IO(assertEquals(res.map(_.status), Some(Status.Ok)))
-          _ <- IO.pure(body).assertEquals(Some(book))
-        } yield ()
+  test("authed get book by id should succeed") {
+    import org.http4s.circe.CirceEntityCodec._
+    withReplayLogger { implicit logger =>
+      val book = Book(
+        BookId(1),
+        BookTitle("book1"),
+        BookIsbn("blahblah"),
+        AuthorId(1),
+        date
+      )
+      val service = new NoopLibraryService {
+        override def getBookById(id: BookId)(implicit
+            L: Logger[Task]
+        ): UIO[Option[Book]] = IO.some(book)
       }
+      for {
+        _ <- UIO.unit
+        authService <- TestAuthService()(dummySigningKey)
+        (id, token) <- authService.createAuthedUser(suNewUser)
+        routes = new LibraryRoutes2(service, authService)(logger).routes
+        request = Request[Task](
+          Method.GET,
+          Root / "api" / "private" / "books" / "1"
+        ).withHeaders(authHeader(token))
+        res <- routes.run(request).value
+        body <- res.traverse(_.as[Book])
+        _ <- logger.debug(s"Request: $request, Response: $res, Body: $body")
+        _ <- IO(assertEquals(res.map(_.status), Some(Status.Ok)))
+        _ <- IO.pure(body).assertEquals(Some(book))
+      } yield ()
+    }
   }
 
   test("create book should succeed") {

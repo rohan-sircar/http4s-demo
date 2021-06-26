@@ -11,9 +11,9 @@ import wow.doge.http4sdemo.models.common.UserRole
 import wow.doge.http4sdemo.server.UnitTestBase
 import wow.doge.http4sdemo.server.repos.InMemoryUsersRepo
 import wow.doge.http4sdemo.server.routes.UserRoutes
-import wow.doge.http4sdemo.server.services.AuthServiceImpl
 import wow.doge.http4sdemo.server.services.NoOpAuthService
 import wow.doge.http4sdemo.server.services.NoopUserService
+import wow.doge.http4sdemo.server.services.TestAuthService
 import wow.doge.http4sdemo.server.services.UserServiceImpl
 
 final class UserRoutesSpec extends UnitTestBase {
@@ -22,11 +22,10 @@ final class UserRoutesSpec extends UnitTestBase {
     withReplayLogger { implicit logger =>
       for {
         usersRepo <- InMemoryUsersRepo()
-        (id, token, authService) <- AuthServiceImpl
-          .inMemoryWithUserWithoutInvalidator(regularNewUser)(
-            dummySigningKey,
-            logger
-          )
+        authService <- TestAuthService(Some(usersRepo))(
+          dummySigningKey
+        )
+        (id, token) <- authService.createAuthedUser(regularNewUser)
         userService = new UserServiceImpl(usersRepo)
         routes = new UserRoutes(userService, authService)(logger).getUserRoute
         request = Request[Task](

@@ -123,43 +123,6 @@ object AuthServiceImpl {
         case None        => Resource.eval(InMemoryUsersRepo())
       }
     } yield new AuthServiceImpl(crepo, urepo, tokenTimeout)
-
-  def inMemoryWithUser(
-      nu: NewUser,
-      tokenTimeout: FiniteDuration = 10.seconds,
-      interval: FiniteDuration = 10.seconds
-  )(implicit key: JwtSigningKey, logger: Logger[Task]) = {
-    for {
-      urepo <- Resource.eval(InMemoryUsersRepo())
-      id <- Resource.eval(urepo.put(nu))
-      identity = nu.into[UserIdentity].withFieldConst(_.id, id).transform
-      jwt <- Resource.eval(encode[Task](identity, tokenTimeout).hideErrors)
-      crepo <- InMemoryCredentialsRepo(tokenTimeout, interval)(logger)
-      _ <- Resource.eval(crepo.put(id, jwt))
-      impl = new AuthServiceImpl(crepo, urepo, tokenTimeout)
-      token = JwtToken(jwt)
-    } yield (id, token, impl)
-  }
-
-  def inMemoryWithUserWithoutInvalidator(
-      nu: NewUser,
-      usersRepo: Option[UsersRepo] = None,
-      tokenTimeout: FiniteDuration = 10.seconds
-  )(implicit key: JwtSigningKey, logger: Logger[Task]) = {
-    for {
-      urepo <- usersRepo match {
-        case Some(value) => IO.pure(value)
-        case None        => InMemoryUsersRepo()
-      }
-      id <- urepo.put(nu)
-      identity = nu.into[UserIdentity].withFieldConst(_.id, id).transform
-      jwt <- encode[Task](identity, tokenTimeout).hideErrors
-      crepo <- InMemoryCredentialsRepo.withoutInvalidator()
-      _ <- crepo.put(id, jwt)
-      impl = new AuthServiceImpl(crepo, urepo, tokenTimeout)
-      token = JwtToken(jwt)
-    } yield (id, token, impl)
-  }
 }
 
 final class TestAuthService(
@@ -180,16 +143,17 @@ final class TestAuthService(
 }
 
 object TestAuthService {
-  def inMemory(
-      tokenTimeout: FiniteDuration = 10.seconds,
-      interval: FiniteDuration = 10.seconds
-  )(implicit
-      key: JwtSigningKey,
-      logger: Logger[Task]
-  ) =
+  def apply(
+      usersRepo: Option[UsersRepo] = None,
+      tokenTimeout: FiniteDuration = 10.seconds
+      // interval: FiniteDuration = 10.seconds
+  )(implicit key: JwtSigningKey) =
     for {
-      crepo <- InMemoryCredentialsRepo(tokenTimeout, interval)(logger)
-      urepo <- Resource.eval(InMemoryUsersRepo()),
+      crepo <- InMemoryCredentialsRepo.withoutInvalidator()
+      urepo <- usersRepo match {
+        case Some(value) => IO.pure(value)
+        case None        => InMemoryUsersRepo()
+      }
     } yield new TestAuthService(crepo, urepo, tokenTimeout)
 }
 
@@ -204,5 +168,5 @@ class NoOpAuthService extends AuthService {
 
   def logout(id: Refinements.UserId)(implicit
       logger: Logger[Task]
-  ): IO[AppError2, Unit] = ???
+  ): IO[AppError2, Unit] = IO.terminate(new NotImplementedError)
 }
