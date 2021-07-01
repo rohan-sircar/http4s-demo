@@ -2,7 +2,6 @@ package wow.doge.http4sdemo.models
 
 import enumeratum.EnumEntry
 import enumeratum._
-import enumeratum.values.CatsValueEnum
 import enumeratum.values.IntCirceEnum
 import enumeratum.values.IntEnum
 import enumeratum.values.IntEnumEntry
@@ -10,6 +9,8 @@ import enumeratum.values.IntEnumEntry
 package object common {}
 
 package common {
+
+  import enumeratum.values.CatsOrderValueEnum
   sealed trait Color extends EnumEntry with EnumEntry.UpperSnakecase
   object Color extends Enum[Color] with CirceEnum[Color] {
     val values = findValues
@@ -32,8 +33,8 @@ package common {
       extends IntEnumEntry
       with EnumEntry.UpperSnakecase
   object UserRole
-      extends IntEnum[UserRole]
-      with CatsValueEnum[Int, UserRole]
+      extends CatsOrderValueEnum[Int, UserRole]
+      with IntEnum[UserRole]
       with IntCirceEnum[UserRole] {
     val values = findValues
     //format: off

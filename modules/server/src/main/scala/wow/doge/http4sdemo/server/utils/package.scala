@@ -80,3 +80,11 @@ package object utils {
   }
 
 }
+
+package utils {
+
+  import scala.concurrent.duration.FiniteDuration
+  // Keeps the current state, indicating the restart delay and the
+// maximum number of retries left
+  final case class Backoff(maxRetries: Int, delay: FiniteDuration)
+}

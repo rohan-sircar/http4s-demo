@@ -108,7 +108,9 @@ lazy val shared = (project in file("modules/shared"))
       "com.softwaremill.sttp.tapir"   %% "tapir-sttp-client"        % TapirVersion,
       "com.softwaremill.sttp.tapir"   %% "tapir-openapi-circe-yaml" % TapirVersion,
       "com.softwaremill.sttp.tapir"   %% "tapir-openapi-docs"       % TapirVersion,
-      "com.lihaoyi"                   %% "pprint"                   % "0.6.6"
+      "com.lihaoyi"                   %% "pprint"                   % "0.6.6",
+      "io.chrisdavenport"             %% "fuuid"                    % "0.6.0",
+      "io.chrisdavenport"             %% "fuuid-circe"              % "0.6.0",
       //format: on
     ),
     wartremoverErrors in (Compile, compile) ++= WartRemoverErrors
@@ -199,6 +201,9 @@ lazy val server = (project in file("modules/server"))
       "dev.profunktor"                %% "redis4cats-log4cats"       % "0.13.1",
       "jp.ne.opt"                     %% "chronoscala"               % "1.0.0",
       "io.monix"                      %% "monix-s3"                  % "0.6.0",
+      "com.github.eikek"              %% "emil-common"               % "0.9.2", // the core library
+      "com.github.eikek"              %% "emil-javamail"             % "0.9.2",
+      "com.github.eikek"              %% "emil-markdown"             % "0.9.2",
       // "ch.qos.logback" % "logback-classic" % LogbackVersion,
       // "org.scalameta"                 %% "svm-subs"                 % "20.2.0",
       //test deps
@@ -259,6 +264,7 @@ lazy val server = (project in file("modules/server"))
                   case s if s.endsWith("user_id") => "UserId"
                   case "user_name"                => "Username"
                   case "user_password"            => "HashedUserPassword"
+                  case "user_email"               => "UserEmail"
                   case "user_role"                => "UserRole"
                   //others
                   case "color"                    => "Color"

@@ -31,6 +31,9 @@ trait UsersRepo {
   def getByName(userName: Username)(implicit
       logger: Logger[Task]
   ): IO[AppError, Option[UserEntity]]
+  def activateById(id: UserId)(implicit
+      logger: Logger[Task]
+  ): IO[AppError, Unit]
   def removeById(id: UserId)(implicit
       logger: Logger[Task]
   ): IO[AppError, Unit]
@@ -48,7 +51,7 @@ final class InMemoryUsersRepo private (
   private def cake[E, A](
       io: IO[E, A]
   )(implicit logger: Logger[Task], position: Position) =
-    infoSpan(lock.greenLight(io))
+    infoSpan(io)
 
   def put(nu: NewUser)(implicit logger: Logger[Task]): IO[AppError, UserId] =
     cake {
@@ -65,8 +68,14 @@ final class InMemoryUsersRepo private (
           case None => IO.unit
         }
         num <- counter.get.hideErrors
-        user2 = nu.into[UserEntity].withFieldConst(_.id, num).transform
-        num <- counter.updateAndGet(_ :+ UserId(1)).hideErrors
+        _ <- logger.traceU(s"Generated id = $num")
+        user2 = nu
+          .into[UserEntity]
+          .withFieldConst(_.id, num)
+          .withFieldConst(_.activeStatus, false)
+          .transform
+        _ <- counter.updateAndGet(_ :+ UserId(1)).hideErrors
+
         _ <- store.update(user2 :: _).hideErrors
       } yield num
     }
@@ -108,6 +117,21 @@ final class InMemoryUsersRepo private (
       next = users.foldLeft(List.empty[UserEntity]) { case (acc, next) =>
         if (next.id === id) next.copy(role = role) :: acc else next :: acc
       }
+      _ <- store.set(next).hideErrors
+    } yield ()
+  }
+
+  def activateById(id: UserId)(implicit
+      logger: Logger[Task]
+  ): IO[AppError, Unit] = cake {
+    for {
+      users <- store.get.hideErrors
+      next = users.foldLeft(List.empty[UserEntity]) { case (acc, next) =>
+        if (next.id === id) next.copy(activeStatus = true) :: acc
+        else next :: acc
+      }
+      _ <- logger.traceU(s"User id = $id")
+      _ <- logger.traceU(s"Users = $next")
       _ <- store.set(next).hideErrors
     } yield ()
   }
@@ -184,6 +208,9 @@ final class UsersRepoImpl(db: JdbcBackend.DatabaseDef, usersDbio: UsersDbio)
     db.runIO(usersDbio.updateRoleById(id, role).transactionally >> DBIO.unit)
   }
 
+  def activateById(id: UserId)(implicit
+      logger: Logger[Task]
+  ): IO[AppError, Unit] = db.runIO(usersDbio.activateById(id)).void
 }
 
 final class UsersDbio {
@@ -210,5 +237,8 @@ final class UsersDbio {
 
   def updateRoleById(id: UserId, role: UserRole) =
     Tables.Users.filter(_.userId === id).map(_.userRole).update(role)
+
+  def activateById(id: UserId) =
+    Tables.Users.filter(_.userId === id).map(_.activeStatus).update(true)
 
 }

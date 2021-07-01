@@ -169,4 +169,17 @@ object Refinements {
     implicit val toT: Transformer[HashedUserPassword, String] = _.inner.value
   }
 
+  @newtype final case class UserEmail(inner: EmailRefinement)
+  object UserEmail {
+    implicit val encoder: Encoder[UserEmail] =
+      Encoder[EmailRefinement].coerce
+    implicit val decoder: Decoder[UserEmail] =
+      Decoder[EmailRefinement].coerce
+    implicit val fromT =
+      implicitly[
+        TransformerF[RefinementValidation, String, EmailRefinement]
+      ].coerce
+    implicit val toT: Transformer[UserEmail, String] = _.inner.value
+  }
+
 }

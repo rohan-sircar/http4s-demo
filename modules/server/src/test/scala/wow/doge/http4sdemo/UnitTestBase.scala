@@ -19,13 +19,28 @@ trait UnitTestBase extends MonixBioSuite {
   )
 
   val regularNewUser =
-    NewUser(Username("regular-user"), dummyUserPassword, UserRole.User)
+    NewUser(
+      Username("regular-user"),
+      dummyUserPassword,
+      UserEmail("rohansircar@protonmail.com"),
+      UserRole.User
+    )
 
   val adminNewUser =
-    NewUser(Username("admin-user"), dummyUserPassword, UserRole.Admin)
+    NewUser(
+      Username("admin-user"),
+      dummyUserPassword,
+      UserEmail("rohansircar@protonmail.com"),
+      UserRole.Admin
+    )
 
   val suNewUser =
-    NewUser(Username("super-user"), dummyUserPassword, UserRole.SuperUser)
+    NewUser(
+      Username("super-user"),
+      dummyUserPassword,
+      UserEmail("rohansircar@protonmail.com"),
+      UserRole.SuperUser
+    )
 
   def authHeader(token: JwtToken) = Authorization(
     Credentials.Token(AuthScheme.Bearer, token.inner)

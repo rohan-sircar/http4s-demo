@@ -8,8 +8,10 @@ import cats.effect.Resource
 import cats.syntax.all._
 import com.codahale.metrics.MetricRegistry
 import dev.profunktor.redis4cats.data
+import emil.javamail.JavaMailEmil
 import fs2.Pipe
 import io.odin.Logger
+import monix.bio.IO
 import monix.bio.Task
 import monix.connect.s3.S3
 import org.http4s.HttpRoutes
@@ -23,8 +25,11 @@ import slick.jdbc.JdbcBackend.DatabaseDef
 import tsec.mac.jca.HMACSHA256
 import wow.doge.http4sdemo.models.StreamEvent
 import wow.doge.http4sdemo.server.auth.JwtSigningKey
+import wow.doge.http4sdemo.server.concurrent.Schedulers.IoScheduler
 import wow.doge.http4sdemo.server.config.AppConfig
 import wow.doge.http4sdemo.server.config.AuthSessionConfig
+import wow.doge.http4sdemo.server.repos.AccountActivationTokensDbio
+import wow.doge.http4sdemo.server.repos.AccountActivationTokensRepoImpl
 import wow.doge.http4sdemo.server.repos.BookImagesRepoImpl
 import wow.doge.http4sdemo.server.repos.CredentialsRepo
 import wow.doge.http4sdemo.server.repos.InMemoryCredentialsRepo
@@ -40,13 +45,16 @@ import wow.doge.http4sdemo.server.services.LibraryDbio
 import wow.doge.http4sdemo.server.services.LibraryServiceImpl
 import wow.doge.http4sdemo.server.services.UserServiceImpl
 import wow.doge.http4sdemo.server.types.RedisStreamEventPs
+import wow.doge.http4sdemo.server.utils.ConsoleLoggingMailClient
+import wow.doge.http4sdemo.server.utils.MailClientImpl
 import wow.doge.http4sdemo.server.utils.RedisResource
 
 final class AppRoutes(
     db: DatabaseDef,
     registry: MetricRegistry,
     s3: S3,
-    config: AppConfig
+    config: AppConfig,
+    ioScheduler: IoScheduler
 )(implicit logger: Logger[Task]) {
   val routes = for {
     _key <- Resource.eval(
@@ -55,9 +63,27 @@ final class AppRoutes(
       )
     )
     key = JwtSigningKey(_key)
+    mailConfig = config.smtp.toMailConfig
+    mailClient <- Resource.eval(mailConfig match {
+      case Left(value) =>
+        logger
+          .warn(
+            s"Following smtp config values are not set: ${value}. " +
+              s"Falling back to console-logging mail client impl."
+          )
+          .hideErrors >>
+          IO.pure(new ConsoleLoggingMailClient)
+      case Right(value) =>
+        IO.pure(
+          new MailClientImpl(JavaMailEmil[Task](ioScheduler.blocker), value)
+        )
+    })
+    _ <- Resource.eval(logger.debug(s"Smtp config = ${mailConfig}"))
     usersDbio = new UsersDbio
+    aatDbio = new AccountActivationTokensDbio
     usersRepo = new UsersRepoImpl(db, usersDbio)
-    userService = new UserServiceImpl(usersRepo)
+    aatr = new AccountActivationTokensRepoImpl(db, aatDbio)
+    userService = new UserServiceImpl(usersRepo, mailClient, aatr)
     libraryDbio = new LibraryDbio
     bookImagesRepo <- Resource.eval(
       BookImagesRepoImpl(s3, config.s3.bucketName.value)

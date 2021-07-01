@@ -71,11 +71,12 @@ trait AuthedServerInterpreter extends ServerInterpreter {
       verified <- authService.verify(details)(logger)
       logger <- IO.pure(
         logger.withConstContext(
-          Map("userId" -> verified.user.id.inner.value.toString)
+          // Map("userId" -> verified.user.id.inner.value.toString)
+          verified.user.toStringMap
         )
       )
       res <-
-        if (verified.user.role.value <= role.value) f(logger, verified)
+        if (verified.user.role <= role) f(logger, verified)
         else
           IO.raiseError(
             AppError

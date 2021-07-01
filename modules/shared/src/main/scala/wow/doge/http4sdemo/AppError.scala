@@ -14,6 +14,22 @@ object AppError {
   final case class EntityAlreadyExists(message: String) extends AppError
   final case class BadInput(message: String) extends AppError
   final case class AuthError(message: String) extends AppError
+  final case class MailClientError(error: MailClientErrorCases)
+      extends AppError {
+    val message = error.message
+  }
+
+  sealed trait MailClientErrorCases {
+    def message: String
+  }
+
+  final case class CouldNotConnectError(message: String)
+      extends MailClientErrorCases
+  final case class SendFailedError(message: String) extends MailClientErrorCases
+  object MailClientErrorCases {
+    implicit val codec = deriveCodec[MailClientErrorCases]
+    implicit val schema = Schema.derived[MailClientErrorCases]
+  }
 
   implicit val schema = Schema.derived[AppError]
 }

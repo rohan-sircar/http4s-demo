@@ -59,21 +59,37 @@ values
     (3, false);
 
 insert into
-    users (user_name, user_password, user_role)
+    users (
+        user_name,
+        user_password,
+        user_email,
+        user_role,
+        active_status
+    )
 values
     (
         'user1',
+        'rohansircar@protonmail.com',
         '$2a$10$V2qon2elG0P6/u5J.5xyDOx/.S94Cnt0iod64qAUhbGo6C8UCQOcm',
-        '0'
+        '0',
+        true
     );
 
 insert into
-    users (user_name, user_password, user_role)
+    users (
+        user_name,
+        user_password,
+        user_email,
+        user_role,
+        active_status
+    )
 values
     (
         'user2',
+        'rohansircar@protonmail.com',
         '$2a$10$sjofv/dUmC9Fqe7oS4vxpOlwjU634X/1UaNyBltzFffUhkj3xde8a',
-        '1'
+        '1',
+        true
     );
 
 insert into

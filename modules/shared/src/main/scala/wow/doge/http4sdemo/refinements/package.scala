@@ -8,6 +8,8 @@ import eu.timepit.refined.collection._
 import eu.timepit.refined.numeric._
 import eu.timepit.refined.string._
 import eu.timepit.refined.types.string.NonEmptyFiniteString
+import shapeless.::
+import shapeless.HNil
 
 //TODO add regex to these refinements
 package object refinements {
@@ -39,6 +41,19 @@ package object refinements {
   object UsernameRefinement extends RefinedTypeOps[UsernameRefinement, String]
 
   type UrlRefinement =
-    String Refined And[Size[Interval.Closed[1, 50]], StartsWith["http://"]]
+    String Refined AllOf[
+      Size[Interval.Closed[1, 50]] :: StartsWith["http://"] :: HNil
+    ]
   object UrlRefinement extends RefinedTypeOps[UrlRefinement, String]
+
+  type EmailRefinement =
+    String Refined AllOf[
+      Size[Interval.Closed[1, 50]] ::
+        MatchesRegex[
+          """^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"""
+        ] ::
+        HNil
+    ]
+  object EmailRefinement extends RefinedTypeOps[EmailRefinement, String]
+
 }

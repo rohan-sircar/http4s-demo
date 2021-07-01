@@ -10,11 +10,13 @@ import wow.doge.http4sdemo.models.UserIdentity
 import wow.doge.http4sdemo.models.common.UserRole
 import wow.doge.http4sdemo.server.UnitTestBase
 import wow.doge.http4sdemo.server.repos.InMemoryUsersRepo
+import wow.doge.http4sdemo.server.repos.NoopAccountActivationTokensRepo
 import wow.doge.http4sdemo.server.routes.UserRoutes
 import wow.doge.http4sdemo.server.services.NoOpAuthService
 import wow.doge.http4sdemo.server.services.NoopUserService
 import wow.doge.http4sdemo.server.services.TestAuthService
 import wow.doge.http4sdemo.server.services.UserServiceImpl
+import wow.doge.http4sdemo.server.utils.ConsoleLoggingMailClient
 
 final class UserRoutesSpec extends UnitTestBase {
   test("get user api should return current user identity for authed user") {
@@ -26,7 +28,11 @@ final class UserRoutesSpec extends UnitTestBase {
           dummySigningKey
         )
         (id, token) <- authService.createAuthedUser(regularNewUser)
-        userService = new UserServiceImpl(usersRepo)
+        userService = new UserServiceImpl(
+          usersRepo,
+          new ConsoleLoggingMailClient,
+          new NoopAccountActivationTokensRepo
+        )
         routes = new UserRoutes(userService, authService)(logger).getUserRoute
         request = Request[Task](
           Method.GET,
@@ -39,7 +45,14 @@ final class UserRoutesSpec extends UnitTestBase {
         _ <- IO(
           assertEquals(
             body,
-            Some(UserIdentity(id, regularNewUser.username, UserRole.user))
+            Some(
+              UserIdentity(
+                id,
+                regularNewUser.username,
+                regularNewUser.email,
+                UserRole.user
+              )
+            )
           )
         )
       } yield ()

@@ -6,6 +6,7 @@ import cats.syntax.either._
 import eu.timepit.refined.api.RefType
 import eu.timepit.refined.api.Validate
 import fs2.interop.reactivestreams._
+import io.chrisdavenport.fuuid.FUUID
 import io.odin.meta.Position
 import io.odin.meta.Render
 import io.scalaland.chimney.Transformer
@@ -17,6 +18,8 @@ import monix.execution.Scheduler
 import monix.reactive.Observable
 import shapeless.ops.product
 import shapeless.syntax.std.product._
+import sttp.tapir.Codec
+import sttp.tapir.DecodeResult
 
 package object implicits extends MyCirceSupportParser {
   // with slickeffect.DBIOInstances
@@ -109,5 +112,9 @@ package object implicits extends MyCirceSupportParser {
       k.name -> v.toString
     }
   }
+
+  implicit val tapirCodecForFuuid = Codec.string.mapDecode(s =>
+    DecodeResult.fromOption(FUUID.fromString(s).toOption)
+  )(_.show)
 
 }

@@ -2,10 +2,15 @@ package wow.doge.http4sdemo.server.config
 
 import scala.concurrent.duration.FiniteDuration
 
+import cats.data.NonEmptyList
 import cats.syntax.all._
+import emil.MailConfig
+import emil.SSLType
 import enumeratum._
+import eu.timepit.refined.api.Refined
 import eu.timepit.refined.api.RefinedTypeOps
 import eu.timepit.refined.pureconfig._
+import eu.timepit.refined.string.IPv4
 import eu.timepit.refined.types.net
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string
@@ -186,7 +191,7 @@ object S3Config {
 
 final case class LogstashConfig(
     enabled: Boolean,
-    host: string.NonEmptyFiniteString[100],
+    host: String Refined IPv4,
     port: net.PortNumber
 )
 
@@ -194,13 +199,38 @@ object LogstashConfig {
   implicit val reader = deriveReader[LogstashConfig]
 }
 
+final case class SmtpConfig(
+    url: Option[String],
+    username: Option[string.NonEmptyFiniteString[100]],
+    password: Option[string.NonEmptyFiniteString[100]],
+    ssl: Option[SSLType]
+) { self =>
+
+  def toMailConfig = (
+    url.toRight(NonEmptyList.one("url is not set")),
+    username.map(_.value).toRight(NonEmptyList.one("username is not set")),
+    password.map(_.value).toRight(NonEmptyList.one("password is not set")),
+    ssl.toRight(NonEmptyList.one("ssl is not set"))
+  ).parMapN((_url, u, p, s) => MailConfig(_url, u, p, s))
+
+  //   def toMailConfig = for {
+  //   _url <- url
+  //   u <- username.map(_.value)
+  //   p <- password.map(_.value)
+  //   s <- ssl
+  // } yield MailConfig(_url, u, p, s)
+}
+object SmtpConfig {
+  implicit val reader = deriveReader[SmtpConfig]
+}
 final case class AppConfig(
     http: HttpConfig,
     logger: LoggerConfig,
     auth: AuthConfig,
     redis: RedisConfig,
     s3: S3Config,
-    logstash: LogstashConfig
+    logstash: LogstashConfig,
+    smtp: SmtpConfig
 )
 object AppConfig {
   implicit val configReader = deriveReader[AppConfig]

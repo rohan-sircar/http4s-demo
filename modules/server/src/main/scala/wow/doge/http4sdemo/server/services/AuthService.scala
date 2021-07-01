@@ -70,7 +70,7 @@ sealed class AuthServiceImpl(
         // ctx = Map("userId" -> decoded.user.id.inner.toString)
         logger <- IO.pure(
           logger.withConstContext(
-            Map("userId" -> decoded.user.id.inner.toString)
+            Map("id" -> decoded.user.id.toString)
           )
         )
         _ <- existingToken match {
@@ -96,6 +96,9 @@ sealed class AuthServiceImpl(
         // _ <- logger.infoU("Performing login")
         mbUser <- U.getByName(userLogin.username)
         user <- IO.fromOption(mbUser, AppError.AuthError("Invalid password"))
+        _ <-
+          if (user.activeStatus) IO.unit
+          else IO.raiseError(AppError.AuthError("Account not activated"))
         identity = user.transformInto[UserIdentity]
         status <- checkPasswordIO(userLogin, user)
         jwt <- status match {

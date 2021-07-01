@@ -1,6 +1,7 @@
 package wow.doge.http4sdemo.server.routes
 
 import cats.syntax.all._
+import io.chrisdavenport.fuuid.FUUID
 import io.odin.Logger
 import io.odin.syntax._
 import monix.bio.Task
@@ -15,7 +16,11 @@ import wow.doge.http4sdemo.server.services.AuthService
 import wow.doge.http4sdemo.server.services.UserService
 import wow.doge.http4sdemo.utils.infoSpan
 
-final class AccountRoutes(val authService: AuthService, U: UserService)(
+final class AccountRoutes(
+    val authService: AuthService,
+    U: UserService
+    // aatr: AccountActivationTokensRepo
+)(
     val logger: Logger[Task]
 ) extends AuthedServerInterpreter {
 
@@ -39,7 +44,7 @@ final class AccountRoutes(val authService: AuthService, U: UserService)(
     infoSpan {
       for {
         _ <- logger.debugU(s"Registering ${registration.username}")
-        id <- U.createUser(registration)
+        (_, id) <- U.createUser(registration)
       } yield RegistrationResponse(id)
     }
 
@@ -62,5 +67,17 @@ final class AccountRoutes(val authService: AuthService, U: UserService)(
       }
   )
 
-  val routes = loginRoute <+> registrationRoute <+> logoutRoute
+  def activateAccount(token: FUUID)(implicit logger: Logger[Task]) =
+    infoSpan { U.activateAccount(token) }
+
+  val accountActivationRoute = toRoutes(
+    AccountEndpoints.accountActivationRoute
+      .serverLogicPart(enrichLogger)
+      .andThenRecoverErrors { case (logger, token) =>
+        activateAccount(token)(logger)
+      }
+  )
+
+  val routes =
+    loginRoute <+> registrationRoute <+> logoutRoute <+> accountActivationRoute
 }
